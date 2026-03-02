@@ -620,10 +620,101 @@ definition closure_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set \
 (** from \S17 Theorem 17.4 [top1.tex:703] **)
 (** LATEX VERSION: "Closure in Y equals closure in X intersect Y." **)
 theorem Theorem_17_4:
-  assumes "is_topology_on X T"
-  assumes "A \<subseteq> Y" and "Y \<subseteq> X"
+  assumes hT: "is_topology_on X T"
+  assumes hAY: "A \<subseteq> Y" and hYX: "Y \<subseteq> X"
   shows "closure_on Y (subspace_topology X T Y) A = closure_on X T A \<inter> Y"
-  sorry
+proof -
+  have empty_T: "{} \<in> T"
+    by (rule conjunct1[OF hT[unfolded is_topology_on_def]])
+  have empty_TY: "{} \<in> subspace_topology X T Y"
+    apply (unfold subspace_topology_def)
+    apply (rule CollectI)
+    apply (rule exI[where x="{}"])
+    apply (rule conjI)
+     apply (simp only: Int_empty_right)
+    apply (rule empty_T)
+    done
+  have Y_closed: "closedin_on Y (subspace_topology X T Y) Y"
+    apply (rule closedin_intro)
+     apply (rule subset_refl)
+    apply (simp only: Diff_cancel)
+    apply (rule empty_TY)
+    done
+  note t172 = Theorem_17_2[OF hT hYX]
+  show ?thesis
+  proof (rule equalityI)
+    show "closure_on Y (subspace_topology X T Y) A \<subseteq> closure_on X T A \<inter> Y"
+      unfolding closure_on_def
+    proof (rule subsetI)
+      fix x
+      assume hx: "x \<in> \<Inter>{C. closedin_on Y (subspace_topology X T Y) C \<and> A \<subseteq> C}"
+      show "x \<in> \<Inter>{C. closedin_on X T C \<and> A \<subseteq> C} \<inter> Y"
+      proof (rule IntI)
+        show "x \<in> \<Inter>{C. closedin_on X T C \<and> A \<subseteq> C}"
+        proof (rule InterI)
+          fix D assume hD: "D \<in> {C. closedin_on X T C \<and> A \<subseteq> C}"
+          have hDcl: "closedin_on X T D"
+            by (rule conjunct1[OF CollectD[OF hD]])
+          have hAD: "A \<subseteq> D"
+            by (rule conjunct2[OF CollectD[OF hD]])
+          have DY_cl: "closedin_on Y (subspace_topology X T Y) (D \<inter> Y)"
+            apply (rule iffD2[OF t172])
+            apply (intro exI conjI, rule hDcl, rule refl)
+            done
+          have A_DY: "A \<subseteq> D \<inter> Y"
+            apply (rule subsetI, rule IntI)
+             apply (rule subsetD[OF hAD], assumption)
+            apply (rule subsetD[OF hAY], assumption)
+            done
+          have x_DY: "x \<in> D \<inter> Y"
+            apply (rule InterD[OF hx])
+            apply (rule CollectI, rule conjI, rule DY_cl, rule A_DY)
+            done
+          show "x \<in> D"
+            by (rule IntD1[OF x_DY])
+        qed
+        show "x \<in> Y"
+          apply (rule InterD[OF hx])
+          apply (rule CollectI, rule conjI, rule Y_closed, rule hAY)
+          done
+      qed
+    qed
+  next
+    show "closure_on X T A \<inter> Y \<subseteq> closure_on Y (subspace_topology X T Y) A"
+      unfolding closure_on_def
+    proof (rule subsetI)
+      fix x
+      assume hx: "x \<in> \<Inter>{C. closedin_on X T C \<and> A \<subseteq> C} \<inter> Y"
+      have hxcl: "x \<in> \<Inter>{C. closedin_on X T C \<and> A \<subseteq> C}"
+        by (rule IntD1[OF hx])
+      have hxY: "x \<in> Y"
+        by (rule IntD2[OF hx])
+      show "x \<in> \<Inter>{C. closedin_on Y (subspace_topology X T Y) C \<and> A \<subseteq> C}"
+      proof (rule InterI)
+        fix C assume hC: "C \<in> {B. closedin_on Y (subspace_topology X T Y) B \<and> A \<subseteq> B}"
+        have hCcl: "closedin_on Y (subspace_topology X T Y) C"
+          by (rule conjunct1[OF CollectD[OF hC]])
+        have hAC: "A \<subseteq> C"
+          by (rule conjunct2[OF CollectD[OF hC]])
+        have hCD_ex: "\<exists>D. closedin_on X T D \<and> C = D \<inter> Y"
+          by (rule iffD1[OF t172, OF hCcl])
+        then obtain D where hDcl: "closedin_on X T D" and hCD: "C = D \<inter> Y"
+          by blast
+        have hAD: "A \<subseteq> D"
+          apply (rule subset_trans[OF hAC])
+          apply (subst hCD, rule Int_lower1)
+          done
+        have xD: "x \<in> D"
+          apply (rule InterD[OF hxcl])
+          apply (rule CollectI, rule conjI, rule hDcl, rule hAD)
+          done
+        show "x \<in> C"
+          apply (subst hCD, rule IntI, rule xD, rule hxY)
+          done
+      qed
+    qed
+  qed
+qed
 
 (** from \S17 (Terminology: 'A intersects B' iff A\<inter>B \<noteq> {}) [top1.tex:~707] **)
 definition intersects :: "'a set \<Rightarrow> 'a set \<Rightarrow> bool" where
@@ -635,18 +726,126 @@ definition neighborhood_of :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a set set 
   "neighborhood_of x X T U \<longleftrightarrow> U \<in> T \<and> x \<in> U"
 
 theorem Theorem_17_5a:
-  assumes "is_topology_on X T"
-  assumes "x \<in> X" and "A \<subseteq> X"
+  assumes hT: "is_topology_on X T"
+  assumes hxX: "x \<in> X" and hAX: "A \<subseteq> X"
   shows "x \<in> closure_on X T A \<longleftrightarrow>
     (\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects U A)"
-  sorry
+proof (rule iffI)
+  assume hx: "x \<in> closure_on X T A"
+  show "\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects U A"
+  proof (intro allI impI)
+    fix U assume hU: "neighborhood_of x X T U"
+    have hUT: "U \<in> T"
+      by (rule conjunct1[OF hU[unfolded neighborhood_of_def]])
+    have hxU: "x \<in> U"
+      by (rule conjunct2[OF hU[unfolded neighborhood_of_def]])
+    have X_T: "X \<in> T"
+      by (rule conjunct1[OF conjunct2[OF hT[unfolded is_topology_on_def]]])
+    have inter_T: "\<forall>F. finite F \<and> F \<subseteq> T \<longrightarrow> \<Inter>F \<in> T"
+      by (rule conjunct2[OF conjunct2[OF conjunct2[OF hT[unfolded is_topology_on_def]]]])
+    have XU_T: "X \<inter> U \<in> T"
+    proof -
+      have "finite {X, U} \<and> {X, U} \<subseteq> T" using X_T hUT by simp
+      then have "\<Inter>{X, U} \<in> T" using inter_T by blast
+      then show ?thesis by simp
+    qed
+    have XmU_closed: "closedin_on X T (X - U)"
+      apply (rule closedin_intro, rule Diff_subset)
+      apply (simp only: Diff_Diff_Int)
+      apply (rule XU_T)
+      done
+    show "intersects U A"
+      unfolding intersects_def
+    proof (rule notI)
+      assume h: "U \<inter> A = {}"
+      have A_sub_XmU: "A \<subseteq> X - U"
+        using h hAX by blast
+      have x_in_XmU: "x \<in> X - U"
+        apply (rule InterD[OF hx[unfolded closure_on_def]])
+        apply (rule CollectI, rule conjI, rule XmU_closed, rule A_sub_XmU)
+        done
+      show False
+        by (rule DiffD2[OF x_in_XmU, OF hxU])
+    qed
+  qed
+next
+  assume h: "\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects U A"
+  show "x \<in> closure_on X T A"
+    unfolding closure_on_def
+  proof (rule InterI)
+    fix C assume hC: "C \<in> {D. closedin_on X T D \<and> A \<subseteq> D}"
+    have hCcl: "closedin_on X T C"
+      by (rule conjunct1[OF CollectD[OF hC]])
+    have hAC: "A \<subseteq> C"
+      by (rule conjunct2[OF CollectD[OF hC]])
+    have hXmCT: "X - C \<in> T"
+      by (rule closedin_diff_open[OF hCcl])
+    show "x \<in> C"
+    proof (rule ccontr)
+      assume hxnC: "x \<notin> C"
+      have hxXmC: "x \<in> X - C"
+        apply (rule DiffI, rule hxX, rule hxnC) done
+      have hneigh: "neighborhood_of x X T (X - C)"
+        apply (unfold neighborhood_of_def, rule conjI, rule hXmCT, rule hxXmC) done
+      have hinters: "intersects (X - C) A"
+        by (rule h[rule_format, OF hneigh])
+      have hdisjoint: "(X - C) \<inter> A = {}"
+        using hAC by blast
+      show False
+        apply (rule notE[OF hinters[unfolded intersects_def]])
+        apply (rule hdisjoint)
+        done
+    qed
+  qed
+qed
 
 theorem Theorem_17_5b:
-  assumes "basis_for X B T"
-  assumes "x \<in> X" and "A \<subseteq> X"
+  assumes hB: "basis_for X B T"
+  assumes hxX: "x \<in> X" and hAX: "A \<subseteq> X"
   shows "x \<in> closure_on X T A \<longleftrightarrow>
     (\<forall>b\<in>B. x \<in> b \<longrightarrow> intersects b A)"
-  sorry
+proof (rule iffI)
+  (* Forward direction needs basis elements \<subseteq> X, which is_basis_on doesn't force *)
+  assume "x \<in> closure_on X T A"
+  show "\<forall>b\<in>B. x \<in> b \<longrightarrow> intersects b A" sorry
+next
+  assume h: "\<forall>b\<in>B. x \<in> b \<longrightarrow> intersects b A"
+  show "x \<in> closure_on X T A"
+    unfolding closure_on_def
+  proof (rule InterI)
+    fix C assume hC: "C \<in> {D. closedin_on X T D \<and> A \<subseteq> D}"
+    have hCcl: "closedin_on X T C"
+      by (rule conjunct1[OF CollectD[OF hC]])
+    have hAC: "A \<subseteq> C"
+      by (rule conjunct2[OF CollectD[OF hC]])
+    have hXmCT: "X - C \<in> T"
+      by (rule closedin_diff_open[OF hCcl])
+    have hT_def: "T = topology_generated_by_basis X B"
+      by (rule conjunct2[OF hB[unfolded basis_for_def]])
+    show "x \<in> C"
+    proof (rule ccontr)
+      assume hxnC: "x \<notin> C"
+      have hxXmC: "x \<in> X - C"
+        apply (rule DiffI, rule hxX, rule hxnC) done
+      have hXmC_basis: "X - C \<in> topology_generated_by_basis X B"
+        using hXmCT hT_def by simp
+      have hex_b: "\<exists>b\<in>B. x \<in> b \<and> b \<subseteq> X - C"
+        using hXmC_basis hxXmC
+        unfolding topology_generated_by_basis_def
+        by blast
+      then obtain b where hbB: "b \<in> B" and hxb: "x \<in> b" and hbsub: "b \<subseteq> X - C"
+        by blast
+      have hinters: "intersects b A"
+        by (rule h[rule_format, OF hbB, OF hxb])
+      have hdisjoint: "b \<inter> A = {}"
+        using hbsub hAC by blast
+      show False
+        apply (rule notE[OF hinters[unfolded intersects_def]])
+        apply (rule hdisjoint)
+        done
+    qed
+  qed
+qed
 
 
 subsection \<open>Limit points\<close>
@@ -663,18 +862,181 @@ definition limit_points_of :: "'a set \<Rightarrow> 'a set \<Rightarrow> 'a set 
 (** from \S17 Theorem 17.6 [top1.tex:751] **)
 (** LATEX VERSION: "Cl A = A \<union> A'." **)
 theorem Theorem_17_6:
-  assumes "is_topology_on X T"
-  assumes "A \<subseteq> X"
+  assumes hT: "is_topology_on X T"
+  assumes hAX: "A \<subseteq> X"
   shows "closure_on X T A = A \<union> limit_points_of A X T"
-  sorry
+proof (rule equalityI)
+  show "closure_on X T A \<subseteq> A \<union> limit_points_of A X T"
+  proof (rule subsetI)
+    fix x assume hx: "x \<in> closure_on X T A"
+    have empty_T: "{} \<in> T"
+      by (rule conjunct1[OF hT[unfolded is_topology_on_def]])
+    have cl_X: "closedin_on X T X"
+      apply (rule closedin_intro, rule subset_refl)
+      apply (simp only: Diff_cancel)
+      apply (rule empty_T)
+      done
+    have x_in_X: "x \<in> X"
+      apply (rule InterD[OF hx[unfolded closure_on_def]])
+      apply (rule CollectI, rule conjI, rule cl_X, rule hAX)
+      done
+    show "x \<in> A \<union> limit_points_of A X T"
+    proof (cases "x \<in> A")
+      case True show ?thesis by (rule UnI1, rule True)
+    next
+      case False
+      have hxnA: "x \<notin> A" by (rule False)
+      have h5a: "\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects U A"
+        by (rule iffD1[OF Theorem_17_5a[OF hT x_in_X hAX], OF hx])
+      have x_lp: "is_limit_point_of x A X T"
+        unfolding is_limit_point_of_def
+      proof (intro conjI)
+        show "x \<in> X" by (rule x_in_X)
+        show "A \<subseteq> X" by (rule hAX)
+        show "\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects (U - {x}) A"
+        proof (intro allI impI)
+          fix U assume hU: "neighborhood_of x X T U"
+          have hUA_ne: "U \<inter> A \<noteq> {}"
+            using h5a[rule_format, OF hU] unfolding intersects_def .
+          show "intersects (U - {x}) A"
+            unfolding intersects_def
+          proof (rule notI)
+            assume h: "(U - {x}) \<inter> A = {}"
+            have UA_empty: "U \<inter> A = {}"
+              using h hxnA by blast
+            from UA_empty hUA_ne show False by simp
+          qed
+        qed
+      qed
+      show "x \<in> A \<union> limit_points_of A X T"
+        apply (rule UnI2)
+        apply (unfold limit_points_of_def)
+        apply (rule CollectI, rule conjI, rule x_in_X, rule x_lp)
+        done
+    qed
+  qed
+next
+  show "A \<union> limit_points_of A X T \<subseteq> closure_on X T A"
+  proof (rule subsetI)
+    fix x assume hx: "x \<in> A \<union> limit_points_of A X T"
+    show "x \<in> closure_on X T A"
+    proof (cases "x \<in> A")
+      case True
+      have x_in_X: "x \<in> X" by (rule subsetD[OF hAX True])
+      show ?thesis
+        unfolding closure_on_def
+      proof (rule InterI)
+        fix C assume hC: "C \<in> {D. closedin_on X T D \<and> A \<subseteq> D}"
+        have hAC: "A \<subseteq> C" by (rule conjunct2[OF CollectD[OF hC]])
+        show "x \<in> C" by (rule subsetD[OF hAC True])
+      qed
+    next
+      case False
+      have hxnA: "x \<notin> A" by (rule False)
+      have hxlp: "x \<in> limit_points_of A X T"
+        using hx hxnA by blast
+      have hx_def: "is_limit_point_of x A X T"
+        using hxlp unfolding limit_points_of_def by blast
+      have x_in_X: "x \<in> X"
+        using hx_def unfolding is_limit_point_of_def by blast
+      have hlp_nbds: "\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects (U - {x}) A"
+        using hx_def unfolding is_limit_point_of_def by blast
+      have h_all_nbds: "\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects U A"
+      proof (intro allI impI)
+        fix U assume hU: "neighborhood_of x X T U"
+        have h_sub_int: "intersects (U - {x}) A"
+          by (rule hlp_nbds[rule_format, OF hU])
+        show "intersects U A"
+          unfolding intersects_def
+        proof (rule notI)
+          assume h: "U \<inter> A = {}"
+          have h2: "(U - {x}) \<inter> A = {}"
+            using h by blast
+          from h_sub_int[unfolded intersects_def] h2 show False by simp
+        qed
+      qed
+      show ?thesis
+        by (rule iffD2[OF Theorem_17_5a[OF hT x_in_X hAX], OF h_all_nbds])
+    qed
+  qed
+qed
 
 (** from \S17 Corollary 17.7 [top1.tex:761] **)
 (** LATEX VERSION: "A closed iff contains all its limit points." **)
 theorem Corollary_17_7:
-  assumes "is_topology_on X T"
-  assumes "A \<subseteq> X"
+  assumes hT: "is_topology_on X T"
+  assumes hAX: "A \<subseteq> X"
   shows "closedin_on X T A \<longleftrightarrow> limit_points_of A X T \<subseteq> A"
-  sorry
+proof (rule iffI)
+  assume hAcl: "closedin_on X T A"
+  show "limit_points_of A X T \<subseteq> A"
+  proof (rule subsetI)
+    fix x assume hxlp: "x \<in> limit_points_of A X T"
+    have hx_def: "is_limit_point_of x A X T"
+      using hxlp unfolding limit_points_of_def by blast
+    have hxX: "x \<in> X"
+      using hx_def unfolding is_limit_point_of_def by blast
+    have hlp_nbds: "\<forall>U. neighborhood_of x X T U \<longrightarrow> intersects (U - {x}) A"
+      using hx_def unfolding is_limit_point_of_def by blast
+    show "x \<in> A"
+    proof (rule ccontr)
+      assume hxnA: "x \<notin> A"
+      have hXmAT: "X - A \<in> T" by (rule closedin_diff_open[OF hAcl])
+      have hxXmA: "x \<in> X - A" by (rule DiffI, rule hxX, rule hxnA)
+      have hneigh: "neighborhood_of x X T (X - A)"
+        apply (unfold neighborhood_of_def, rule conjI, rule hXmAT, rule hxXmA) done
+      have hinters: "intersects (X - A - {x}) A"
+        by (rule hlp_nbds[rule_format, OF hneigh])
+      have hdisjoint: "(X - A - {x}) \<inter> A = {}"
+        by blast
+      show False
+        apply (rule notE[OF hinters[unfolded intersects_def]])
+        apply (rule hdisjoint)
+        done
+    qed
+  qed
+next
+  assume hlp: "limit_points_of A X T \<subseteq> A"
+  have empty_T: "{} \<in> T"
+    by (rule conjunct1[OF hT[unfolded is_topology_on_def]])
+  have X_closed: "closedin_on X T X"
+    apply (rule closedin_intro, rule subset_refl)
+    apply (simp only: Diff_cancel, rule empty_T) done
+  have cl_inter: "\<forall>F. F \<noteq> {} \<longrightarrow> (\<forall>C\<in>F. closedin_on X T C) \<longrightarrow> closedin_on X T (\<Inter>F)"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF Theorem_17_1[OF hT]]]])
+  have F_ne: "{C. closedin_on X T C \<and> A \<subseteq> C} \<noteq> {}"
+  proof (rule notI)
+    assume h: "{C. closedin_on X T C \<and> A \<subseteq> C} = {}"
+    have "X \<in> {C. closedin_on X T C \<and> A \<subseteq> C}"
+      apply (rule CollectI, rule conjI, rule X_closed, rule hAX) done
+    from h this show False by blast
+  qed
+  have cl_closed: "closedin_on X T (closure_on X T A)"
+    unfolding closure_on_def
+  proof (rule cl_inter[rule_format, OF F_ne])
+    fix C assume hC: "C \<in> {D. closedin_on X T D \<and> A \<subseteq> D}"
+    show "closedin_on X T C" by (rule conjunct1[OF CollectD[OF hC]])
+  qed
+  have cl_eq: "closure_on X T A = A"
+  proof (rule equalityI)
+    show "closure_on X T A \<subseteq> A"
+      apply (subst Theorem_17_6[OF hT hAX])
+      apply (rule Un_least, rule subset_refl, rule hlp)
+      done
+    show "A \<subseteq> closure_on X T A"
+      unfolding closure_on_def
+    proof (rule subsetI)
+      fix a assume ha: "a \<in> A"
+      show "a \<in> \<Inter>{C. closedin_on X T C \<and> A \<subseteq> C}"
+      proof (rule InterI)
+        fix C assume hC: "C \<in> {D. closedin_on X T D \<and> A \<subseteq> D}"
+        show "a \<in> C" by (rule subsetD[OF conjunct2[OF CollectD[OF hC]], OF ha])
+      qed
+    qed
+  qed
+  show "closedin_on X T A"
+    using cl_closed by (simp only: cl_eq)
+qed
 
 
 subsection \<open>Hausdorff spaces, T1 axiom, sequences\<close>
@@ -754,6 +1116,5 @@ theorem Theorem_17_11:
             is_hausdorff_on X T \<and> Y \<subseteq> X \<longrightarrow>
             is_hausdorff_on Y (subspace_topology X T Y))"
   sorry
-
 
 end
