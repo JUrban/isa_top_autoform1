@@ -83,7 +83,11 @@ Maintain a simple `CHANGES.md` (or similar) in the project root with:
 - notable new definitions/lemmas,
 - which `sorry`s were removed or introduced and why.
 
-If you already have an existing process (e.g. numbered backups), keep it—but ensure the build command above is used to validate each checkpoint.
+Update: you should make numbered backup files (bckXXXX) and
+  corresponding CHANGES files (CHANGESXXXX) after reasonable amount of
+  work.
+
+Ensure the build command above is used to validate each bckXXXX file.
 
 ---
 
