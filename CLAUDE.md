@@ -9,7 +9,7 @@ These rules describe how to work in **this Isabelle project**, whose main theory
 cd /project/tst &&  /project/bin/isabelle build -D .
   ```
 
-The intended workflow is **gradual formalization**: state results early, use `sorry` frequently, and keep the project building while steadily replacing `sorry` with real proofs.
+The intended workflow is **gradual formalization** of /project/top1.tex : state results early, use `sorry` frequently, and keep the project building while steadily replacing `sorry` with real proofs.
 
 ---
 
@@ -209,6 +209,10 @@ When developing:
 * Compile again.
 
 Never introduce multiple heavy automation steps before recompiling.
+
+* Try to reasonably follow the informal proofs from top1.tex . Look at
+  them often when in doubt. You can deviate from them if needed.
+
 
 ---
 
