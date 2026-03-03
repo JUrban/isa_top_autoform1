@@ -1912,6 +1912,167 @@ section \<open>\<S>16 The Subspace Topology\<close>
 definition subspace_topology :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set \<Rightarrow> 'a set set" where
   "subspace_topology X T Y = {Y \<inter> U | U. U \<in> T}"
 
+(** Subspace topology is a topology (requires the carrier inclusion Y \<subseteq> X). **)
+lemma subspace_topology_is_topology_on:
+  assumes hT: "is_topology_on X T"
+  assumes hYX: "Y \<subseteq> X"
+  shows "is_topology_on Y (subspace_topology X T Y)"
+proof -
+  let ?TY = "subspace_topology X T Y"
+  have empty_T: "{} \<in> T"
+    by (rule conjunct1[OF hT[unfolded is_topology_on_def]])
+  have X_T: "X \<in> T"
+    by (rule conjunct1[OF conjunct2[OF hT[unfolded is_topology_on_def]]])
+  have union_T: "\<forall>U. U \<subseteq> T \<longrightarrow> \<Union>U \<in> T"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hT[unfolded is_topology_on_def]]]])
+
+  have empty_TY: "{} \<in> ?TY"
+    unfolding subspace_topology_def
+    apply (rule CollectI)
+    apply (rule exI[where x="{}"])
+    apply (intro conjI)
+     apply simp
+    apply (rule empty_T)
+    done
+
+  have Y_TY: "Y \<in> ?TY"
+    unfolding subspace_topology_def
+    apply (rule CollectI)
+    apply (rule exI[where x=X])
+    apply (intro conjI)
+     apply (simp add: hYX Int_absorb2)
+    apply (rule X_T)
+    done
+
+  have union_TY: "\<forall>Uc. Uc \<subseteq> ?TY \<longrightarrow> \<Union>Uc \<in> ?TY"
+  proof (intro allI impI)
+    fix Uc
+    assume hUc: "Uc \<subseteq> ?TY"
+
+    define V where "V = {U. U \<in> T \<and> (Y \<inter> U) \<in> Uc}"
+    have hVsub: "V \<subseteq> T"
+      unfolding V_def by blast
+
+    have hUnion_eq: "\<Union>Uc = Y \<inter> \<Union>V"
+    proof (rule set_eqI)
+      fix x
+      show "x \<in> \<Union>Uc \<longleftrightarrow> x \<in> Y \<inter> \<Union>V"
+      proof
+        assume hx: "x \<in> \<Union>Uc"
+        obtain W where hW: "W \<in> Uc" and hxW: "x \<in> W"
+          using hx by blast
+        have hW_TY: "W \<in> ?TY"
+          using hUc hW by blast
+        obtain U where hU: "U \<in> T" and hWeq: "W = Y \<inter> U"
+          using hW_TY unfolding subspace_topology_def by blast
+        have hxY: "x \<in> Y" and hxU: "x \<in> U"
+          using hxW hWeq by blast+
+        have hUV: "U \<in> V"
+          unfolding V_def using hU hW hWeq by blast
+        have "x \<in> \<Union>V"
+          by (rule UnionI[OF hUV], rule hxU)
+        thus "x \<in> Y \<inter> \<Union>V"
+          using hxY by blast
+      next
+        assume hx: "x \<in> Y \<inter> \<Union>V"
+        have hxY: "x \<in> Y" and hxV: "x \<in> \<Union>V"
+          using hx by blast+
+        obtain U where hU: "U \<in> V" and hxU: "x \<in> U"
+          using hxV by blast
+        have hU_T: "U \<in> T" and hYU_Uc: "Y \<inter> U \<in> Uc"
+          using hU unfolding V_def by blast+
+        have "x \<in> Y \<inter> U" using hxY hxU by blast
+        thus "x \<in> \<Union>Uc"
+          by (rule UnionI[OF hYU_Uc])
+      qed
+    qed
+
+    have hUnionV_T: "\<Union>V \<in> T"
+      by (rule union_T[rule_format, OF hVsub])
+
+    show "\<Union>Uc \<in> ?TY"
+      unfolding subspace_topology_def
+      apply (rule CollectI)
+      apply (rule exI[where x="\<Union>V"])
+      apply (intro conjI)
+       apply (rule hUnion_eq)
+      apply (rule hUnionV_T)
+      done
+  qed
+
+  have inter_TY:
+    "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TY \<longrightarrow> \<Inter>F \<in> ?TY"
+  proof (intro allI impI)
+    fix F
+    assume hfin: "finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TY"
+    have hFfin: "finite F" and hFne: "F \<noteq> {}" and hFsub: "F \<subseteq> ?TY"
+      using hfin by blast+
+
+    have repr:
+      "\<exists>U\<in>T. \<Inter>F = Y \<inter> U"
+      using hFfin hFne hFsub
+    proof (induction rule: finite_induct)
+      case empty
+      thus ?case by blast
+    next
+      case (insert W G)
+      have hW: "W \<in> ?TY"
+        using insert.prems by blast
+      obtain UW where hUW: "UW \<in> T" and hWeq: "W = Y \<inter> UW"
+        using hW unfolding subspace_topology_def by blast
+      show ?case
+      proof (cases "G = {}")
+        case True
+        have "\<Inter>(insert W G) = Y \<inter> UW"
+          using True hWeq by simp
+        show ?thesis
+        proof (rule bexI[where x=UW])
+          show "UW \<in> T" by (rule hUW)
+          show "\<Inter>(insert W G) = Y \<inter> UW"
+            by (rule \<open>\<Inter>(insert W G) = Y \<inter> UW\<close>)
+        qed
+      next
+        case False
+        have hGne: "G \<noteq> {}" using False .
+        have hGsub: "G \<subseteq> ?TY" using insert.prems by blast
+        obtain UG where hUG: "UG \<in> T" and hGeq: "\<Inter>G = Y \<inter> UG"
+          using insert.IH[OF hGne hGsub] by blast
+        have hInter2: "UW \<inter> UG \<in> T"
+          by (rule topology_inter2[OF hT hUW hUG])
+        have "\<Inter>(insert W G) = Y \<inter> (UW \<inter> UG)"
+          using hWeq hGeq by blast
+        show ?thesis
+        proof (rule bexI[where x="UW \<inter> UG"])
+          show "UW \<inter> UG \<in> T" by (rule hInter2)
+          show "\<Inter>(insert W G) = Y \<inter> (UW \<inter> UG)"
+            by (rule \<open>\<Inter>(insert W G) = Y \<inter> (UW \<inter> UG)\<close>)
+        qed
+      qed
+    qed
+
+    then obtain U where hU: "U \<in> T" and hInter: "\<Inter>F = Y \<inter> U"
+      by blast
+    show "\<Inter>F \<in> ?TY"
+      unfolding subspace_topology_def
+      apply (rule CollectI)
+      apply (rule exI[where x=U])
+      apply (intro conjI)
+       apply (rule hInter)
+      apply (rule hU)
+      done
+  qed
+
+  show ?thesis
+    unfolding is_topology_on_def
+  proof (intro conjI)
+    show "{} \<in> ?TY" using empty_TY .
+    show "Y \<in> ?TY" using Y_TY .
+    show "\<forall>U. U \<subseteq> ?TY \<longrightarrow> \<Union>U \<in> ?TY" using union_TY .
+    show "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TY \<longrightarrow> \<Inter>F \<in> ?TY"
+      using inter_TY .
+  qed
+qed
+
 (** from \S16 Lemma 16.1 [top1.tex:473] **)
 (** LATEX VERSION: "If B is a basis for X, then {B\<inter>Y} is a basis for subspace topology on Y." **)
 theorem Lemma_16_1:
@@ -5863,7 +6024,205 @@ theorem Theorem_23_5:
   assumes hconn: "top1_connected_on X TX"
   assumes hcont: "top1_continuous_map_on X TX Y TY f"
   shows "top1_connected_on (f ` X) (subspace_topology Y TY (f ` X))"
-  sorry
+proof -
+  have hmap: "\<forall>x\<in>X. f x \<in> Y"
+    using hcont unfolding top1_continuous_map_on_def by blast
+  have hfXsub: "f ` X \<subseteq> Y"
+    apply (rule subsetI)
+    apply (erule imageE)
+    apply (simp only: hmap)
+    done
+
+  have hsub_top: "is_topology_on (f ` X) (subspace_topology Y TY (f ` X))"
+    by (rule subspace_topology_is_topology_on[OF hTY hfXsub])
+
+  have hconn_nosep:
+    "\<nexists>U V. U \<in> TX \<and> V \<in> TX \<and> U \<noteq> {} \<and> V \<noteq> {} \<and> U \<inter> V = {} \<and> U \<union> V = X"
+    using hconn unfolding top1_connected_on_def by blast
+
+  show ?thesis
+    unfolding top1_connected_on_def
+  proof (intro conjI)
+    show "is_topology_on (f ` X) (subspace_topology Y TY (f ` X))"
+      by (rule hsub_top)
+    show "\<nexists>U V.
+        U \<in> subspace_topology Y TY (f ` X) \<and>
+        V \<in> subspace_topology Y TY (f ` X) \<and>
+        U \<noteq> {} \<and> V \<noteq> {} \<and> U \<inter> V = {} \<and> U \<union> V = f ` X"
+    proof (rule notI)
+      assume hsep:
+        "\<exists>U V.
+            U \<in> subspace_topology Y TY (f ` X) \<and>
+            V \<in> subspace_topology Y TY (f ` X) \<and>
+            U \<noteq> {} \<and> V \<noteq> {} \<and> U \<inter> V = {} \<and> U \<union> V = f ` X"
+      then obtain U V where
+        hU: "U \<in> subspace_topology Y TY (f ` X)" and
+        hV: "V \<in> subspace_topology Y TY (f ` X)" and
+        hUne: "U \<noteq> {}" and
+        hVne: "V \<noteq> {}" and
+        hdisj: "U \<inter> V = {}" and
+        hunion: "U \<union> V = f ` X"
+        by blast
+
+      obtain W1 where hW1: "W1 \<in> TY" and hUeq: "U = f ` X \<inter> W1"
+        using hU unfolding subspace_topology_def by blast
+      obtain W2 where hW2: "W2 \<in> TY" and hVeq: "V = f ` X \<inter> W2"
+        using hV unfolding subspace_topology_def by blast
+
+      define P where "P = {x \<in> X. f x \<in> W1}"
+      define Q where "Q = {x \<in> X. f x \<in> W2}"
+
+      have hPopen: "P \<in> TX"
+      proof -
+        have "{x \<in> X. f x \<in> W1} \<in> TX"
+          using hcont hW1 unfolding top1_continuous_map_on_def by blast
+        thus ?thesis unfolding P_def by simp
+      qed
+      have hQopen: "Q \<in> TX"
+      proof -
+        have "{x \<in> X. f x \<in> W2} \<in> TX"
+          using hcont hW2 unfolding top1_continuous_map_on_def by blast
+        thus ?thesis unfolding Q_def by simp
+      qed
+
+      have hPne: "P \<noteq> {}"
+      proof
+        assume hPemp: "P = {}"
+        have exyU: "\<exists>y. y \<in> U"
+          using hUne by (simp add: ex_in_conv)
+        obtain y where hyU: "y \<in> U" using exyU by blast
+        have hy_int: "y \<in> f ` X \<inter> W1"
+          using hyU by (simp only: hUeq)
+        have hyfx: "y \<in> f ` X"
+          by (rule IntD1[OF hy_int])
+        have hyW1: "y \<in> W1"
+          by (rule IntD2[OF hy_int])
+        obtain x where hxX: "x \<in> X" and hy: "y = f x"
+          using hyfx by blast
+        have hxP: "x \<in> P"
+          unfolding P_def using hxX hyW1 hy by blast
+        show False using hxP hPemp by blast
+      qed
+      have hQne: "Q \<noteq> {}"
+      proof
+        assume hQemp: "Q = {}"
+        have exyV: "\<exists>y. y \<in> V"
+          using hVne by (simp add: ex_in_conv)
+        obtain y where hyV: "y \<in> V" using exyV by blast
+        have hy_int: "y \<in> f ` X \<inter> W2"
+          using hyV by (simp only: hVeq)
+        have hyfx: "y \<in> f ` X"
+          by (rule IntD1[OF hy_int])
+        have hyW2: "y \<in> W2"
+          by (rule IntD2[OF hy_int])
+        obtain x where hxX: "x \<in> X" and hy: "y = f x"
+          using hyfx by blast
+        have hxQ: "x \<in> Q"
+          unfolding Q_def using hxX hyW2 hy by blast
+        show False using hxQ hQemp by blast
+      qed
+
+      have hdisjPQ: "P \<inter> Q = {}"
+      proof (rule equalityI)
+        show "P \<inter> Q \<subseteq> {}"
+        proof (rule subsetI)
+          fix x
+          assume hx: "x \<in> P \<inter> Q"
+          have hxP: "x \<in> P" and hxQ: "x \<in> Q" using hx by blast+
+          have hxP_conj: "x \<in> X \<and> f x \<in> W1"
+            using hxP by (simp only: P_def mem_Collect_eq)
+          have hxX: "x \<in> X"
+            using hxP_conj by (rule conjunct1)
+          have hfxW1: "f x \<in> W1"
+            using hxP_conj by (rule conjunct2)
+          have hxQ_conj: "x \<in> X \<and> f x \<in> W2"
+            using hxQ by (simp only: Q_def mem_Collect_eq)
+          have hfxW2: "f x \<in> W2"
+            using hxQ_conj by (rule conjunct2)
+          have hfxU: "f x \<in> U"
+            unfolding hUeq
+            apply (rule IntI)
+             apply (rule imageI)
+             apply (rule hxX)
+            apply (rule hfxW1)
+            done
+          have hfxV: "f x \<in> V"
+            unfolding hVeq
+            apply (rule IntI)
+             apply (rule imageI)
+             apply (rule hxX)
+            apply (rule hfxW2)
+            done
+          have "f x \<in> U \<inter> V"
+            apply (rule IntI)
+             apply (rule hfxU)
+            apply (rule hfxV)
+            done
+          hence False using hdisj by blast
+          thus "x \<in> {}" by blast
+        qed
+        show "{} \<subseteq> P \<inter> Q" by simp
+      qed
+
+      have hunionPQ: "P \<union> Q = X"
+      proof (rule equalityI)
+        show "P \<union> Q \<subseteq> X" unfolding P_def Q_def by blast
+        show "X \<subseteq> P \<union> Q"
+        proof (rule subsetI)
+          fix x
+          assume hxX: "x \<in> X"
+          have hfxUorV: "f x \<in> U \<or> f x \<in> V"
+          proof -
+            have hfx: "f x \<in> f ` X" using hxX by blast
+            have "f x \<in> U \<union> V"
+              using hunion hfx by simp
+            thus ?thesis by blast
+          qed
+          show "x \<in> P \<union> Q"
+          proof (rule disjE[OF hfxUorV])
+            assume hfxU: "f x \<in> U"
+            have hfx_int: "f x \<in> f ` X \<inter> W1"
+              using hfxU by (simp only: hUeq)
+            have hfxW1: "f x \<in> W1"
+              by (rule IntD2[OF hfx_int])
+            have hxP: "x \<in> P"
+              unfolding P_def
+              apply (simp only: mem_Collect_eq)
+              apply (intro conjI)
+               apply (rule hxX)
+              apply (rule hfxW1)
+              done
+            show "x \<in> P \<union> Q"
+              apply (rule UnI1)
+              apply (rule hxP)
+              done
+          next
+            assume hfxV: "f x \<in> V"
+            have hfx_int: "f x \<in> f ` X \<inter> W2"
+              using hfxV by (simp only: hVeq)
+            have hfxW2: "f x \<in> W2"
+              by (rule IntD2[OF hfx_int])
+            have hxQ: "x \<in> Q"
+              unfolding Q_def
+              apply (simp only: mem_Collect_eq)
+              apply (intro conjI)
+               apply (rule hxX)
+              apply (rule hfxW2)
+              done
+            show "x \<in> P \<union> Q"
+              apply (rule UnI2)
+              apply (rule hxQ)
+              done
+          qed
+        qed
+      qed
+
+      have False
+        using hconn_nosep hPopen hQopen hPne hQne hdisjPQ hunionPQ by blast
+      thus False ..
+    qed
+  qed
+qed
 
 section \<open>\<S>26 Compact Spaces\<close>
 
@@ -5878,7 +6237,154 @@ theorem Theorem_26_2:
   assumes hcomp: "top1_compact_on X TX"
   assumes hA: "closedin_on X TX A"
   shows "top1_compact_on A (subspace_topology X TX A)"
-  sorry
+proof -
+  have hTX_top: "is_topology_on X TX"
+    using hcomp unfolding top1_compact_on_def by blast
+  have hAX: "A \<subseteq> X"
+    by (rule closedin_sub[OF hA])
+  have hsub_top: "is_topology_on A (subspace_topology X TX A)"
+    by (rule subspace_topology_is_topology_on[OF hTX_top hAX])
+
+  have compact_cover: "\<forall>Uc. Uc \<subseteq> TX \<and> X \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F)"
+    using hcomp unfolding top1_compact_on_def by blast
+
+  have hXA_open: "X - A \<in> TX"
+    by (rule closedin_diff_open[OF hA])
+
+  have cover_A:
+    "\<forall>Uc. Uc \<subseteq> subspace_topology X TX A \<and> A \<subseteq> \<Union>Uc
+        \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> A \<subseteq> \<Union>F)"
+  proof (intro allI impI)
+    fix Uc
+    assume hUc: "Uc \<subseteq> subspace_topology X TX A \<and> A \<subseteq> \<Union>Uc"
+    have hUc_sub: "Uc \<subseteq> subspace_topology X TX A"
+      by (rule conjunct1[OF hUc])
+    have hAcov: "A \<subseteq> \<Union>Uc"
+      by (rule conjunct2[OF hUc])
+
+    define V where "V = {U. U \<in> TX \<and> (A \<inter> U) \<in> Uc}"
+    have hVsub: "V \<subseteq> TX"
+      unfolding V_def by blast
+
+    have hXcov: "X \<subseteq> \<Union>(V \<union> {X - A})"
+    proof (rule subsetI)
+      fix x
+      assume hxX: "x \<in> X"
+      show "x \<in> \<Union>(V \<union> {X - A})"
+      proof (cases "x \<in> A")
+        case True
+        have "x \<in> \<Union>Uc"
+          by (rule subsetD[OF hAcov, OF True])
+        then obtain W where hW: "W \<in> Uc" and hxW: "x \<in> W"
+          by blast
+        have hW_TY: "W \<in> subspace_topology X TX A"
+          using hUc_sub hW by blast
+        obtain U where hU: "U \<in> TX" and hWeq: "W = A \<inter> U"
+          using hW_TY unfolding subspace_topology_def by blast
+        have hUV: "U \<in> V"
+          unfolding V_def using hU hW hWeq by blast
+        have hxU: "x \<in> U" using hxW hWeq by blast
+        have hUin: "U \<in> V \<union> {X - A}"
+          by (rule UnI1[OF hUV])
+        show ?thesis
+          by (rule UnionI[OF hUin hxU])
+      next
+        case False
+        have hx: "x \<in> X - A" using hxX False by blast
+        have hXAmem: "X - A \<in> V \<union> {X - A}"
+          by (rule UnI2, rule singletonI)
+        show ?thesis
+          by (rule UnionI[OF hXAmem hx])
+      qed
+    qed
+
+    have hVU_open: "V \<union> {X - A} \<subseteq> TX"
+      using hVsub hXA_open by blast
+
+    have hCover_imp: "V \<union> {X - A} \<subseteq> TX \<and> X \<subseteq> \<Union>(V \<union> {X - A})
+        \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> V \<union> {X - A} \<and> X \<subseteq> \<Union>F)"
+      by (rule spec[where x="V \<union> {X - A}", OF compact_cover])
+    have hCover: "\<exists>F. finite F \<and> F \<subseteq> V \<union> {X - A} \<and> X \<subseteq> \<Union>F"
+      by (rule mp[OF hCover_imp], intro conjI, rule hVU_open, rule hXcov)
+    obtain F where hFfin: "finite F" and hFsub: "F \<subseteq> V \<union> {X - A}" and hFcov: "X \<subseteq> \<Union>F"
+      using hCover by blast
+
+    define FV where "FV = F \<inter> V"
+    have hFVfin: "finite FV"
+      unfolding FV_def using hFfin by simp
+    have hFVsub: "FV \<subseteq> V"
+      unfolding FV_def by blast
+
+    have hAcovFV: "A \<subseteq> \<Union>FV"
+    proof (rule subsetI)
+      fix x
+      assume hxA: "x \<in> A"
+      have hxX: "x \<in> X" using hAX hxA by blast
+      have hxUF: "x \<in> \<Union>F"
+        by (rule subsetD[OF hFcov, OF hxX])
+      obtain U where hU: "U \<in> F" and hxU: "x \<in> U"
+        using hxUF by blast
+      have hU_notXA: "U \<noteq> X - A"
+      proof
+        assume h: "U = X - A"
+        have "x \<in> X - A" using hxU h by simp
+        thus False using hxA by blast
+      qed
+      have "U \<in> V"
+        using hFsub hU hU_notXA by blast
+      hence hUV: "U \<in> FV"
+        unfolding FV_def using hU by blast
+      show "x \<in> \<Union>FV"
+        by (rule UnionI[OF hUV], rule hxU)
+    qed
+
+    define Fc where "Fc = {A \<inter> U | U. U \<in> FV}"
+    have hFcfin: "finite Fc"
+      unfolding Fc_def using hFVfin by simp
+    have hFcsub: "Fc \<subseteq> Uc"
+    proof (rule subsetI)
+      fix W
+      assume hW: "W \<in> Fc"
+      obtain U where hU: "U \<in> FV" and hWeq: "W = A \<inter> U"
+        using hW unfolding Fc_def by blast
+      have hUV: "U \<in> V"
+        using hFVsub hU by blast
+      have "(A \<inter> U) \<in> Uc"
+        using hUV unfolding V_def by blast
+      thus "W \<in> Uc" using hWeq by simp
+    qed
+
+    have hAcovFc: "A \<subseteq> \<Union>Fc"
+    proof (rule subsetI)
+      fix x
+      assume hxA: "x \<in> A"
+      have hxUFV: "x \<in> \<Union>FV"
+        by (rule subsetD[OF hAcovFV, OF hxA])
+      obtain U where hU: "U \<in> FV" and hxU: "x \<in> U"
+        using hxUFV by blast
+      have hxAU: "x \<in> A \<inter> U" using hxA hxU by blast
+      have hAU: "A \<inter> U \<in> Fc"
+        unfolding Fc_def using hU by blast
+      show "x \<in> \<Union>Fc"
+        by (rule UnionI[OF hAU], rule hxAU)
+    qed
+
+    show "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> A \<subseteq> \<Union>F"
+      apply (rule exI[where x=Fc])
+      apply (intro conjI)
+        apply (rule hFcfin)
+       apply (rule hFcsub)
+      apply (rule hAcovFc)
+      done
+  qed
+
+  show ?thesis
+    unfolding top1_compact_on_def
+    apply (intro conjI)
+     apply (rule hsub_top)
+    apply (rule cover_A)
+    done
+qed
 
 (** from \S26 Theorem 26.3 [top1.tex:3128] **)
 theorem Theorem_26_3:
@@ -5886,7 +6392,361 @@ theorem Theorem_26_3:
   assumes hAX: "A \<subseteq> X"
   assumes hAcomp: "top1_compact_on A (subspace_topology X TX A)"
   shows "closedin_on X TX A"
-  sorry
+proof -
+  have hTX: "is_topology_on X TX"
+    using hH unfolding is_hausdorff_on_def by blast
+  have X_T: "X \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF hTX[unfolded is_topology_on_def]]])
+  have union_T: "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+  have inter_T: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> TX \<longrightarrow> \<Inter>F \<in> TX"
+    by (rule conjunct2[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+  have hausd:
+    "\<forall>x\<in>X. \<forall>y\<in>X. x \<noteq> y \<longrightarrow>
+       (\<exists>U V. neighborhood_of x X TX U \<and> neighborhood_of y X TX V \<and> U \<inter> V = {})"
+    using hH unfolding is_hausdorff_on_def by blast
+
+  have compact_coverA:
+    "\<forall>Uc. Uc \<subseteq> subspace_topology X TX A \<and> A \<subseteq> \<Union>Uc
+      \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> A \<subseteq> \<Union>F)"
+    using hAcomp unfolding top1_compact_on_def by blast
+
+  show ?thesis
+  proof (rule closedin_intro)
+    show "A \<subseteq> X" by (rule hAX)
+    show "X - A \<in> TX"
+    proof (cases "A = {}")
+      case True
+      have "X - A = X" using True by simp
+      thus ?thesis using X_T by simp
+    next
+      case False
+
+      have point_sep:
+        "\<forall>x\<in>X - A. \<exists>V. V \<in> TX \<and> x \<in> V \<and> V \<subseteq> X - A"
+      proof (intro ballI)
+        fix x
+        assume hx: "x \<in> X - A"
+        have hxX: "x \<in> X" and hxA: "x \<notin> A" using hx by blast+
+
+        have ex_pair:
+          "\<forall>a\<in>A. \<exists>p. neighborhood_of a X TX (fst p)
+                 \<and> neighborhood_of x X TX (snd p)
+                 \<and> (fst p \<inter> snd p = {})"
+        proof (intro ballI)
+          fix a
+          assume haA: "a \<in> A"
+          have haX: "a \<in> X" using hAX haA by blast
+          have hne: "a \<noteq> x"
+          proof
+            assume h: "a = x"
+            hence "x \<in> A" using haA by simp
+            thus False using hxA by contradiction
+          qed
+          obtain U V where hUa: "neighborhood_of a X TX U"
+              and hVx: "neighborhood_of x X TX V" and hdisj: "U \<inter> V = {}"
+            using hausd haX hxX hne by blast
+          show "\<exists>p. neighborhood_of a X TX (fst p)
+                 \<and> neighborhood_of x X TX (snd p)
+                 \<and> (fst p \<inter> snd p = {})"
+            apply (rule exI[where x="(U, V)"])
+            apply (simp only: fst_conv snd_conv hUa hVx hdisj)
+            done
+        qed
+
+        obtain p where hp:
+          "\<forall>a\<in>A. neighborhood_of a X TX (fst (p a))
+                 \<and> neighborhood_of x X TX (snd (p a))
+                 \<and> (fst (p a) \<inter> snd (p a) = {})"
+          using bchoice[OF ex_pair] by blast
+
+        let ?U = "\<lambda>a. fst (p a)"
+        let ?V = "\<lambda>a. snd (p a)"
+
+        define Uc where "Uc = (\<lambda>a. A \<inter> ?U a) ` A"
+
+        have hUc_sub: "Uc \<subseteq> subspace_topology X TX A"
+        proof (rule subsetI)
+          fix S
+          assume hS: "S \<in> Uc"
+          have hS': "S \<in> (\<lambda>a. A \<inter> ?U a) ` A"
+            using hS unfolding Uc_def by simp
+          have exa0: "\<exists>a\<in>A. S = (\<lambda>a. A \<inter> ?U a) a"
+            using hS' by (simp only: image_iff)
+          have exa: "\<exists>a\<in>A. A \<inter> ?U a = S"
+          proof -
+            obtain a where haA: "a \<in> A" and hEq: "S = A \<inter> ?U a"
+              using exa0 by blast
+            have hEq': "A \<inter> ?U a = S"
+              using hEq by (rule sym)
+            show ?thesis
+              apply (rule bexI[where x=a])
+               apply (rule hEq')
+              apply (rule haA)
+              done
+          qed
+          obtain a where haA: "a \<in> A" and hEq: "A \<inter> ?U a = S"
+            using exa by blast
+          have hSeq: "S = A \<inter> ?U a"
+            using hEq by simp
+          have hUa: "neighborhood_of a X TX (?U a)"
+            using hp haA by blast
+          have hUopen: "?U a \<in> TX"
+            using hUa unfolding neighborhood_of_def by blast
+          show "S \<in> subspace_topology X TX A"
+            unfolding hSeq subspace_topology_def
+            apply (subst setcompr_eq_image)
+            apply (simp only: Collect_mem_eq)
+            apply (rule imageI)
+            apply (rule hUopen)
+            done
+        qed
+
+        have hAcov: "A \<subseteq> \<Union>Uc"
+        proof (rule subsetI)
+          fix a
+          assume haA: "a \<in> A"
+          have hUa: "neighborhood_of a X TX (?U a)"
+            using hp haA by blast
+          have haUa: "a \<in> ?U a"
+            using hUa unfolding neighborhood_of_def by blast
+          have haS: "a \<in> A \<inter> ?U a"
+            apply (rule IntI)
+             apply (rule haA)
+            apply (rule haUa)
+            done
+          have hS_Uc: "A \<inter> ?U a \<in> Uc"
+            unfolding Uc_def
+            apply (rule imageI)
+            apply (rule haA)
+            done
+          show "a \<in> \<Union>Uc"
+            by (rule UnionI[OF hS_Uc haS])
+        qed
+
+        have hCov: "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> A \<subseteq> \<Union>F"
+          by (rule mp[OF spec[where x=Uc, OF compact_coverA]], intro conjI, rule hUc_sub, rule hAcov)
+        obtain F where hFfin: "finite F" and hFsub: "F \<subseteq> Uc" and hFcov: "A \<subseteq> \<Union>F"
+          using hCov by blast
+
+        have hFne: "F \<noteq> {}"
+        proof
+          assume h: "F = {}"
+          have hU: "\<Union>F = {}" using h by simp
+          have "A \<subseteq> {}" using hFcov hU by simp
+          hence "A = {}" by blast
+          thus False using False by contradiction
+        qed
+
+        have ex_idx: "\<forall>S\<in>F. \<exists>a. a \<in> A \<and> S = A \<inter> ?U a"
+        proof (intro ballI)
+          fix S
+          assume hS: "S \<in> F"
+          have hS_Uc: "S \<in> Uc" using hFsub hS by blast
+          have hS_Uc': "S \<in> (\<lambda>a. A \<inter> ?U a) ` A"
+            using hS_Uc unfolding Uc_def by simp
+          have exa0: "\<exists>a\<in>A. S = (\<lambda>a. A \<inter> ?U a) a"
+            using hS_Uc' by (simp only: image_iff)
+          have exa: "\<exists>a\<in>A. A \<inter> ?U a = S"
+          proof -
+            obtain a where haA: "a \<in> A" and hEq: "S = A \<inter> ?U a"
+              using exa0 by blast
+            have hEq': "A \<inter> ?U a = S"
+              using hEq by (rule sym)
+            show ?thesis
+              apply (rule bexI[where x=a])
+               apply (rule hEq')
+              apply (rule haA)
+              done
+          qed
+          obtain a where haA: "a \<in> A" and hEq: "A \<inter> ?U a = S"
+            using exa by blast
+          have hSeq: "S = A \<inter> ?U a"
+            using hEq by simp
+          show "\<exists>a. a \<in> A \<and> S = A \<inter> ?U a"
+            apply (rule exI[where x=a])
+            apply (intro conjI)
+             apply (rule haA)
+            apply (rule hSeq)
+            done
+        qed
+        obtain sel where hsel: "\<forall>S\<in>F. sel S \<in> A \<and> S = A \<inter> ?U (sel S)"
+          using bchoice[OF ex_idx] by blast
+
+        define Vset where "Vset = (\<lambda>S. ?V (sel S)) ` F"
+        have hVset_fin: "finite Vset"
+          unfolding Vset_def using hFfin by simp
+        have hVset_ne: "Vset \<noteq> {}"
+        proof
+          assume h: "Vset = {}"
+          have "\<Union>Vset = {}" using h by simp
+          have exS0: "\<exists>S0. S0 \<in> F"
+            using hFne by (simp add: ex_in_conv)
+          obtain S0 where hS0: "S0 \<in> F"
+            using exS0 by blast
+          have "sel S0 \<in> A"
+            using hsel hS0 by blast
+          have hVx: "neighborhood_of x X TX (?V (sel S0))"
+            using hp \<open>sel S0 \<in> A\<close> by blast
+          have hVxT: "?V (sel S0) \<in> TX"
+            using hVx unfolding neighborhood_of_def by blast
+          have "?V (sel S0) \<in> Vset"
+            unfolding Vset_def
+            apply (rule imageI)
+            apply (rule hS0)
+            done
+          thus False using h by blast
+        qed
+
+        have hVset_sub: "Vset \<subseteq> TX"
+        proof (rule subsetI)
+          fix V
+          assume hV: "V \<in> Vset"
+          have exS: "\<exists>S\<in>F. V = (\<lambda>S. ?V (sel S)) S"
+            using hV unfolding Vset_def by (simp only: image_iff)
+          obtain S where hS: "S \<in> F" and hVeq: "V = ?V (sel S)"
+            using exS by blast
+          have hselA: "sel S \<in> A"
+            using hsel hS by blast
+          have hVx: "neighborhood_of x X TX (?V (sel S))"
+            using hp hselA by blast
+          have hVT: "?V (sel S) \<in> TX"
+            using hVx unfolding neighborhood_of_def by blast
+          show "V \<in> TX" using hVT hVeq by simp
+        qed
+
+        have hV0T: "\<Inter>Vset \<in> TX"
+          using inter_T hVset_fin hVset_ne hVset_sub by blast
+
+        have hxV0: "x \<in> \<Inter>Vset"
+        proof (rule InterI)
+          fix V
+          assume hV: "V \<in> Vset"
+          have exS: "\<exists>S\<in>F. V = (\<lambda>S. ?V (sel S)) S"
+            using hV unfolding Vset_def by (simp only: image_iff)
+          obtain S where hS: "S \<in> F" and hVeq: "V = ?V (sel S)"
+            using exS by blast
+          have hselA: "sel S \<in> A"
+            using hsel hS by blast
+          have hVx: "neighborhood_of x X TX (?V (sel S))"
+            using hp hselA by blast
+          have hxV: "x \<in> ?V (sel S)"
+            using hVx unfolding neighborhood_of_def by blast
+          show "x \<in> V" using hxV hVeq by simp
+        qed
+
+        have hV0_disj: "A \<inter> \<Inter>Vset = {}"
+        proof (rule ccontr)
+          assume hne: "A \<inter> \<Inter>Vset \<noteq> {}"
+          have exa: "\<exists>a. a \<in> A \<inter> \<Inter>Vset"
+            using hne by blast
+          obtain a where ha: "a \<in> A \<inter> \<Inter>Vset"
+            using exa by blast
+          have haA: "a \<in> A" and haV0: "a \<in> \<Inter>Vset" using ha by blast+
+          have haUF: "a \<in> \<Union>F"
+            using hFcov haA by blast
+          obtain S where hS: "S \<in> F" and haS: "a \<in> S"
+            using haUF by blast
+          have hSeq: "S = A \<inter> ?U (sel S)"
+            using hsel hS by blast
+          have hselA: "sel S \<in> A"
+            using hsel hS by blast
+          have hUa: "neighborhood_of (sel S) X TX (?U (sel S))"
+            using hp hselA by blast
+          have hVx: "neighborhood_of x X TX (?V (sel S))"
+            using hp hselA by blast
+          have hdisjUV: "?U (sel S) \<inter> ?V (sel S) = {}"
+            using hp hselA by blast
+          have ha_int: "a \<in> A \<inter> ?U (sel S)"
+            apply (subst hSeq[symmetric])
+            apply (rule haS)
+            done
+          have haU: "a \<in> ?U (sel S)"
+            by (rule IntD2[OF ha_int])
+          have haV: "a \<in> ?V (sel S)"
+          proof -
+            have "?V (sel S) \<in> Vset"
+              unfolding Vset_def
+              apply (rule imageI)
+              apply (rule hS)
+              done
+            hence "\<Inter>Vset \<subseteq> ?V (sel S)" by blast
+            thus ?thesis using haV0 by blast
+          qed
+          have "a \<in> ?U (sel S) \<inter> ?V (sel S)"
+            apply (rule IntI)
+             apply (rule haU)
+            apply (rule haV)
+            done
+          thus False using hdisjUV by blast
+        qed
+
+        let ?V0 = "X \<inter> \<Inter>Vset"
+        have hV0open: "?V0 \<in> TX"
+          by (rule topology_inter2[OF hTX X_T hV0T])
+        have hxV0': "x \<in> ?V0"
+          apply (rule IntI)
+           apply (rule hxX)
+          apply (rule hxV0)
+          done
+        have hV0sub: "?V0 \<subseteq> X - A"
+        proof (rule subsetI)
+          fix z
+          assume hz: "z \<in> ?V0"
+          have hzX: "z \<in> X" and hzV0: "z \<in> \<Inter>Vset" using hz by blast+
+          show "z \<in> X - A"
+          proof (rule DiffI)
+            show "z \<in> X" by (rule hzX)
+            show "z \<notin> A"
+            proof
+              assume hzA: "z \<in> A"
+              have "z \<in> A \<inter> \<Inter>Vset"
+                apply (rule IntI)
+                 apply (rule hzA)
+                apply (rule hzV0)
+                done
+              hence False using hV0_disj by blast
+              thus False ..
+            qed
+          qed
+        qed
+
+        show "\<exists>V. V \<in> TX \<and> x \<in> V \<and> V \<subseteq> X - A"
+          apply (rule exI[where x="X \<inter> \<Inter>Vset"])
+          apply (intro conjI)
+            apply (rule hV0open)
+           apply (rule hxV0')
+          apply (rule hV0sub)
+          done
+      qed
+
+      define G where "G = {V. V \<in> TX \<and> V \<subseteq> X - A}"
+      have hGsub: "G \<subseteq> TX" unfolding G_def by blast
+      have hUnionG_sub: "\<Union>G \<subseteq> X - A" unfolding G_def by blast
+
+      have hXA_sub: "X - A \<subseteq> \<Union>G"
+      proof (rule subsetI)
+        fix x
+        assume hx: "x \<in> X - A"
+        obtain V where hV: "V \<in> TX \<and> x \<in> V \<and> V \<subseteq> X - A"
+          using point_sep hx by blast
+        have hVG: "V \<in> G" using hV unfolding G_def by blast
+        have hxV: "x \<in> V" using hV by blast
+        show "x \<in> \<Union>G"
+          by (rule UnionI[OF hVG hxV])
+      qed
+
+      have "X - A = \<Union>G"
+        apply (rule equalityI)
+         apply (rule hXA_sub)
+        apply (rule hUnionG_sub)
+        done
+      moreover have "\<Union>G \<in> TX"
+        by (rule union_T[rule_format, OF hGsub])
+      ultimately show "X - A \<in> TX" by simp
+    qed
+  qed
+qed
 
 (** from \S26 Theorem 26.5 [top1.tex:3163] **)
 theorem Theorem_26_5:
@@ -5895,7 +6755,166 @@ theorem Theorem_26_5:
   assumes hcomp: "top1_compact_on X TX"
   assumes hcont: "top1_continuous_map_on X TX Y TY f"
   shows "top1_compact_on (f ` X) (subspace_topology Y TY (f ` X))"
-  sorry
+proof -
+  have hmap: "\<forall>x\<in>X. f x \<in> Y"
+    using hcont unfolding top1_continuous_map_on_def by blast
+  have hfXsub: "f ` X \<subseteq> Y"
+    using hmap by blast
+  have hsub_top: "is_topology_on (f ` X) (subspace_topology Y TY (f ` X))"
+    by (rule subspace_topology_is_topology_on[OF hTY hfXsub])
+
+  have compact_cover: "\<forall>Uc. Uc \<subseteq> TX \<and> X \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F)"
+    using hcomp unfolding top1_compact_on_def by blast
+
+  have pre_open: "\<forall>V\<in>TY. {x\<in>X. f x \<in> V} \<in> TX"
+    using hcont unfolding top1_continuous_map_on_def by blast
+
+  have cover_fX:
+    "\<forall>Uc. Uc \<subseteq> subspace_topology Y TY (f ` X) \<and> f ` X \<subseteq> \<Union>Uc
+        \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> f ` X \<subseteq> \<Union>F)"
+  proof (intro allI impI)
+    fix Uc
+    assume hUc: "Uc \<subseteq> subspace_topology Y TY (f ` X) \<and> f ` X \<subseteq> \<Union>Uc"
+    have hUc_sub: "Uc \<subseteq> subspace_topology Y TY (f ` X)"
+      by (rule conjunct1[OF hUc])
+    have hcov: "f ` X \<subseteq> \<Union>Uc"
+      by (rule conjunct2[OF hUc])
+
+    define V where "V = {W. W \<in> TY \<and> (f ` X \<inter> W) \<in> Uc}"
+    have hVsub: "V \<subseteq> TY" unfolding V_def by blast
+
+    define Pc where "Pc = {{x \<in> X. f x \<in> W} | W. W \<in> V}"
+
+    have hPc_sub: "Pc \<subseteq> TX"
+    proof (rule subsetI)
+      fix P
+      assume hP: "P \<in> Pc"
+      obtain W where hW: "W \<in> V" and hPeq: "P = {x \<in> X. f x \<in> W}"
+        using hP unfolding Pc_def by blast
+      have hWTY: "W \<in> TY" using hW unfolding V_def by blast
+      show "P \<in> TX" using pre_open hWTY hPeq by simp
+    qed
+
+    have hXcov: "X \<subseteq> \<Union>Pc"
+    proof (rule subsetI)
+      fix x
+      assume hxX: "x \<in> X"
+      have hfx: "f x \<in> f ` X" using hxX by blast
+      have "f x \<in> \<Union>Uc"
+        by (rule subsetD[OF hcov, OF hfx])
+      then obtain U where hU: "U \<in> Uc" and hfxU: "f x \<in> U"
+        by blast
+      have hU_sub: "U \<in> subspace_topology Y TY (f ` X)"
+        using hUc_sub hU by blast
+      obtain W where hW: "W \<in> TY" and hUeq: "U = (f ` X) \<inter> W"
+        using hU_sub unfolding subspace_topology_def by blast
+      have hW_in_V: "W \<in> V"
+        unfolding V_def using hW hU hUeq by blast
+      have hxP: "x \<in> {x \<in> X. f x \<in> W}"
+        using hxX hfxU unfolding hUeq by blast
+      have hPW: "{x \<in> X. f x \<in> W} \<in> Pc"
+        unfolding Pc_def using hW_in_V by blast
+      show "x \<in> \<Union>Pc"
+        by (rule UnionI[OF hPW hxP])
+    qed
+
+    have hCover_imp: "Pc \<subseteq> TX \<and> X \<subseteq> \<Union>Pc
+        \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Pc \<and> X \<subseteq> \<Union>F)"
+      by (rule spec[where x=Pc, OF compact_cover])
+    have hCover: "\<exists>F. finite F \<and> F \<subseteq> Pc \<and> X \<subseteq> \<Union>F"
+      by (rule mp[OF hCover_imp], intro conjI, rule hPc_sub, rule hXcov)
+    obtain F where hFfin: "finite F" and hFsub: "F \<subseteq> Pc" and hFcov: "X \<subseteq> \<Union>F"
+      using hCover by blast
+
+    have hW_ex: "\<forall>P\<in>F. \<exists>W. W \<in> V \<and> P = {x \<in> X. f x \<in> W}"
+    proof (intro ballI)
+      fix P
+      assume hP: "P \<in> F"
+      have hP_Pc: "P \<in> Pc" using hFsub hP by blast
+      show "\<exists>W. W \<in> V \<and> P = {x \<in> X. f x \<in> W}"
+        using hP_Pc unfolding Pc_def by blast
+    qed
+    obtain sel where hsel: "\<forall>P\<in>F. sel P \<in> V \<and> P = {x \<in> X. f x \<in> sel P}"
+      using bchoice[OF hW_ex] by blast
+
+    define Fc where "Fc = {f ` X \<inter> sel P | P. P \<in> F}"
+    have hFc_fin: "finite Fc"
+      unfolding Fc_def using hFfin by simp
+
+    have hFc_sub: "Fc \<subseteq> Uc"
+    proof (rule subsetI)
+      fix U
+      assume hU: "U \<in> Fc"
+      obtain P where hP: "P \<in> F" and hUeq: "U = f ` X \<inter> sel P"
+        using hU unfolding Fc_def by blast
+      have hselV: "sel P \<in> V"
+        using hsel hP by blast
+      have "f ` X \<inter> sel P \<in> Uc"
+        using hselV unfolding V_def by blast
+      thus "U \<in> Uc" using hUeq by simp
+    qed
+
+    have hcovFc: "f ` X \<subseteq> \<Union>Fc"
+    proof (rule subsetI)
+      fix y
+      assume hy: "y \<in> f ` X"
+      obtain x where hxX: "x \<in> X" and hyfx: "y = f x"
+        using hy by blast
+      have hxUF: "x \<in> \<Union>F"
+        using hFcov hxX by blast
+      obtain P where hP: "P \<in> F" and hxP: "x \<in> P"
+        using hxUF by blast
+      have hPeq: "P = {u \<in> X. f u \<in> sel P}"
+        using hsel hP by blast
+      have hPeq_sym: "{u \<in> X. f u \<in> sel P} = P"
+        using hPeq by (rule sym)
+      have hxP_sel: "x \<in> {u \<in> X. f u \<in> sel P}"
+        apply (subst hPeq_sym)
+        apply (rule hxP)
+        done
+      have hxP_conj: "x \<in> X \<and> f x \<in> sel P"
+        using hxP_sel by (simp only: mem_Collect_eq)
+      have hfx: "f x \<in> sel P"
+        using hxP_conj by (rule conjunct2)
+      have hy_selP: "y \<in> sel P"
+        apply (subst hyfx)
+        apply (rule hfx)
+        done
+      have hy_int: "y \<in> f ` X \<inter> sel P"
+        apply (rule IntI)
+         apply (rule hy)
+        apply (rule hy_selP)
+        done
+      have hFc_mem: "f ` X \<inter> sel P \<in> Fc"
+        unfolding Fc_def
+        apply (subst setcompr_eq_image)
+        apply (simp only: Collect_mem_eq)
+        apply (rule imageI)
+        apply (rule hP)
+        done
+      show "y \<in> \<Union>Fc"
+        apply (rule UnionI)
+         apply (rule hFc_mem)
+        apply (rule hy_int)
+        done
+    qed
+
+    show "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> f ` X \<subseteq> \<Union>F"
+      apply (rule exI[where x=Fc])
+      apply (intro conjI)
+        apply (rule hFc_fin)
+       apply (rule hFc_sub)
+      apply (rule hcovFc)
+      done
+  qed
+
+  show ?thesis
+    unfolding top1_compact_on_def
+    apply (intro conjI)
+     apply (rule hsub_top)
+    apply (rule cover_fX)
+    done
+qed
 
 (** from \S26 Theorem 26.6 [top1.tex:3180] **)
 theorem Theorem_26_6:
@@ -5906,7 +6925,136 @@ theorem Theorem_26_6:
   assumes hf: "top1_continuous_map_on X TX Y TY f"
   assumes hbij: "bij_betw f X Y"
   shows "top1_homeomorphism_on X TX Y TY f"
-  sorry
+proof -
+  have hinj: "inj_on f X"
+    using hbij unfolding bij_betw_def by blast
+  have hsurj: "f ` X = Y"
+    using hbij unfolding bij_betw_def by blast
+
+  have cont_inv_closed:
+    "top1_continuous_map_on Y TY X TX (inv_into X f) \<longleftrightarrow>
+       ((\<forall>y\<in>Y. inv_into X f y \<in> X) \<and>
+        (\<forall>B. closedin_on X TX B \<longrightarrow> closedin_on Y TY {y\<in>Y. inv_into X f y \<in> B}))"
+    using Theorem_18_1(2)[OF hTY hTX, of "inv_into X f"] .
+
+  have inv_maps: "\<forall>y\<in>Y. inv_into X f y \<in> X"
+  proof (intro ballI)
+    fix y
+    assume hyY: "y \<in> Y"
+    have hyFX: "y \<in> f ` X"
+      using hyY hsurj by simp
+    show "inv_into X f y \<in> X"
+      by (rule inv_into_into[OF hyFX])
+  qed
+
+  have inv_closed_preimage:
+    "\<forall>B. closedin_on X TX B \<longrightarrow> closedin_on Y TY {y\<in>Y. inv_into X f y \<in> B}"
+  proof (intro allI impI)
+    fix B
+    assume hB: "closedin_on X TX B"
+    have hBX: "B \<subseteq> X"
+      by (rule closedin_sub[OF hB])
+
+    have hBcomp: "top1_compact_on B (subspace_topology X TX B)"
+      by (rule Theorem_26_2[OF hcomp hB])
+
+    have hcontB: "top1_continuous_map_on B (subspace_topology X TX B) Y TY f"
+    proof -
+      have hrd:
+        "\<forall>A g. top1_continuous_map_on X TX Y TY g \<and> A \<subseteq> X
+          \<longrightarrow> top1_continuous_map_on A (subspace_topology X TX A) Y TY g"
+        using Theorem_18_2(4)[OF hTX hTY hTY] .
+      have "top1_continuous_map_on X TX Y TY f \<and> B \<subseteq> X"
+        apply (intro conjI)
+         apply (rule hf)
+        apply (rule hBX)
+        done
+      thus ?thesis
+        using hrd by blast
+    qed
+
+    have hsub_topB: "is_topology_on B (subspace_topology X TX B)"
+      by (rule subspace_topology_is_topology_on[OF hTX hBX])
+
+    have himg_compact: "top1_compact_on (f ` B) (subspace_topology Y TY (f ` B))"
+      by (rule Theorem_26_5[OF hsub_topB hTY hBcomp hcontB])
+
+    have hfBsub: "f ` B \<subseteq> Y"
+    proof (rule subsetI)
+      fix y
+      assume hy: "y \<in> f ` B"
+      then obtain x where hxB: "x \<in> B" and hyfx: "y = f x"
+        by blast
+      have hxX: "x \<in> X"
+        using hBX hxB by blast
+      have hmap: "\<forall>x\<in>X. f x \<in> Y"
+        using hf unfolding top1_continuous_map_on_def by blast
+      have "f x \<in> Y"
+        using hmap hxX by blast
+      thus "y \<in> Y" using hyfx by simp
+    qed
+
+    have himg_closed: "closedin_on Y TY (f ` B)"
+      by (rule Theorem_26_3[OF hH hfBsub himg_compact])
+
+    have preim_eq: "{y\<in>Y. inv_into X f y \<in> B} = f ` B"
+    proof (rule equalityI)
+      show "{y\<in>Y. inv_into X f y \<in> B} \<subseteq> f ` B"
+      proof (rule subsetI)
+        fix y
+        assume hy: "y \<in> {y\<in>Y. inv_into X f y \<in> B}"
+        have hyY: "y \<in> Y" and hinvB: "inv_into X f y \<in> B"
+          using hy by blast+
+        have hyFX: "y \<in> f ` X"
+          using hyY hsurj by simp
+        have hy_eq: "f (inv_into X f y) = y"
+          by (rule f_inv_into_f[OF hyFX])
+        have "y = f (inv_into X f y)" using hy_eq by simp
+        thus "y \<in> f ` B"
+          apply (subst \<open>y = f (inv_into X f y)\<close>)
+          apply (rule imageI)
+          apply (rule hinvB)
+          done
+      qed
+      show "f ` B \<subseteq> {y\<in>Y. inv_into X f y \<in> B}"
+      proof (rule subsetI)
+        fix y
+        assume hy: "y \<in> f ` B"
+        then obtain x where hxB: "x \<in> B" and hyfx: "y = f x"
+          by blast
+        have hxX: "x \<in> X" using hBX hxB by blast
+        have hyY: "y \<in> Y" using hfBsub hy by blast
+        have hinv: "inv_into X f y \<in> B"
+        proof -
+          have "inv_into X f (f x) = x"
+            by (rule inv_into_f_f[OF hinj hxX])
+          hence "inv_into X f y = x" using hyfx by simp
+          thus ?thesis using hxB by simp
+        qed
+        show "y \<in> {y\<in>Y. inv_into X f y \<in> B}"
+          apply (rule CollectI)
+          apply (intro conjI)
+           apply (rule hyY)
+          apply (rule hinv)
+          done
+      qed
+    qed
+
+    show "closedin_on Y TY {y\<in>Y. inv_into X f y \<in> B}"
+      using himg_closed preim_eq by simp
+  qed
+
+  have inv_cont: "top1_continuous_map_on Y TY X TX (inv_into X f)"
+    by (rule iffD2[OF cont_inv_closed], intro conjI, rule inv_maps, rule inv_closed_preimage)
+
+  show ?thesis
+    unfolding top1_homeomorphism_on_def
+    apply (intro conjI)
+      apply (rule hbij)
+     apply (rule hf)
+    apply (rule inv_cont)
+    done
+qed
 
 section \<open>\<S>29 Local Compactness\<close>
 
