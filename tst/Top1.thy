@@ -8953,6 +8953,124 @@ proof -
     done
 qed
 
+(** from \S31 Lemma 31.1(a) [top1.tex:~4065] **)
+theorem Lemma_31_1a:
+  "top1_regular_on X T \<longleftrightarrow>
+     (top1_T1_on X T \<and>
+      (\<forall>x\<in>X. \<forall>U. U \<in> T \<and> U \<subseteq> X \<and> x \<in> U
+         \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U)))"
+proof (rule iffI)
+  assume hR: "top1_regular_on X T"
+  have hT1: "top1_T1_on X T"
+    using hR unfolding top1_regular_on_def by (rule conjunct1)
+  show "top1_T1_on X T \<and>
+      (\<forall>x\<in>X. \<forall>U. U \<in> T \<and> U \<subseteq> X \<and> x \<in> U
+         \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U))"
+  proof (intro conjI)
+    show "top1_T1_on X T"
+      by (rule hT1)
+    show "\<forall>x\<in>X. \<forall>U. U \<in> T \<and> U \<subseteq> X \<and> x \<in> U
+      \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U)"
+    proof (intro ballI allI impI)
+      fix x U
+      assume hxX: "x \<in> X"
+      assume hU: "U \<in> T \<and> U \<subseteq> X \<and> x \<in> U"
+      have hUT: "U \<in> T" and hUX: "U \<subseteq> X" and hxU: "x \<in> U"
+        using hU by blast+
+      show "\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U"
+        by (rule regular_refine_point_into_open[OF hR hxX hUT hUX hxU])
+    qed
+  qed
+next
+  assume h: "top1_T1_on X T \<and>
+      (\<forall>x\<in>X. \<forall>U. U \<in> T \<and> U \<subseteq> X \<and> x \<in> U
+         \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U))"
+  have hT1: "top1_T1_on X T"
+    using h by blast
+  have hTop: "is_topology_on X T"
+    using hT1 unfolding top1_T1_on_def by blast
+  have hShrink:
+    "\<forall>x\<in>X. \<forall>U. U \<in> T \<and> U \<subseteq> X \<and> x \<in> U
+      \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U)"
+    using h by blast
+
+  show "top1_regular_on X T"
+    unfolding top1_regular_on_def
+  proof (intro conjI)
+    show "top1_T1_on X T"
+      by (rule hT1)
+    show "\<forall>x\<in>X. \<forall>C. closedin_on X T C \<and> x \<notin> C
+      \<longrightarrow> (\<exists>U V. neighborhood_of x X T U \<and> V \<in> T \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+    proof (intro ballI allI impI)
+      fix x C
+      assume hxX: "x \<in> X"
+      assume hC: "closedin_on X T C \<and> x \<notin> C"
+      have hCcl: "closedin_on X T C"
+        using hC by blast
+      have hxnotC: "x \<notin> C"
+        using hC by blast
+      have hCX: "C \<subseteq> X"
+        by (rule closedin_sub[OF hCcl])
+      have hXmC: "X - C \<in> T"
+        by (rule closedin_diff_open[OF hCcl])
+      have hxXmC: "x \<in> X - C"
+        using hxX hxnotC by blast
+
+      obtain V where hV: "V \<in> T" and hVX: "V \<subseteq> X" and hxV: "x \<in> V"
+          and hclV: "closure_on X T V \<subseteq> X - C"
+        using hShrink[rule_format, OF hxX, of "X - C"] hXmC hxXmC
+        by blast
+
+      have hclV_closed: "closedin_on X T (closure_on X T V)"
+        by (rule closure_on_closed[OF hTop hVX])
+      have hW: "X - closure_on X T V \<in> T"
+        by (rule closedin_diff_open[OF hclV_closed])
+
+      have hCsubW: "C \<subseteq> X - closure_on X T V"
+      proof (rule subsetI)
+        fix c assume hc: "c \<in> C"
+        have hcX: "c \<in> X" using hCX hc by blast
+        show "c \<in> X - closure_on X T V"
+        proof (rule DiffI)
+          show "c \<in> X" by (rule hcX)
+          show "c \<notin> closure_on X T V"
+          proof
+            assume hccl: "c \<in> closure_on X T V"
+            have "c \<in> X - C"
+              using hclV hccl by blast
+            thus False
+              using hc by blast
+          qed
+        qed
+      qed
+
+      have hnbV: "neighborhood_of x X T V"
+        unfolding neighborhood_of_def by (intro conjI, rule hV, rule hxV)
+      have hdisj: "V \<inter> (X - closure_on X T V) = {}"
+      proof (rule equalityI)
+        show "V \<inter> (X - closure_on X T V) \<subseteq> {}"
+        proof (rule subsetI)
+          fix z assume hz: "z \<in> V \<inter> (X - closure_on X T V)"
+          have hzV: "z \<in> V" and hznot: "z \<notin> closure_on X T V"
+            using hz by blast+
+          have hVsub: "V \<subseteq> closure_on X T V"
+            by (rule subset_closure_on)
+          have "z \<in> closure_on X T V"
+            by (rule subsetD[OF hVsub hzV])
+          thus "z \<in> {}"
+            using hznot by blast
+        qed
+        show "{} \<subseteq> V \<inter> (X - closure_on X T V)"
+          by simp
+      qed
+
+      show "\<exists>U W. neighborhood_of x X T U \<and> W \<in> T \<and> C \<subseteq> W \<and> U \<inter> W = {}"
+        by (rule exI[where x=V], rule exI[where x="X - closure_on X T V"],
+            intro conjI, rule hnbV, rule hW, rule hCsubW, rule hdisj)
+    qed
+  qed
+qed
+
 section \<open>\<S>32 Normal Spaces\<close>
 
 (** from \S32 Definition (Normal space) [top1.tex:~4170] **)
