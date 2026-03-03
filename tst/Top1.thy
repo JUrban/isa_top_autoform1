@@ -12161,7 +12161,149 @@ proof -
 	  qed
 
   have pre_ray_gt_open: "\<And>c. {x \<in> X. f x \<in> open_ray_gt c} \<in> TX"
-    sorry
+  proof -
+    fix c
+    show "{x \<in> X. f x \<in> open_ray_gt c} \<in> TX"
+	    proof (cases "1 \<le> c")
+	      case True
+	      have "{x \<in> X. f x \<in> open_ray_gt c} = {}"
+	      proof (rule set_eqI)
+	        fix x
+	        show "x \<in> {x \<in> X. f x \<in> open_ray_gt c} \<longleftrightarrow> x \<in> {}"
+	        proof
+	          assume hx: "x \<in> {x \<in> X. f x \<in> open_ray_gt c}"
+	          have hgt: "c < f x"
+	            using hx unfolding open_ray_gt_def by simp
+	          have hle: "f x \<le> 1"
+	            by (rule f_le1)
+	          have False
+	            using True hgt hle by linarith
+	          thus "x \<in> {}"
+	            by simp
+	        next
+	          assume "x \<in> {}"
+	          thus "x \<in> {x \<in> X. f x \<in> open_ray_gt c}"
+	            by simp
+	        qed
+	      qed
+      have hEmpty: "{} \<in> TX"
+        by (rule conjunct1[OF hTopX[unfolded is_topology_on_def]])
+      show ?thesis
+        by (simp add: hEmpty \<open>{x \<in> X. f x \<in> open_ray_gt c} = {}\<close>)
+	    next
+	      case False
+	      show ?thesis
+	      proof (cases "c < 0")
+	        case True
+	        have hEq: "{x \<in> X. f x \<in> open_ray_gt c} = X"
+	        proof (rule set_eqI)
+	          fix x
+	          show "x \<in> {x \<in> X. f x \<in> open_ray_gt c} \<longleftrightarrow> x \<in> X"
+	          proof
+	            assume hx: "x \<in> {x \<in> X. f x \<in> open_ray_gt c}"
+	            show "x \<in> X"
+	              using hx by simp
+	          next
+	            assume hxX: "x \<in> X"
+	            have hfxge0: "0 \<le> f x"
+	              by (rule f_ge0)
+	            have hlt: "c < f x"
+	              using True hfxge0 by linarith
+	            show "x \<in> {x \<in> X. f x \<in> open_ray_gt c}"
+	              unfolding open_ray_gt_def using hxX hlt by simp
+	          qed
+	        qed
+	        have hX_open: "X \<in> TX"
+	          using hTopX unfolding is_topology_on_def by blast
+	        show ?thesis
+	          using hEq hX_open by simp
+      next
+        case False
+        have hc0: "0 \<le> c"
+          using False by simp
+        have hc_lt1: "c < 1"
+          using \<open>\<not> 1 \<le> c\<close> by simp
+        define UC where
+          "UC = {X - closure_on X TX (U n k) | n k. k \<le> (2::nat) ^ n \<and> c < top1_dyadic n k}"
+        have hUC_open: "\<forall>V\<in>UC. V \<in> TX"
+        proof
+          fix V assume hV: "V \<in> UC"
+          obtain n k where hk: "k \<le> (2::nat) ^ n" and hdy: "c < top1_dyadic n k" and hVeq: "V = X - closure_on X TX (U n k)"
+            using hV unfolding UC_def by blast
+          have hcl_closed: "closedin_on X TX (closure_on X TX (U n k))"
+          proof (rule closure_on_closed[OF hTopX])
+            show "U n k \<subseteq> X"
+              by (rule U_subX[OF hk])
+          qed
+          show "V \<in> TX"
+            unfolding hVeq by (rule closedin_diff_open[OF hcl_closed])
+        qed
+
+        have hpre_eq: "{x \<in> X. f x \<in> open_ray_gt c} = \<Union>UC"
+        proof (rule set_eqI)
+          fix x
+          show "x \<in> {x \<in> X. f x \<in> open_ray_gt c} \<longleftrightarrow> x \<in> \<Union>UC"
+          proof (rule iffI)
+            assume hx: "x \<in> {x \<in> X. f x \<in> open_ray_gt c}"
+            have hxX: "x \<in> X" using hx by simp
+            have hgt: "c < f x"
+              using hx unfolding open_ray_gt_def by simp
+            obtain n k where hk: "k \<le> (2::nat) ^ n"
+              and hbetween: "c < top1_dyadic n k" "top1_dyadic n k < f x"
+              using exists_top1_dyadic_between_01[OF hc0 hgt f_le1[of x]] by blast
+            have hxnotcl: "x \<notin> closure_on X TX (U n k)"
+            proof
+              assume hxcl: "x \<in> closure_on X TX (U n k)"
+              have hd0: "0 \<le> top1_dyadic n k"
+                by (rule dyadic_nonneg)
+              obtain m l where hlm: "l \<le> (2::nat) ^ m"
+                and hbetween2: "top1_dyadic n k < top1_dyadic m l" "top1_dyadic m l < f x"
+                using exists_top1_dyadic_between_01[OF hd0 hbetween(2) f_le1[of x]] by blast
+              have hcl_m: "closure_on X TX (U n k) \<subseteq> U m l"
+                unfolding U_def
+                by (rule top1_urysohn_U_closure_mono_dyadic[OF hN hU0_open hU0_subX hU1_open hU1_subX hcl01 hk hlm hbetween2(1)])
+              have hxUm: "x \<in> U m l"
+                by (rule subsetD[OF hcl_m hxcl])
+              have hfxle: "f x \<le> top1_dyadic m l"
+                by (rule f_le_dyadic_if_in[OF hlm hxUm])
+              show False
+                using hfxle hbetween2(2) by simp
+            qed
+            have "X - closure_on X TX (U n k) \<in> UC"
+              unfolding UC_def using hk hbetween(1) by blast
+            hence "x \<in> \<Union>UC"
+              using hxX hxnotcl by blast
+            thus "x \<in> \<Union>UC" .
+          next
+            assume hx: "x \<in> \<Union>UC"
+            then obtain V where hV: "V \<in> UC" and hxV: "x \<in> V"
+              by blast
+            obtain n k where hk: "k \<le> (2::nat) ^ n" and hdy: "c < top1_dyadic n k"
+              and hVeq: "V = X - closure_on X TX (U n k)"
+              using hV unfolding UC_def by blast
+            have hxX: "x \<in> X"
+              using hxV unfolding hVeq by simp
+            have hxnotcl: "x \<notin> closure_on X TX (U n k)"
+              using hxV unfolding hVeq by simp
+            have hle: "top1_dyadic n k \<le> f x"
+              by (rule dyadic_le_f_if_notin_closure[OF hk hxX hxnotcl])
+            have "c < f x"
+              using hdy hle by simp
+            thus "x \<in> {x \<in> X. f x \<in> open_ray_gt c}"
+              unfolding open_ray_gt_def using hxX by simp
+          qed
+        qed
+
+        have hUC_sub: "UC \<subseteq> TX"
+          using hUC_open by blast
+        have "\<Union>UC \<in> TX"
+          using conjunct1[OF conjunct2[OF conjunct2[OF hTopX[unfolded is_topology_on_def]]]] hUC_sub
+          by blast
+        thus ?thesis
+          unfolding hpre_eq .
+      qed
+    qed
+  qed
 
   have pre_ray_lt_open: "\<And>c. {x \<in> X. f x \<in> open_ray_lt c} \<in> TX"
   proof -
