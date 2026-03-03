@@ -366,7 +366,307 @@ theorem Lemma_13_4:
   shows "strictly_finer_than topology_standard_R topology_lower_limit_R
        \<and> strictly_finer_than topology_standard_R topology_K_R
        \<and> \<not> comparable_topologies topology_lower_limit_R topology_K_R"
-  sorry
+proof -
+  define L where "L = interval_half_open_left_closed 0 1"
+  define K0 where "K0 = interval_open (-1) 1 - K_set"
+
+  have h_std_sub_ll: "topology_standard_R \<subseteq> topology_lower_limit_R"
+    unfolding topology_standard_R_def topology_lower_limit_R_def
+  proof (rule subsetI)
+    fix W assume hW: "W \<in> topology_generated_by_basis UNIV basis_standard_R"
+    have hWcov: "\<forall>x\<in>W. \<exists>b\<in>basis_standard_R. x \<in> b \<and> b \<subseteq> W"
+      using hW unfolding topology_generated_by_basis_def by blast
+    show "W \<in> topology_generated_by_basis UNIV basis_lower_limit_R"
+      unfolding topology_generated_by_basis_def
+    proof (rule CollectI, rule conjI, rule subset_UNIV)
+      show "\<forall>x\<in>W. \<exists>b\<in>basis_lower_limit_R. x \<in> b \<and> b \<subseteq> W"
+      proof (rule ballI)
+        fix x assume hxW: "x \<in> W"
+        obtain b where hbB: "b \<in> basis_standard_R" and hxb: "x \<in> b" and hbW: "b \<subseteq> W"
+          using hWcov[rule_format, OF hxW] by blast
+        obtain a c where hac: "a < c" and hbeq: "b = interval_open a c"
+          using hbB unfolding basis_standard_R_def by blast
+        have hxac: "a < x \<and> x < c"
+          using hxb unfolding hbeq interval_open_def by simp
+        have hax: "a < x" by (rule conjunct1[OF hxac])
+        have hxc: "x < c" by (rule conjunct2[OF hxac])
+        have hb'B: "interval_half_open_left_closed x c \<in> basis_lower_limit_R"
+          unfolding basis_lower_limit_R_def
+          apply (rule CollectI)
+          apply (rule exI[where x=x], rule exI[where x=c])
+          apply (intro conjI refl)
+           apply (rule hxc)
+          done
+        have hxb': "x \<in> interval_half_open_left_closed x c"
+          unfolding interval_half_open_left_closed_def using hxc by simp
+        have hb'sub: "interval_half_open_left_closed x c \<subseteq> b"
+        proof (rule subsetI)
+          fix y assume hy: "y \<in> interval_half_open_left_closed x c"
+          have hxy: "x \<le> y" and hyc: "y < c"
+            using hy unfolding interval_half_open_left_closed_def by blast+
+          have hay: "a < y" using hax hxy by linarith
+          show "y \<in> b"
+            unfolding hbeq interval_open_def using hay hyc by simp
+        qed
+        have hb'W: "interval_half_open_left_closed x c \<subseteq> W"
+          by (rule subset_trans[OF hb'sub, OF hbW])
+        show "\<exists>ba\<in>basis_lower_limit_R. x \<in> ba \<and> ba \<subseteq> W"
+          apply (rule bexI[where x="interval_half_open_left_closed x c"])
+           apply (intro conjI hxb' hb'W)
+          apply (rule hb'B)
+          done
+      qed
+    qed
+  qed
+
+  have h_std_sub_k: "topology_standard_R \<subseteq> topology_K_R"
+    unfolding topology_standard_R_def topology_K_R_def
+  proof (rule subsetI)
+    fix W assume hW: "W \<in> topology_generated_by_basis UNIV basis_standard_R"
+    have hWcov: "\<forall>x\<in>W. \<exists>b\<in>basis_standard_R. x \<in> b \<and> b \<subseteq> W"
+      using hW unfolding topology_generated_by_basis_def by blast
+    show "W \<in> topology_generated_by_basis UNIV basis_K_topology_R"
+      unfolding topology_generated_by_basis_def
+    proof (rule CollectI, rule conjI, rule subset_UNIV)
+      show "\<forall>x\<in>W. \<exists>b\<in>basis_K_topology_R. x \<in> b \<and> b \<subseteq> W"
+      proof (rule ballI)
+        fix x assume hxW: "x \<in> W"
+        obtain b where hbB: "b \<in> basis_standard_R" and hxb: "x \<in> b" and hbW: "b \<subseteq> W"
+          using hWcov[rule_format, OF hxW] by blast
+        obtain a c where hac: "a < c" and hbeq: "b = interval_open a c"
+          using hbB unfolding basis_standard_R_def by blast
+        have hbK: "b \<in> basis_K_topology_R"
+          unfolding basis_K_topology_R_def
+          apply (rule UnI1)
+          unfolding basis_standard_R_def
+          apply (rule CollectI)
+          apply (rule exI[where x=a], rule exI[where x=c])
+          apply (simp add: hbeq hac)
+          done
+        show "\<exists>ba\<in>basis_K_topology_R. x \<in> ba \<and> ba \<subseteq> W"
+          apply (rule bexI[where x=b])
+           apply (intro conjI hxb hbW)
+          apply (rule hbK)
+          done
+      qed
+    qed
+  qed
+
+  have hL_in_ll: "L \<in> topology_lower_limit_R"
+    unfolding L_def topology_lower_limit_R_def topology_generated_by_basis_def
+    apply (rule CollectI, rule conjI, rule subset_UNIV, rule ballI)
+    apply (rule bexI[where x="interval_half_open_left_closed 0 1"])
+     apply (intro conjI)
+      apply assumption
+     apply (rule subset_refl)
+    unfolding basis_lower_limit_R_def
+    apply (rule CollectI)
+    apply (rule exI[where x=0], rule exI[where x=1])
+    apply simp
+    done
+
+  have hL_not_std: "L \<notin> topology_standard_R"
+  proof
+    assume hL: "L \<in> topology_standard_R"
+    have hLcov: "\<forall>x\<in>L. \<exists>b\<in>basis_standard_R. x \<in> b \<and> b \<subseteq> L"
+      using hL unfolding topology_standard_R_def topology_generated_by_basis_def by blast
+    have h0L: "0 \<in> L" unfolding L_def interval_half_open_left_closed_def by simp
+    obtain b where hbB: "b \<in> basis_standard_R" and h0b: "0 \<in> b" and hbL: "b \<subseteq> L"
+      using hLcov[rule_format, OF h0L] by blast
+    obtain a c where hac: "a < c" and hbeq: "b = interval_open a c"
+      using hbB unfolding basis_standard_R_def by blast
+    have h0ac: "a < 0 \<and> 0 < c"
+      using h0b unfolding hbeq interval_open_def by simp
+    have ha0: "a < 0" by (rule conjunct1[OF h0ac])
+    have h0c: "0 < c" by (rule conjunct2[OF h0ac])
+    let ?y = "a / 2"
+    have hay: "a < ?y" using ha0 by linarith
+    have hy0: "?y < 0" using ha0 by linarith
+    have hyc: "?y < c" using hy0 h0c by linarith
+    have hyb: "?y \<in> b"
+      unfolding hbeq interval_open_def using hay hyc by simp
+    have hyL: "?y \<in> L" using hbL hyb by blast
+    have hyL0: "0 \<le> ?y"
+      using hyL unfolding L_def interval_half_open_left_closed_def by simp
+    show False using hyL0 hy0 by linarith
+  qed
+
+  have hK0_in_k: "K0 \<in> topology_K_R"
+    unfolding K0_def topology_K_R_def topology_generated_by_basis_def
+    apply (rule CollectI, rule conjI, rule subset_UNIV, rule ballI)
+    apply (rule bexI[where x="interval_open (-1) 1 - K_set"])
+     apply (intro conjI)
+      apply assumption
+     apply (rule subset_refl)
+    unfolding basis_K_topology_R_def
+    apply (rule UnI2)
+    apply (rule CollectI)
+    apply (rule exI[where x="-1"], rule exI[where x=1])
+    apply simp
+    done
+
+  have hK0_not_std: "K0 \<notin> topology_standard_R"
+  proof
+    assume hK0: "K0 \<in> topology_standard_R"
+    have hcov: "\<forall>x\<in>K0. \<exists>b\<in>basis_standard_R. x \<in> b \<and> b \<subseteq> K0"
+      using hK0 unfolding topology_standard_R_def topology_generated_by_basis_def by blast
+    have h0K0: "0 \<in> K0"
+      unfolding K0_def interval_open_def K_set_def by simp
+    obtain b where hbB: "b \<in> basis_standard_R" and h0b: "0 \<in> b" and hbsub: "b \<subseteq> K0"
+      using hcov[rule_format, OF h0K0] by blast
+    obtain a c where hac: "a < c" and hbeq: "b = interval_open a c"
+      using hbB unfolding basis_standard_R_def by blast
+    have h0ac: "a < 0 \<and> 0 < c"
+      using h0b unfolding hbeq interval_open_def by simp
+    have ha0: "a < 0" by (rule conjunct1[OF h0ac])
+    have h0c: "0 < c" by (rule conjunct2[OF h0ac])
+    have hminpos: "0 < min c 1" using h0c by simp
+    obtain n where hn0: "n > 0" and hninvc: "inverse (of_nat n) < min c 1"
+      using ex_inverse_of_nat_less[OF hminpos] by blast
+    have hninvc': "inverse (real n) < c"
+      using hninvc by simp
+    have hninvc_div: "1 / real n < c"
+      using hninvc'
+      apply (simp add: divide_inverse)
+      done
+    have hnpos: "0 < (1 / real n)"
+      using hn0 by simp
+    have ha_lt: "a < (1 / real n)" using ha0 hnpos by linarith
+    have hx_in_b: "(1 / real n) \<in> b"
+      unfolding hbeq interval_open_def using ha_lt hninvc_div by simp
+    have hx_in_K0: "(1 / real n) \<in> K0" using hbsub hx_in_b by blast
+    have hx_in_Kset: "(1 / real n) \<in> K_set"
+      unfolding K_set_def using hn0 by blast
+    show False using hx_in_K0 hx_in_Kset unfolding K0_def by blast
+  qed
+
+  have hL_not_k: "L \<notin> topology_K_R"
+  proof
+    assume hL: "L \<in> topology_K_R"
+    have hcov: "\<forall>x\<in>L. \<exists>b\<in>basis_K_topology_R. x \<in> b \<and> b \<subseteq> L"
+      using hL unfolding topology_K_R_def topology_generated_by_basis_def by blast
+    have h0L: "0 \<in> L" unfolding L_def interval_half_open_left_closed_def by simp
+    obtain b where hbB: "b \<in> basis_K_topology_R" and h0b: "0 \<in> b" and hbL: "b \<subseteq> L"
+      using hcov[rule_format, OF h0L] by blast
+    obtain a c where hac: "a < c" and hcase:
+      "b = interval_open a c \<or> b = interval_open a c - K_set"
+      using hbB unfolding basis_K_topology_R_def by blast
+    have ha0: "a < 0"
+      using h0b hcase unfolding interval_open_def by blast
+    let ?y = "a / 2"
+    have hy0: "?y < 0" using ha0 by linarith
+    have hay: "a < ?y" using ha0 by linarith
+    have h0c: "0 < c"
+    proof (cases "b = interval_open a c")
+      case True
+      show ?thesis using h0b True unfolding interval_open_def by simp
+    next
+      case False
+      have hb: "b = interval_open a c - K_set" using hcase False by blast
+      have "0 \<in> interval_open a c"
+        using h0b unfolding hb by simp
+      thus ?thesis unfolding interval_open_def by simp
+    qed
+    have hyc: "?y < c" using hy0 h0c by linarith
+    have hyb: "?y \<in> b"
+    proof (cases "b = interval_open a c")
+      case True
+      show ?thesis
+        unfolding True interval_open_def using hay hyc by simp
+    next
+      case False
+      have "b = interval_open a c - K_set" using hcase False by blast
+      show ?thesis
+        unfolding \<open>b = interval_open a c - K_set\<close> interval_open_def K_set_def
+        using hay hyc hy0 by auto
+    qed
+    have hyL: "?y \<in> L" using hbL hyb by blast
+    have hyL0: "0 \<le> ?y"
+      using hyL unfolding L_def interval_half_open_left_closed_def by simp
+    show False using hyL0 hy0 by linarith
+  qed
+
+  have hK0_not_ll: "K0 \<notin> topology_lower_limit_R"
+  proof
+    assume hK0: "K0 \<in> topology_lower_limit_R"
+    have hcov: "\<forall>x\<in>K0. \<exists>b\<in>basis_lower_limit_R. x \<in> b \<and> b \<subseteq> K0"
+      using hK0 unfolding topology_lower_limit_R_def topology_generated_by_basis_def by blast
+    have h0K0: "0 \<in> K0"
+      unfolding K0_def interval_open_def K_set_def by simp
+    obtain b where hbB: "b \<in> basis_lower_limit_R" and h0b: "0 \<in> b" and hbsub: "b \<subseteq> K0"
+      using hcov[rule_format, OF h0K0] by blast
+    obtain a c where hac: "a < c" and hbeq: "b = interval_half_open_left_closed a c"
+      using hbB unfolding basis_lower_limit_R_def by blast
+    have h0ac: "a \<le> 0 \<and> 0 < c"
+      using h0b unfolding hbeq interval_half_open_left_closed_def by simp
+    have ha0: "a \<le> 0" by (rule conjunct1[OF h0ac])
+    have h0c: "0 < c" by (rule conjunct2[OF h0ac])
+    have hminpos: "0 < min c 1" using h0c by simp
+    obtain n where hn0: "n > 0" and hninvc: "inverse (of_nat n) < min c 1"
+      using ex_inverse_of_nat_less[OF hminpos] by blast
+    have hn_lt_c_inv: "inverse (real n) < c"
+      using hninvc by simp
+    have hn_lt_c: "1 / real n < c"
+      using hn_lt_c_inv
+      apply (simp add: divide_inverse)
+      done
+    have h0le: "0 \<le> (1 / real n)"
+      using hn0 by simp
+    have hn_ge_a: "a \<le> (1 / real n)"
+      by (rule order_trans[OF ha0 h0le])
+    have hx_in_b: "(1 / real n) \<in> b"
+      unfolding hbeq interval_half_open_left_closed_def using hn_ge_a hn_lt_c by simp
+    have hx_in_K0: "(1 / real n) \<in> K0" using hbsub hx_in_b by blast
+    have hx_in_Kset: "(1 / real n) \<in> K_set"
+      unfolding K_set_def using hn0 by blast
+    show False using hx_in_K0 hx_in_Kset unfolding K0_def by blast
+  qed
+
+  have hstrict_ll: "strictly_finer_than topology_standard_R topology_lower_limit_R"
+    unfolding strictly_finer_than_def
+  proof (intro conjI)
+    show "topology_standard_R \<subseteq> topology_lower_limit_R" by (rule h_std_sub_ll)
+    show "topology_standard_R \<noteq> topology_lower_limit_R"
+    proof
+      assume hEq: "topology_standard_R = topology_lower_limit_R"
+      have "L \<in> topology_standard_R" using hL_in_ll hEq by simp
+      thus False using hL_not_std by contradiction
+    qed
+  qed
+
+  have hstrict_k: "strictly_finer_than topology_standard_R topology_K_R"
+    unfolding strictly_finer_than_def
+  proof (intro conjI)
+    show "topology_standard_R \<subseteq> topology_K_R" by (rule h_std_sub_k)
+    show "topology_standard_R \<noteq> topology_K_R"
+    proof
+      assume hEq: "topology_standard_R = topology_K_R"
+      have "K0 \<in> topology_standard_R" using hK0_in_k hEq by simp
+      thus False using hK0_not_std by contradiction
+    qed
+  qed
+
+  have hnotcomp: "\<not> comparable_topologies topology_lower_limit_R topology_K_R"
+    unfolding comparable_topologies_def
+  proof
+    assume hcomp: "topology_lower_limit_R \<subseteq> topology_K_R \<or> topology_K_R \<subseteq> topology_lower_limit_R"
+    have h1: "\<not> topology_lower_limit_R \<subseteq> topology_K_R"
+    proof
+      assume hsub: "topology_lower_limit_R \<subseteq> topology_K_R"
+      have "L \<in> topology_K_R" using hsub hL_in_ll by blast
+      thus False using hL_not_k by contradiction
+    qed
+    have h2: "\<not> topology_K_R \<subseteq> topology_lower_limit_R"
+    proof
+      assume hsub: "topology_K_R \<subseteq> topology_lower_limit_R"
+      have "K0 \<in> topology_lower_limit_R" using hsub hK0_in_k by blast
+      thus False using hK0_not_ll by contradiction
+    qed
+    show False using hcomp h1 h2 by blast
+  qed
+
+  show ?thesis using hstrict_ll hstrict_k hnotcomp by blast
+qed
 
 
 subsection \<open>Subbasis\<close>
