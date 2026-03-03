@@ -8321,6 +8321,35 @@ proof -
     by (rule exI[where x=h], rule hinj)
 qed
 
+(** from \S30 Theorem 30.2 (Subspaces of second-countable spaces) [top1.tex:~3990] **)
+theorem Theorem_30_2_second_countable_subspace:
+  assumes h2nd: "top1_second_countable_on X T"
+  assumes hYX: "Y \<subseteq> X"
+  shows "top1_second_countable_on Y (subspace_topology X T Y)"
+proof -
+  obtain B where hBcnt: "top1_countable B" and hBasis: "basis_for X B T"
+    using h2nd unfolding top1_second_countable_on_def by blast
+
+  have hBYcnt: "top1_countable ((\<lambda>b. b \<inter> Y) ` B)"
+    by (rule top1_countable_image[OF hBcnt])
+
+  have hBY_eq: "(\<lambda>b. b \<inter> Y) ` B = {b \<inter> Y | b. b \<in> B}"
+    by blast
+
+  have hBYbasis:
+    "basis_for Y {b \<inter> Y | b. b \<in> B} (subspace_topology X T Y)"
+    by (rule Lemma_16_1[OF hBasis hYX])
+
+  show ?thesis
+    unfolding top1_second_countable_on_def
+    apply (rule exI[where x="{b \<inter> Y | b. b \<in> B}"])
+    apply (intro conjI)
+     apply (subst hBY_eq[symmetric])
+     apply (rule hBYcnt)
+    apply (rule hBYbasis)
+    done
+qed
+
 (** from \S30 Theorem 30.3(a) (Second-countable \<Longrightarrow> Lindelöf) [top1.tex:~4020] **)
 theorem Theorem_30_3a:
   assumes h2nd: "top1_second_countable_on X T"
