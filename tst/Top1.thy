@@ -6748,6 +6748,305 @@ proof -
   qed
 qed
 
+(** from \S26 Lemma 26.4 [top1.tex:3157] **)
+lemma Lemma_26_4:
+  assumes hH: "is_hausdorff_on X TX"
+  assumes hYX: "Y \<subseteq> X"
+  assumes hYcomp: "top1_compact_on Y (subspace_topology X TX Y)"
+  assumes hx0X: "x0 \<in> X"
+  assumes hx0Y: "x0 \<notin> Y"
+  shows "\<exists>U V. U \<in> TX \<and> V \<in> TX \<and> x0 \<in> U \<and> Y \<subseteq> V \<and> U \<inter> V = {}"
+proof -
+  have hTX: "is_topology_on X TX"
+    using hH unfolding is_hausdorff_on_def by blast
+  have empty_TX: "{} \<in> TX"
+    by (rule conjunct1[OF hTX[unfolded is_topology_on_def]])
+  have X_TX: "X \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF hTX[unfolded is_topology_on_def]]])
+  have union_TX: "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+  have inter_TX: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> TX \<longrightarrow> \<Inter>F \<in> TX"
+    by (rule conjunct2[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+
+  have hausd:
+    "\<forall>x\<in>X. \<forall>y\<in>X. x \<noteq> y \<longrightarrow>
+       (\<exists>U V. neighborhood_of x X TX U \<and> neighborhood_of y X TX V \<and> U \<inter> V = {})"
+    using hH unfolding is_hausdorff_on_def by blast
+
+  show ?thesis
+  proof (cases "Y = {}")
+    case True
+    show ?thesis
+      apply (rule exI[where x=X])
+      apply (rule exI[where x="{}"])
+      apply (intro conjI)
+          apply (rule X_TX)
+         apply (rule empty_TX)
+        apply (rule hx0X)
+       apply (simp only: True)
+      apply simp
+      done
+  next
+    case False
+
+    have ex_pair:
+      "\<forall>y\<in>Y. \<exists>p. neighborhood_of y X TX (fst p)
+             \<and> neighborhood_of x0 X TX (snd p)
+             \<and> (fst p \<inter> snd p = {})"
+    proof (intro ballI)
+      fix y
+      assume hyY: "y \<in> Y"
+      have hyX: "y \<in> X" using hYX hyY by blast
+      have hyne: "y \<noteq> x0"
+      proof
+        assume h: "y = x0"
+        hence "x0 \<in> Y" using hyY by simp
+        thus False using hx0Y by contradiction
+      qed
+      obtain U V where hUy: "neighborhood_of y X TX U"
+          and hV0: "neighborhood_of x0 X TX V" and hdisj: "U \<inter> V = {}"
+        using hausd hyX hx0X hyne by blast
+      show "\<exists>p. neighborhood_of y X TX (fst p)
+             \<and> neighborhood_of x0 X TX (snd p)
+             \<and> (fst p \<inter> snd p = {})"
+        apply (rule exI[where x="(U, V)"])
+        apply (simp only: fst_conv snd_conv hUy hV0 hdisj)
+        done
+    qed
+
+    obtain p where hp:
+      "\<forall>y\<in>Y. neighborhood_of y X TX (fst (p y))
+             \<and> neighborhood_of x0 X TX (snd (p y))
+             \<and> (fst (p y) \<inter> snd (p y) = {})"
+      using bchoice[OF ex_pair] by blast
+
+    let ?Uy = "\<lambda>y. fst (p y)"
+    let ?Vy = "\<lambda>y. snd (p y)"
+
+    define Uc where "Uc = (\<lambda>y. Y \<inter> ?Uy y) ` Y"
+
+    have hUc_sub: "Uc \<subseteq> subspace_topology X TX Y"
+    proof (rule subsetI)
+      fix S
+      assume hS: "S \<in> Uc"
+      have hS': "S \<in> (\<lambda>y. Y \<inter> ?Uy y) ` Y"
+        using hS unfolding Uc_def by simp
+      have exy: "\<exists>y\<in>Y. S = (\<lambda>y. Y \<inter> ?Uy y) y"
+        using hS' by (simp only: image_iff)
+      obtain y where hyY: "y \<in> Y" and hSeq: "S = Y \<inter> ?Uy y"
+        using exy by blast
+      have hUy: "neighborhood_of y X TX (?Uy y)"
+        using hp hyY by blast
+      have hUyT: "?Uy y \<in> TX"
+        using hUy unfolding neighborhood_of_def by blast
+      show "S \<in> subspace_topology X TX Y"
+        unfolding hSeq subspace_topology_def
+        apply (subst setcompr_eq_image)
+        apply (simp only: Collect_mem_eq)
+        apply (rule imageI)
+        apply (rule hUyT)
+        done
+    qed
+
+    have hYcov: "Y \<subseteq> \<Union>Uc"
+    proof (rule subsetI)
+      fix y
+      assume hyY: "y \<in> Y"
+      have hUy: "neighborhood_of y X TX (?Uy y)"
+        using hp hyY by blast
+      have hyUy: "y \<in> ?Uy y"
+        using hUy unfolding neighborhood_of_def by blast
+      have hyS: "y \<in> Y \<inter> ?Uy y"
+        apply (rule IntI)
+         apply (rule hyY)
+        apply (rule hyUy)
+        done
+      have hS_Uc: "Y \<inter> ?Uy y \<in> Uc"
+        unfolding Uc_def
+        apply (rule imageI)
+        apply (rule hyY)
+        done
+      show "y \<in> \<Union>Uc"
+        by (rule UnionI[OF hS_Uc hyS])
+    qed
+
+    have compact_coverY:
+      "\<forall>Uc. Uc \<subseteq> subspace_topology X TX Y \<and> Y \<subseteq> \<Union>Uc
+        \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> Y \<subseteq> \<Union>F)"
+      using hYcomp unfolding top1_compact_on_def by blast
+    have hCov: "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> Y \<subseteq> \<Union>F"
+      by (rule mp[OF spec[where x=Uc, OF compact_coverY]], intro conjI, rule hUc_sub, rule hYcov)
+    obtain F where hFfin: "finite F" and hFsub: "F \<subseteq> Uc" and hFcov: "Y \<subseteq> \<Union>F"
+      using hCov by blast
+
+    have hFne: "F \<noteq> {}"
+    proof
+      assume h: "F = {}"
+      have "\<Union>F = {}" using h by simp
+      have "Y \<subseteq> {}" using hFcov \<open>\<Union>F = {}\<close> by simp
+      hence "Y = {}" by blast
+      thus False using False by contradiction
+    qed
+
+    have ex_idx: "\<forall>S\<in>F. \<exists>y. y \<in> Y \<and> S = Y \<inter> ?Uy y"
+    proof (intro ballI)
+      fix S
+      assume hS: "S \<in> F"
+      have hS_Uc: "S \<in> Uc" using hFsub hS by blast
+      have hS': "S \<in> (\<lambda>y. Y \<inter> ?Uy y) ` Y"
+        using hS_Uc unfolding Uc_def by simp
+      have exy: "\<exists>y\<in>Y. S = (\<lambda>y. Y \<inter> ?Uy y) y"
+        using hS' by (simp only: image_iff)
+      obtain y where hyY: "y \<in> Y" and hSeq: "S = Y \<inter> ?Uy y"
+        using exy by blast
+      show "\<exists>y. y \<in> Y \<and> S = Y \<inter> ?Uy y"
+        apply (rule exI[where x=y])
+        apply (intro conjI)
+         apply (rule hyY)
+        apply (rule hSeq)
+        done
+    qed
+    obtain sel where hsel: "\<forall>S\<in>F. sel S \<in> Y \<and> S = Y \<inter> ?Uy (sel S)"
+      using bchoice[OF ex_idx] by blast
+
+    define Vset where "Vset = (\<lambda>S. ?Vy (sel S)) ` F"
+    define Uset where "Uset = (\<lambda>S. ?Uy (sel S)) ` F"
+
+    have hVset_fin: "finite Vset"
+      unfolding Vset_def using hFfin by simp
+    have hUset_sub: "Uset \<subseteq> TX"
+    proof (rule subsetI)
+      fix U
+      assume hU: "U \<in> Uset"
+      have exS: "\<exists>S\<in>F. U = (\<lambda>S. ?Uy (sel S)) S"
+        using hU unfolding Uset_def by (simp only: image_iff)
+      obtain S where hS: "S \<in> F" and hUeq: "U = ?Uy (sel S)"
+        using exS by blast
+      have hselY: "sel S \<in> Y" using hsel hS by blast
+      have hselX: "sel S \<in> X" using hYX hselY by blast
+      have hUy: "neighborhood_of (sel S) X TX (?Uy (sel S))"
+        using hp hselY by blast
+      have hUT: "?Uy (sel S) \<in> TX" using hUy unfolding neighborhood_of_def by blast
+      show "U \<in> TX" using hUT hUeq by simp
+    qed
+    have hVset_sub: "Vset \<subseteq> TX"
+    proof (rule subsetI)
+      fix V
+      assume hV: "V \<in> Vset"
+      have exS: "\<exists>S\<in>F. V = (\<lambda>S. ?Vy (sel S)) S"
+        using hV unfolding Vset_def by (simp only: image_iff)
+      obtain S where hS: "S \<in> F" and hVeq: "V = ?Vy (sel S)"
+        using exS by blast
+      have hselY: "sel S \<in> Y" using hsel hS by blast
+      have hV0: "neighborhood_of x0 X TX (?Vy (sel S))"
+        using hp hselY by blast
+      have hVT: "?Vy (sel S) \<in> TX" using hV0 unfolding neighborhood_of_def by blast
+      show "V \<in> TX" using hVT hVeq by simp
+    qed
+
+    have hVset_ne: "Vset \<noteq> {}"
+    proof
+      assume h: "Vset = {}"
+      have exS0: "\<exists>S0. S0 \<in> F" using hFne by (simp add: ex_in_conv)
+      obtain S0 where hS0: "S0 \<in> F" using exS0 by blast
+      have "?Vy (sel S0) \<in> Vset"
+        unfolding Vset_def
+        apply (rule imageI)
+        apply (rule hS0)
+        done
+      thus False using h by blast
+    qed
+
+    have hUopen: "\<Inter>Vset \<in> TX"
+      using inter_TX hVset_fin hVset_ne hVset_sub by blast
+    have hx0U: "x0 \<in> \<Inter>Vset"
+    proof (rule InterI)
+      fix V
+      assume hV: "V \<in> Vset"
+      have exS: "\<exists>S\<in>F. V = (\<lambda>S. ?Vy (sel S)) S"
+        using hV unfolding Vset_def by (simp only: image_iff)
+      obtain S where hS: "S \<in> F" and hVeq: "V = ?Vy (sel S)"
+        using exS by blast
+      have hselY: "sel S \<in> Y" using hsel hS by blast
+      have hV0: "neighborhood_of x0 X TX (?Vy (sel S))"
+        using hp hselY by blast
+      have hx0V: "x0 \<in> ?Vy (sel S)" using hV0 unfolding neighborhood_of_def by blast
+      show "x0 \<in> V" using hx0V hVeq by simp
+    qed
+
+    have hVopen: "\<Union>Uset \<in> TX"
+      by (rule union_TX[rule_format, OF hUset_sub])
+
+    have hYsubV: "Y \<subseteq> \<Union>Uset"
+    proof (rule subsetI)
+      fix y
+      assume hyY: "y \<in> Y"
+      have hyUF: "y \<in> \<Union>F" using hFcov hyY by blast
+      obtain S where hS: "S \<in> F" and hyS: "y \<in> S" using hyUF by blast
+      have hSeq: "S = Y \<inter> ?Uy (sel S)"
+        using hsel hS by blast
+      have hy_int: "y \<in> Y \<inter> ?Uy (sel S)"
+        apply (subst hSeq[symmetric])
+        apply (rule hyS)
+        done
+      have hyU: "y \<in> ?Uy (sel S)"
+        by (rule IntD2[OF hy_int])
+      have "?Uy (sel S) \<in> Uset"
+        unfolding Uset_def
+        apply (rule imageI)
+        apply (rule hS)
+        done
+      thus "y \<in> \<Union>Uset"
+        by (rule UnionI[OF _ hyU])
+    qed
+
+    have hdisj: "\<Inter>Vset \<inter> \<Union>Uset = {}"
+    proof (rule ccontr)
+      assume hne: "\<Inter>Vset \<inter> \<Union>Uset \<noteq> {}"
+      have exz: "\<exists>z. z \<in> \<Inter>Vset \<inter> \<Union>Uset" using hne by blast
+      obtain z where hz: "z \<in> \<Inter>Vset \<inter> \<Union>Uset" using exz by blast
+      have hzV: "z \<in> \<Inter>Vset" and hzU: "z \<in> \<Union>Uset" using hz by blast+
+      obtain U where hU: "U \<in> Uset" and hzU': "z \<in> U" using hzU by blast
+      have exS: "\<exists>S\<in>F. U = (\<lambda>S. ?Uy (sel S)) S"
+        using hU unfolding Uset_def by (simp only: image_iff)
+      obtain S where hS: "S \<in> F" and hUeq: "U = ?Uy (sel S)"
+        using exS by blast
+      have hselY: "sel S \<in> Y" using hsel hS by blast
+      have hUy: "neighborhood_of (sel S) X TX (?Uy (sel S))"
+        using hp hselY by blast
+      have hV0: "neighborhood_of x0 X TX (?Vy (sel S))"
+        using hp hselY by blast
+      have hdisjUV: "?Uy (sel S) \<inter> ?Vy (sel S) = {}"
+        using hp hselY by blast
+      have "?Vy (sel S) \<in> Vset"
+        unfolding Vset_def
+        apply (rule imageI)
+        apply (rule hS)
+        done
+      have "\<Inter>Vset \<subseteq> ?Vy (sel S)" using \<open>?Vy (sel S) \<in> Vset\<close> by blast
+      have hzV': "z \<in> ?Vy (sel S)" using hzV \<open>\<Inter>Vset \<subseteq> ?Vy (sel S)\<close> by blast
+      have hzU'': "z \<in> ?Uy (sel S)" using hzU' hUeq by simp
+      have "z \<in> ?Uy (sel S) \<inter> ?Vy (sel S)"
+        apply (rule IntI)
+         apply (rule hzU'')
+        apply (rule hzV')
+        done
+      thus False using hdisjUV by blast
+    qed
+
+    show ?thesis
+      apply (rule exI[where x="\<Inter>Vset"])
+      apply (rule exI[where x="\<Union>Uset"])
+      apply (intro conjI)
+          apply (rule hUopen)
+         apply (rule hVopen)
+        apply (rule hx0U)
+       apply (rule hYsubV)
+      apply (rule hdisj)
+      done
+  qed
+qed
+
 (** from \S26 Theorem 26.5 [top1.tex:3163] **)
 theorem Theorem_26_5:
   assumes hTX: "is_topology_on X TX"
