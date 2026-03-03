@@ -4784,6 +4784,86 @@ definition top1_continuous_map_on ::
   "top1_continuous_map_on X TX Y TY f \<longleftrightarrow>
      (\<forall>x\<in>X. f x \<in> Y) \<and> (\<forall>V\<in>TY. {x\<in>X. f x \<in> V} \<in> TX)"
 
+lemma top1_continuous_map_on_generated_by_basis:
+  fixes f :: "'a \<Rightarrow> 'b"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hBasis: "basis_for Y B TY"
+  assumes hmap: "\<forall>x\<in>X. f x \<in> Y"
+  assumes hpre: "\<forall>b\<in>B. {x\<in>X. f x \<in> b} \<in> TX"
+  shows "top1_continuous_map_on X TX Y TY f"
+proof -
+  have hUnionTX: "\<forall>U. U \<subseteq> TX \<longrightarrow> (\<Union>U) \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTopX[unfolded is_topology_on_def]]]])
+
+  show ?thesis
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>x\<in>X. f x \<in> Y"
+      by (rule hmap)
+    show "\<forall>V\<in>TY. {x \<in> X. f x \<in> V} \<in> TX"
+    proof (intro ballI)
+      fix V assume hV: "V \<in> TY"
+      have hTY: "TY = {\<Union>U | U. U \<subseteq> B}"
+        by (rule Lemma_13_1[OF hBasis])
+      obtain U where hUsub: "U \<subseteq> B" and hVeq: "V = \<Union>U"
+        using hV unfolding hTY by blast
+
+      define PU where "PU = {{x\<in>X. f x \<in> b} | b. b \<in> U}"
+      have hPU_sub: "PU \<subseteq> TX"
+      proof (rule subsetI)
+        fix W assume hW: "W \<in> PU"
+        obtain b where hbU: "b \<in> U" and hWeq: "W = {x\<in>X. f x \<in> b}"
+          using hW unfolding PU_def by blast
+        have hbB: "b \<in> B"
+          using hbU hUsub by blast
+        show "W \<in> TX"
+          unfolding hWeq using hpre hbB by blast
+      qed
+
+      have hUnionPU: "\<Union>PU \<in> TX"
+        using hUnionTX hPU_sub by blast
+
+      have hpre_eq: "{x\<in>X. f x \<in> V} = \<Union>PU"
+      proof (rule set_eqI)
+        fix x
+        show "x \<in> {x\<in>X. f x \<in> V} \<longleftrightarrow> x \<in> \<Union>PU"
+        proof (rule iffI)
+          assume hx: "x \<in> {x\<in>X. f x \<in> V}"
+          have hxX: "x \<in> X" and hfx: "f x \<in> V"
+            using hx by simp_all
+          have hfxU: "f x \<in> \<Union>U"
+            using hfx by (simp add: hVeq)
+          obtain b where hbU: "b \<in> U" and hfxb: "f x \<in> b"
+            using hfxU by blast
+          have "x \<in> {x\<in>X. f x \<in> b}"
+            using hxX hfxb by simp
+          have "{x\<in>X. f x \<in> b} \<in> PU"
+            unfolding PU_def using hbU by blast
+          thus "x \<in> \<Union>PU"
+            using \<open>x \<in> {x\<in>X. f x \<in> b}\<close> by blast
+        next
+          assume hx: "x \<in> \<Union>PU"
+          then obtain W where hW: "W \<in> PU" and hxW: "x \<in> W"
+            by blast
+          obtain b where hbU: "b \<in> U" and hWeq: "W = {x\<in>X. f x \<in> b}"
+            using hW unfolding PU_def by blast
+          have hxX: "x \<in> X" and hfxb: "f x \<in> b"
+            using hxW unfolding hWeq by simp_all
+          have hfxU: "f x \<in> \<Union>U"
+            using hbU hfxb by blast
+          have "f x \<in> V"
+            unfolding hVeq using hfxU by simp
+          thus "x \<in> {x\<in>X. f x \<in> V}"
+            using hxX by simp
+        qed
+      qed
+
+      show "{x \<in> X. f x \<in> V} \<in> TX"
+        unfolding hpre_eq using hUnionPU .
+    qed
+  qed
+qed
+
 definition top1_continuous_at_on ::
   "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> bool" where
   "top1_continuous_at_on X TX Y TY f x \<longleftrightarrow>
