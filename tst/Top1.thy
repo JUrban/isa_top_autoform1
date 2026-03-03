@@ -4417,4 +4417,103 @@ next
   qed
 qed
 
+section \<open>\<S>18 Continuous Functions\<close>
+
+(** from \S18 Definition (Continuity) [top1.tex:~930] **)
+(** LATEX VERSION: "f : X \<rightarrow> Y is continuous iff inverse images of open sets are open." **)
+definition top1_continuous_map_on ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool" where
+  "top1_continuous_map_on X TX Y TY f \<longleftrightarrow>
+     (\<forall>x\<in>X. f x \<in> Y) \<and> (\<forall>V\<in>TY. preimage f V \<in> TX)"
+
+definition top1_continuous_at_on ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> bool" where
+  "top1_continuous_at_on X TX Y TY f x \<longleftrightarrow>
+     x \<in> X \<and>
+     (\<forall>V. neighborhood_of (f x) Y TY V \<longrightarrow>
+          (\<exists>U. neighborhood_of x X TX U \<and> f ` U \<subseteq> V))"
+
+(** from \S18 Definition (Homeomorphism) [top1.tex:~990] **)
+definition top1_homeomorphism_on ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool" where
+  "top1_homeomorphism_on X TX Y TY f \<longleftrightarrow>
+     bij_betw f X Y
+     \<and> top1_continuous_map_on X TX Y TY f
+     \<and> top1_continuous_map_on Y TY X TX (inv_into X f)"
+
+(** from \S18 Theorem 18.1 [top1.tex:966] **)
+(** LATEX VERSION: "Equivalent formulations of continuity (closure/closed/neighborhood)." **)
+theorem Theorem_18_1:
+  fixes f :: "'a \<Rightarrow> 'b"
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  shows cont_closure:
+    "top1_continuous_map_on X TX Y TY f \<longleftrightarrow>
+       (\<forall>A. A \<subseteq> X \<longrightarrow> f ` (closure_on X TX A) \<subseteq> closure_on Y TY (f ` A))"
+    and cont_closed:
+    "top1_continuous_map_on X TX Y TY f \<longleftrightarrow>
+       (\<forall>B. closedin_on Y TY B \<longrightarrow> closedin_on X TX (preimage f B))"
+    and cont_nbhd:
+    "top1_continuous_map_on X TX Y TY f \<longleftrightarrow>
+       (\<forall>x\<in>X. \<forall>V. neighborhood_of (f x) Y TY V \<longrightarrow>
+           (\<exists>U. neighborhood_of x X TX U \<and> f ` U \<subseteq> V))"
+  sorry
+
+(** from \S18 Theorem 18.2 [top1.tex:1089] **)
+(** LATEX VERSION: "Rules for constructing continuous functions." **)
+theorem Theorem_18_2:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hTZ: "is_topology_on Z TZ"
+  shows const_fun:
+    "(\<forall>y0\<in>Y. top1_continuous_map_on X TX Y TY (\<lambda>x. y0))"
+    and inclusion:
+    "(\<forall>A. A \<subseteq> X \<longrightarrow> top1_continuous_map_on A (subspace_topology X TX A) X TX id)"
+    and composites:
+    "(\<forall>f g. top1_continuous_map_on X TX Y TY f \<and> top1_continuous_map_on Y TY Z TZ g
+           \<longrightarrow> top1_continuous_map_on X TX Z TZ (g \<circ> f))"
+    and restrict_domain:
+    "(\<forall>A f. top1_continuous_map_on X TX Y TY f \<and> A \<subseteq> X
+           \<longrightarrow> top1_continuous_map_on A (subspace_topology X TX A) Y TY f)"
+    and restrict_range:
+    "(\<forall>W f. top1_continuous_map_on X TX Y TY f \<and> W \<subseteq> Y \<and> f ` X \<subseteq> W
+           \<longrightarrow> top1_continuous_map_on X TX W (subspace_topology Y TY W) f)"
+    and expand_range:
+    "(\<forall>W f. top1_continuous_map_on X TX Y TY f \<and> Y \<subseteq> W \<and> TY = subspace_topology W TZ Y
+           \<longrightarrow> top1_continuous_map_on X TX W TZ f)"
+    and local_form:
+    "(\<forall>Uc f. (\<Union>Uc = X) \<and> (\<forall>U\<in>Uc. U \<in> TX \<and> top1_continuous_map_on U (subspace_topology X TX U) Y TY f)
+           \<longrightarrow> top1_continuous_map_on X TX Y TY f)"
+  sorry
+
+(** from \S18 Theorem 18.3 [top1.tex:1127] **)
+(** LATEX VERSION: "Pasting lemma." **)
+theorem Theorem_18_3:
+  fixes f g :: "'a \<Rightarrow> 'b"
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hA: "closedin_on X TX A"
+  assumes hB: "closedin_on X TX B"
+  assumes hX: "X = A \<union> B"
+  assumes hf: "top1_continuous_map_on A (subspace_topology X TX A) Y TY f"
+  assumes hg: "top1_continuous_map_on B (subspace_topology X TX B) Y TY g"
+  assumes hagree: "\<forall>x\<in>(A \<inter> B). f x = g x"
+  defines "h \<equiv> (\<lambda>x. if x \<in> A then f x else g x)"
+  shows "top1_continuous_map_on X TX Y TY h"
+  sorry
+
+(** from \S18 Theorem 18.4 [top1.tex:1167] **)
+(** LATEX VERSION: "Map into a product is continuous iff both components are continuous." **)
+theorem Theorem_18_4:
+  fixes f :: "'a \<Rightarrow> ('b \<times> 'c)"
+  assumes hTA: "is_topology_on A TA"
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  shows
+    "top1_continuous_map_on A TA (X \<times> Y) (product_topology_on TX TY) f
+     \<longleftrightarrow>
+       (top1_continuous_map_on A TA X TX (pi1 \<circ> f)
+        \<and> top1_continuous_map_on A TA Y TY (pi2 \<circ> f))"
+  sorry
+
 end
