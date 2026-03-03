@@ -5811,4 +5811,211 @@ next
   qed
 qed
 
+section \<open>\<S>19 The Product Topology (indexed products)\<close>
+
+text \<open>
+  The development so far includes a binary product topology on \<open>X \<times> Y\<close>.
+  Section \<S>19 of \<open>top1.tex\<close> treats indexed products (box vs product topologies);
+  this formalization will need a separate treatment based on dependent products.
+\<close>
+
+section \<open>\<S>20 The Metric Topology\<close>
+
+(** from \S20 Definition (Metric) [top1.tex:~1512] **)
+definition top1_metric_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> bool" where
+  "top1_metric_on X d \<longleftrightarrow>
+     (\<forall>x\<in>X. 0 \<le> d x x) \<and>
+     (\<forall>x\<in>X. \<forall>y\<in>X. 0 \<le> d x y) \<and>
+     (\<forall>x\<in>X. \<forall>y\<in>X. d x y = 0 \<longleftrightarrow> x = y) \<and>
+     (\<forall>x\<in>X. \<forall>y\<in>X. d x y = d y x) \<and>
+     (\<forall>x\<in>X. \<forall>y\<in>X. \<forall>z\<in>X. d x z \<le> d x y + d y z)"
+
+definition top1_ball_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'a \<Rightarrow> real \<Rightarrow> 'a set" where
+  "top1_ball_on X d x e = {y \<in> X. d x y < e}"
+
+definition top1_metric_basis_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'a set set" where
+  "top1_metric_basis_on X d = {top1_ball_on X d x e | x e. x \<in> X \<and> 0 < e}"
+
+definition top1_metric_topology_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'a set set" where
+  "top1_metric_topology_on X d = topology_generated_by_basis X (top1_metric_basis_on X d)"
+
+definition top1_metrizable_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_metrizable_on X T \<longleftrightarrow> (\<exists>d. top1_metric_on X d \<and> T = top1_metric_topology_on X d)"
+
+section \<open>\<S>21 The Metric Topology (continued)\<close>
+
+text \<open>
+  Section \<S>21 of \<open>top1.tex\<close> develops the usual sequential and uniform notions in metric spaces.
+  This currently serves as a placeholder; later sections (notably \<S>30) reuse these ideas.
+\<close>
+
+section \<open>\<S>23 Connected Spaces\<close>
+
+definition top1_connected_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_connected_on X T \<longleftrightarrow>
+     is_topology_on X T \<and>
+     (\<nexists>U V. U \<in> T \<and> V \<in> T \<and> U \<noteq> {} \<and> V \<noteq> {} \<and> U \<inter> V = {} \<and> U \<union> V = X)"
+
+(** from \S23 Theorem 23.5 [top1.tex:2656] **)
+theorem Theorem_23_5:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hconn: "top1_connected_on X TX"
+  assumes hcont: "top1_continuous_map_on X TX Y TY f"
+  shows "top1_connected_on (f ` X) (subspace_topology Y TY (f ` X))"
+  sorry
+
+section \<open>\<S>26 Compact Spaces\<close>
+
+definition top1_compact_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_compact_on X T \<longleftrightarrow>
+     is_topology_on X T \<and>
+     (\<forall>Uc. Uc \<subseteq> T \<and> X \<subseteq> \<Union>Uc \<longrightarrow>
+          (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F))"
+
+(** from \S26 Theorem 26.2 [top1.tex:3119] **)
+theorem Theorem_26_2:
+  assumes hcomp: "top1_compact_on X TX"
+  assumes hA: "closedin_on X TX A"
+  shows "top1_compact_on A (subspace_topology X TX A)"
+  sorry
+
+(** from \S26 Theorem 26.3 [top1.tex:3128] **)
+theorem Theorem_26_3:
+  assumes hH: "is_hausdorff_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  assumes hAcomp: "top1_compact_on A (subspace_topology X TX A)"
+  shows "closedin_on X TX A"
+  sorry
+
+(** from \S26 Theorem 26.5 [top1.tex:3163] **)
+theorem Theorem_26_5:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hcomp: "top1_compact_on X TX"
+  assumes hcont: "top1_continuous_map_on X TX Y TY f"
+  shows "top1_compact_on (f ` X) (subspace_topology Y TY (f ` X))"
+  sorry
+
+(** from \S26 Theorem 26.6 [top1.tex:3180] **)
+theorem Theorem_26_6:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hcomp: "top1_compact_on X TX"
+  assumes hH: "is_hausdorff_on Y TY"
+  assumes hf: "top1_continuous_map_on X TX Y TY f"
+  assumes hbij: "bij_betw f X Y"
+  shows "top1_homeomorphism_on X TX Y TY f"
+  sorry
+
+section \<open>\<S>29 Local Compactness\<close>
+
+definition top1_locally_compact_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_locally_compact_on X T \<longleftrightarrow>
+     is_topology_on X T \<and>
+     (\<forall>x\<in>X. \<exists>U. neighborhood_of x X T U
+        \<and> top1_compact_on (closure_on X T U) (subspace_topology X T (closure_on X T U)))"
+
+(** from \S29 Theorem 29.2 [top1.tex:3767] **)
+theorem Theorem_29_2:
+  assumes hH: "is_hausdorff_on X TX"
+  shows "top1_locally_compact_on X TX \<longleftrightarrow>
+    (\<forall>x\<in>X. \<forall>U. neighborhood_of x X TX U \<longrightarrow>
+        (\<exists>V. neighborhood_of x X TX V \<and>
+             top1_compact_on (closure_on X TX V) (subspace_topology X TX (closure_on X TX V))
+             \<and> closure_on X TX V \<subseteq> U))"
+  sorry
+
+section \<open>\<S>30 The Countability Axioms\<close>
+
+(** Basic predicate for countable sets (to avoid extra session dependencies). **)
+definition top1_countable :: "'a set \<Rightarrow> bool" where
+  "top1_countable S \<longleftrightarrow> (\<exists>f::'a \<Rightarrow> nat. inj_on f S)"
+
+(** from \S30 Definition (Countable neighborhood basis at a point) [top1.tex:~3903] **)
+definition top1_countable_neighborhood_basis_at ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a \<Rightarrow> bool" where
+  "top1_countable_neighborhood_basis_at X T x \<longleftrightarrow>
+     (\<exists>B. top1_countable B
+        \<and> (\<forall>U\<in>B. neighborhood_of x X T U)
+        \<and> (\<forall>V. neighborhood_of x X T V \<longrightarrow> (\<exists>U\<in>B. U \<subseteq> V)))"
+
+definition top1_first_countable_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_first_countable_on X T \<longleftrightarrow> (\<forall>x\<in>X. top1_countable_neighborhood_basis_at X T x)"
+
+(** from \S30 Definition (Second countability axiom) [top1.tex:~3903] **)
+definition top1_second_countable_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_second_countable_on X T \<longleftrightarrow> (\<exists>B. top1_countable B \<and> basis_for X B T)"
+
+section \<open>\<S>31 The Separation Axioms\<close>
+
+definition top1_T1_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_T1_on X T \<longleftrightarrow> is_topology_on X T \<and> (\<forall>x\<in>X. closedin_on X T {x})"
+
+(** from \S31 Definition (Regular space) [top1.tex:~4040] **)
+definition top1_regular_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_regular_on X T \<longleftrightarrow>
+     top1_T1_on X T \<and>
+     (\<forall>x\<in>X. \<forall>C. closedin_on X T C \<and> x \<notin> C \<longrightarrow>
+        (\<exists>U V. neighborhood_of x X T U \<and> V \<in> T \<and> C \<subseteq> V \<and> U \<inter> V = {}))"
+
+section \<open>\<S>32 Normal Spaces\<close>
+
+(** from \S32 Definition (Normal space) [top1.tex:~4170] **)
+definition top1_normal_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_normal_on X T \<longleftrightarrow>
+     top1_T1_on X T \<and>
+     (\<forall>C D. closedin_on X T C \<and> closedin_on X T D \<and> C \<inter> D = {}
+        \<longrightarrow> (\<exists>U V. U \<in> T \<and> V \<in> T \<and> C \<subseteq> U \<and> D \<subseteq> V \<and> U \<inter> V = {}))"
+
+section \<open>\<S>33 The Urysohn Lemma\<close>
+
+definition top1_closed_interval :: "real \<Rightarrow> real \<Rightarrow> real set" where
+  "top1_closed_interval a b = {t. a \<le> t \<and> t \<le> b}"
+
+definition top1_closed_interval_topology :: "real \<Rightarrow> real \<Rightarrow> real set set" where
+  "top1_closed_interval_topology a b =
+     subspace_topology UNIV order_topology_on_UNIV (top1_closed_interval a b)"
+
+(** from \S33 Theorem 33.1 (Urysohn lemma) [top1.tex:4382] **)
+theorem Theorem_33_1:
+  fixes a b :: real
+  assumes hX: "top1_normal_on X TX"
+  assumes hA: "closedin_on X TX A"
+  assumes hB: "closedin_on X TX B"
+  assumes hdisj: "A \<inter> B = {}"
+  assumes hab: "a \<le> b"
+  shows "\<exists>f. top1_continuous_map_on X TX (top1_closed_interval a b) (top1_closed_interval_topology a b) f
+            \<and> (\<forall>x\<in>A. f x = a) \<and> (\<forall>x\<in>B. f x = b)"
+  sorry
+
+section \<open>\<S>34 The Urysohn Metrization Theorem\<close>
+
+(** from \S34 Theorem 34.1 (Urysohn metrization theorem) [top1.tex:4644] **)
+theorem Theorem_34_1:
+  assumes hreg: "top1_regular_on X TX"
+  assumes h2nd: "top1_second_countable_on X TX"
+  shows "top1_metrizable_on X TX"
+  sorry
+
+section \<open>*\<S>35 The Tietze Extension Theorem\<close>
+
+(** from *\S35 Theorem 35.1 (Tietze extension theorem) [top1.tex:~4771] **)
+theorem Theorem_35_1:
+  fixes f :: "'a \<Rightarrow> real"
+  defines "I \<equiv> top1_closed_interval (-1) 1"
+  defines "TI \<equiv> top1_closed_interval_topology (-1) 1"
+  assumes hX: "top1_normal_on X TX"
+  assumes hA: "closedin_on X TX A"
+  assumes hf: "top1_continuous_map_on A (subspace_topology X TX A) I TI f"
+  shows "\<exists>F. top1_continuous_map_on X TX I TI F \<and> (\<forall>x\<in>A. F x = f x)"
+  sorry
+
+section \<open>*\<S>36 Imbeddings of Manifolds\<close>
+
+text \<open>
+  The starred sections (*\<S>35–*\<S>36) of \<open>top1.tex\<close> develop stronger results based on the Urysohn lemma.
+  The main formalization work here will require additional infrastructure (e.g. explicit manifold definitions).
+\<close>
+
 end
