@@ -8044,6 +8044,38 @@ definition top1_closed_interval_topology :: "real \<Rightarrow> real \<Rightarro
   "top1_closed_interval_topology a b =
      subspace_topology UNIV order_topology_on_UNIV (top1_closed_interval a b)"
 
+(** Helper for the Urysohn lemma (Step 1 in top1.tex): start with the open set
+    U\<^sub>1 = X - B and shrink an open neighborhood of A so that its closure stays inside U\<^sub>1. **)
+lemma normal_urysohn_initial_step:
+  assumes hN: "top1_normal_on X TX"
+  assumes hA: "closedin_on X TX A"
+  assumes hB: "closedin_on X TX B"
+  assumes hdisj: "A \<inter> B = {}"
+  shows "\<exists>U0. U0 \<in> TX \<and> U0 \<subseteq> X \<and> A \<subseteq> U0 \<and> closure_on X TX U0 \<subseteq> (X - B)"
+proof -
+  have hBX: "B \<subseteq> X" by (rule closedin_sub[OF hB])
+  have hU1_open: "X - B \<in> TX" by (rule closedin_diff_open[OF hB])
+  have hU1_subX: "X - B \<subseteq> X" by (rule Diff_subset)
+
+  have hA_sub_U1: "A \<subseteq> X - B"
+  proof (rule subsetI)
+    fix x assume hxA: "x \<in> A"
+    have hxX: "x \<in> X" by (rule subsetD[OF closedin_sub[OF hA] hxA])
+    have hxnotB: "x \<notin> B"
+    proof
+      assume hxB: "x \<in> B"
+      have "x \<in> A \<inter> B" using hxA hxB by blast
+      thus False using hdisj by blast
+    qed
+    show "x \<in> X - B" using hxX hxnotB by blast
+  qed
+
+  obtain U0 where hU0:
+      "U0 \<in> TX \<and> U0 \<subseteq> X \<and> A \<subseteq> U0 \<and> closure_on X TX U0 \<subseteq> (X - B)"
+    using normal_refine_closed_into_open[OF hN hA hU1_open hU1_subX hA_sub_U1] by blast
+  show ?thesis by (rule exI[where x=U0], rule hU0)
+qed
+
 (** from \S33 Theorem 33.1 (Urysohn lemma) [top1.tex:4382] **)
 theorem Theorem_33_1:
   fixes a b :: real
@@ -8067,6 +8099,156 @@ definition top1_completely_regular_on :: "'a set \<Rightarrow> 'a set set \<Righ
         (\<exists>f::'a \<Rightarrow> real.
             top1_continuous_map_on X T (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f
             \<and> f x0 = 1 \<and> (\<forall>x\<in>A. f x = 0)))"
+
+(** Completely regular implies regular (cf. discussion following the Urysohn lemma in top1.tex). **)
+lemma completely_regular_imp_regular_on:
+  assumes hCR: "top1_completely_regular_on X TX"
+  shows "top1_regular_on X TX"
+proof -
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
+  let ?c = "(1 / 2 :: real)"
+  let ?L = "?I \<inter> open_ray_lt ?c"
+  let ?G = "?I \<inter> open_ray_gt ?c"
+
+  have hT1: "top1_T1_on X TX"
+    using hCR unfolding top1_completely_regular_on_def by (rule conjunct1)
+  have hSep:
+    "\<forall>x0\<in>X. \<forall>A. closedin_on X TX A \<and> x0 \<notin> A \<longrightarrow>
+       (\<exists>f::'a \<Rightarrow> real.
+           top1_continuous_map_on X TX ?I ?TI f \<and> f x0 = 1 \<and> (\<forall>x\<in>A. f x = 0))"
+    using hCR unfolding top1_completely_regular_on_def by (rule conjunct2)
+
+  have hL_open: "?L \<in> ?TI"
+    unfolding top1_closed_interval_topology_def subspace_topology_def
+    apply (rule CollectI)
+    apply (rule exI[where x="open_ray_lt ?c"])
+    apply (intro conjI)
+     apply simp
+    apply (rule open_ray_lt_in_order_topology)
+    done
+
+  have hG_open: "?G \<in> ?TI"
+    unfolding top1_closed_interval_topology_def subspace_topology_def
+    apply (rule CollectI)
+    apply (rule exI[where x="open_ray_gt ?c"])
+    apply (intro conjI)
+     apply simp
+    apply (rule open_ray_gt_in_order_topology)
+    done
+
+  have hdisj_cod: "?G \<inter> ?L = {}"
+  proof (rule equalityI)
+    show "?G \<inter> ?L \<subseteq> {}"
+    proof (rule subsetI)
+      fix t assume ht: "t \<in> ?G \<inter> ?L"
+      have htG: "t \<in> open_ray_gt ?c" and htL: "t \<in> open_ray_lt ?c"
+        using ht by blast+
+      have "?c < t" using htG unfolding open_ray_gt_def by blast
+      moreover have "t < ?c" using htL unfolding open_ray_lt_def by blast
+      ultimately have False by linarith
+      thus "t \<in> {}" by simp
+    qed
+    show "{} \<subseteq> ?G \<inter> ?L" by (rule empty_subsetI)
+  qed
+
+  show ?thesis
+    unfolding top1_regular_on_def
+  proof (intro conjI)
+    show "top1_T1_on X TX" by (rule hT1)
+    show "\<forall>x\<in>X. \<forall>C. closedin_on X TX C \<and> x \<notin> C \<longrightarrow>
+        (\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+    proof (intro ballI allI impI)
+      fix x C
+      assume hxX: "x \<in> X"
+      assume hC: "closedin_on X TX C \<and> x \<notin> C"
+      have hCcl: "closedin_on X TX C" and hxC: "x \<notin> C"
+        using hC by blast+
+
+      have hSepx: "\<forall>A. closedin_on X TX A \<and> x \<notin> A \<longrightarrow>
+         (\<exists>f::'a \<Rightarrow> real.
+             top1_continuous_map_on X TX ?I ?TI f \<and> f x = 1 \<and> (\<forall>z\<in>A. f z = 0))"
+        by (rule bspec[OF hSep hxX])
+      have hSepC:
+        "closedin_on X TX C \<and> x \<notin> C \<longrightarrow>
+         (\<exists>f::'a \<Rightarrow> real.
+             top1_continuous_map_on X TX ?I ?TI f \<and> f x = 1 \<and> (\<forall>z\<in>C. f z = 0))"
+        by (rule spec[where x=C, OF hSepx])
+      have hexF:
+        "\<exists>f::'a \<Rightarrow> real.
+          top1_continuous_map_on X TX ?I ?TI f \<and> f x = 1 \<and> (\<forall>z\<in>C. f z = 0)"
+        apply (rule mp[OF hSepC])
+        apply (intro conjI)
+         apply (rule hCcl)
+        apply (rule hxC)
+        done
+
+      obtain f where hfcont: "top1_continuous_map_on X TX ?I ?TI f"
+          and hfx: "f x = 1" and hfC0: "\<forall>z\<in>C. f z = 0"
+        using hexF by blast
+
+      let ?U = "{z\<in>X. f z \<in> ?G}"
+      let ?V = "{z\<in>X. f z \<in> ?L}"
+
+      have hU_open: "?U \<in> TX"
+        using hfcont hG_open unfolding top1_continuous_map_on_def by blast
+      have hV_open: "?V \<in> TX"
+        using hfcont hL_open unfolding top1_continuous_map_on_def by blast
+
+      have hxc: "x \<in> ?U"
+      proof -
+        have h1I: "1 \<in> ?I"
+          unfolding top1_closed_interval_def by simp
+        have h1G: "1 \<in> open_ray_gt ?c"
+          unfolding open_ray_gt_def by simp
+        have "f x \<in> ?G"
+          using hfx h1I h1G by simp
+        thus ?thesis using hxX by simp
+      qed
+
+      have hC_sub_V: "C \<subseteq> ?V"
+      proof (rule subsetI)
+        fix z assume hzC: "z \<in> C"
+        have hzX: "z \<in> X" by (rule subsetD[OF closedin_sub[OF hCcl] hzC])
+        have hfz: "f z = 0" using hfC0 hzC by blast
+        have h0I: "0 \<in> ?I"
+          unfolding top1_closed_interval_def by simp
+        have h0L: "0 \<in> open_ray_lt ?c"
+          unfolding open_ray_lt_def by simp
+        have "f z \<in> ?L"
+          using hfz h0I h0L by simp
+        thus "z \<in> ?V" using hzX by simp
+      qed
+
+      have hUV_disj: "?U \<inter> ?V = {}"
+      proof (rule equalityI)
+        show "?U \<inter> ?V \<subseteq> {}"
+        proof (rule subsetI)
+          fix z assume hz: "z \<in> ?U \<inter> ?V"
+          have hzG: "f z \<in> ?G" and hzL: "f z \<in> ?L"
+            using hz by simp_all
+          have "f z \<in> ?G \<inter> ?L" using hzG hzL by blast
+          hence "f z \<in> {}" using hdisj_cod by simp
+          thus "z \<in> {}" by blast
+        qed
+        show "{} \<subseteq> ?U \<inter> ?V" by (rule empty_subsetI)
+      qed
+
+      have hnbhd: "neighborhood_of x X TX ?U"
+        unfolding neighborhood_of_def using hU_open hxc by blast
+
+      show "\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {}"
+        apply (rule exI[where x="?U"])
+        apply (rule exI[where x="?V"])
+        apply (intro conjI)
+           apply (rule hnbhd)
+          apply (rule hV_open)
+         apply (rule hC_sub_V)
+        apply (rule hUV_disj)
+        done
+    qed
+  qed
+qed
 
 (** from \S33 Theorem 33.2 (Subspaces of completely regular spaces are completely regular)
     [top1.tex:4542] **)
