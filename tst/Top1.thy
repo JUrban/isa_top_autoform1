@@ -8429,6 +8429,111 @@ proof -
     by (rule exI[where x=V], intro conjI, rule hVcnt, rule hVsub, rule hVcov)
 qed
 
+(** A convenient corollary of Theorem 30.3(a): on a second-countable space, every open cover
+    of a closed subset has a countable subcover. **)
+lemma second_countable_countable_subcover_of_closed:
+  assumes h2nd: "top1_second_countable_on X T"
+  assumes hA: "closedin_on X T A"
+  assumes hUc: "Uc \<subseteq> T"
+  assumes hcov: "A \<subseteq> \<Union>Uc"
+  shows "\<exists>V. top1_countable V \<and> V \<subseteq> Uc \<and> A \<subseteq> \<Union>V"
+proof -
+  have hXA_open: "X - A \<in> T"
+    by (rule closedin_diff_open[OF hA])
+
+  define UcX where "UcX = insert (X - A) Uc"
+
+  have hUcX_sub: "UcX \<subseteq> T"
+    unfolding UcX_def using hUc hXA_open by blast
+
+  have hcovX: "X \<subseteq> \<Union>UcX"
+  proof (rule subsetI)
+    fix x assume hxX: "x \<in> X"
+    show "x \<in> \<Union>UcX"
+    proof (cases "x \<in> A")
+      case True
+      have hxA: "x \<in> A" using True .
+      have hxU: "x \<in> \<Union>Uc"
+        using hcov hxA by blast
+      then obtain U where hUUc: "U \<in> Uc" and hxUin: "x \<in> U"
+        by blast
+      have "U \<in> UcX"
+        unfolding UcX_def using hUUc by blast
+      thus ?thesis
+        using hxUin by blast
+    next
+      case False
+      have hxXA: "x \<in> X - A"
+        using hxX False by blast
+      have "X - A \<in> UcX"
+        unfolding UcX_def by blast
+      thus ?thesis
+        using hxXA by blast
+    qed
+  qed
+
+  obtain V where hVcnt: "top1_countable V" and hVsub: "V \<subseteq> UcX" and hVcov: "X \<subseteq> \<Union>V"
+    using Theorem_30_3a[OF h2nd hUcX_sub hcovX] by blast
+
+  define V' where "V' = V - {X - A}"
+
+  have hV'cnt: "top1_countable V'"
+  proof -
+    have "V' \<subseteq> V"
+      unfolding V'_def by blast
+    thus ?thesis
+      by (rule top1_countable_subset[OF hVcnt])
+  qed
+
+  have hV'sub: "V' \<subseteq> Uc"
+  proof (rule subsetI)
+    fix U assume hU: "U \<in> V'"
+    have hUV: "U \<in> V" and hUne: "U \<noteq> X - A"
+      using hU unfolding V'_def by blast+
+    have hU_UcX: "U \<in> UcX"
+      using hVsub hUV by blast
+    have hcase: "U = X - A \<or> U \<in> Uc"
+      using hU_UcX unfolding UcX_def by blast
+    show "U \<in> Uc"
+    proof (rule disjE[OF hcase])
+      assume hUeq: "U = X - A"
+      show "U \<in> Uc"
+        using hUne hUeq by contradiction
+    next
+      assume "U \<in> Uc"
+      thus "U \<in> Uc" .
+    qed
+  qed
+
+  have hV'cov: "A \<subseteq> \<Union>V'"
+  proof (rule subsetI)
+    fix x assume hxA: "x \<in> A"
+    have hxX: "x \<in> X"
+      by (rule closedin_sub[OF hA, THEN subsetD, OF hxA])
+    have hxUV: "x \<in> \<Union>V"
+      using hVcov hxX by blast
+    then obtain U where hUV: "U \<in> V" and hxU: "x \<in> U"
+      by blast
+    have hU_UcX: "U \<in> UcX"
+      using hVsub hUV by blast
+    have hU_ne: "U \<noteq> X - A"
+    proof
+      assume hUeq: "U = X - A"
+      have "x \<in> X - A"
+        using hxU hUeq by simp
+      thus False
+        using hxA by blast
+    qed
+    have hUV': "U \<in> V'"
+      unfolding V'_def using hUV hU_ne by blast
+    show "x \<in> \<Union>V'"
+      using hUV' hxU by blast
+  qed
+
+  show ?thesis
+    by (rule exI[where x=V'], intro conjI, rule hV'cnt, rule hV'sub, rule hV'cov)
+qed
+
 (** from \S30 Theorem 30.3(b) (Second-countable \<Longrightarrow> separable) [top1.tex:~4030] **)
 theorem Theorem_30_3b:
   assumes h2nd: "top1_second_countable_on X T"
@@ -8567,6 +8672,170 @@ definition top1_regular_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> boo
      (\<forall>x\<in>X. \<forall>C. closedin_on X T C \<and> x \<notin> C \<longrightarrow>
         (\<exists>U V. neighborhood_of x X T U \<and> V \<in> T \<and> C \<subseteq> V \<and> U \<inter> V = {}))"
 
+(** Regular spaces are Hausdorff (as in \S31). **)
+lemma regular_imp_hausdorff_on:
+  assumes hR: "top1_regular_on X T"
+  shows "is_hausdorff_on X T"
+proof -
+  have hT1: "top1_T1_on X T"
+    using hR unfolding top1_regular_on_def by (rule conjunct1)
+  have hTop: "is_topology_on X T"
+    using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+  have hSep:
+    "\<forall>x\<in>X. \<forall>C. closedin_on X T C \<and> x \<notin> C \<longrightarrow>
+       (\<exists>U V. neighborhood_of x X T U \<and> V \<in> T \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+    using hR unfolding top1_regular_on_def by (rule conjunct2)
+
+  show ?thesis
+    unfolding is_hausdorff_on_def
+  proof (intro conjI)
+    show "is_topology_on X T"
+      by (rule hTop)
+    show "\<forall>x\<in>X. \<forall>y\<in>X. x \<noteq> y \<longrightarrow>
+       (\<exists>U V. neighborhood_of x X T U \<and> neighborhood_of y X T V \<and> U \<inter> V = {})"
+    proof (intro ballI impI)
+      fix x y
+      assume hxX: "x \<in> X" and hyX: "y \<in> X"
+      assume hne: "x \<noteq> y"
+      have hycl: "closedin_on X T {y}"
+        using hT1 hyX unfolding top1_T1_on_def by blast
+      have hxny: "x \<notin> {y}"
+        using hne by blast
+      obtain U V where hnbx: "neighborhood_of x X T U" and hV: "V \<in> T"
+          and hyV: "{y} \<subseteq> V" and hdisj: "U \<inter> V = {}"
+        using hSep[rule_format, OF hxX, of "{y}"] hycl hxny by blast
+      have hyVmem: "y \<in> V"
+        using hyV by blast
+      have hnby: "neighborhood_of y X T V"
+        unfolding neighborhood_of_def
+        by (intro conjI, rule hV, rule hyVmem)
+      show "\<exists>U V. neighborhood_of x X T U \<and> neighborhood_of y X T V \<and> U \<inter> V = {}"
+        by (rule exI[where x=U], rule exI[where x=V], intro conjI, rule hnbx, rule hnby, rule hdisj)
+    qed
+  qed
+qed
+
+(** from \S31 Theorem 31.2(b): subspaces of regular spaces are regular. **)
+theorem Theorem_31_2_regular_subspace:
+  assumes hR: "top1_regular_on X T"
+  assumes hYX: "Y \<subseteq> X"
+  shows "top1_regular_on Y (subspace_topology X T Y)"
+proof -
+  let ?TY = "subspace_topology X T Y"
+
+  have hT1: "top1_T1_on X T"
+    using hR unfolding top1_regular_on_def by (rule conjunct1)
+  have hTop: "is_topology_on X T"
+    using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+
+  have hT1Y: "top1_T1_on Y ?TY"
+  proof (unfold top1_T1_on_def, intro conjI)
+    show "is_topology_on Y ?TY"
+      by (rule subspace_topology_is_topology_on[OF hTop hYX])
+    show "\<forall>y\<in>Y. closedin_on Y ?TY {y}"
+    proof (intro ballI)
+      fix y assume hyY: "y \<in> Y"
+      have hyX: "y \<in> X"
+        using hYX hyY by blast
+      have hyclX: "closedin_on X T {y}"
+        using hT1 hyX unfolding top1_T1_on_def by blast
+      have hEq: "{y} = {y} \<inter> Y"
+        using hyY by blast
+      have exC: "\<exists>C. closedin_on X T C \<and> {y} = C \<inter> Y"
+        apply (rule exI[where x="{y}"])
+        apply (intro conjI)
+         apply (rule hyclX)
+        apply (rule hEq)
+        done
+      show "closedin_on Y ?TY {y}"
+        by (rule iffD2[OF Theorem_17_2[OF hTop hYX, of "{y}"] exC])
+    qed
+  qed
+
+  have hSep:
+    "\<forall>x\<in>X. \<forall>C. closedin_on X T C \<and> x \<notin> C \<longrightarrow>
+       (\<exists>U V. neighborhood_of x X T U \<and> V \<in> T \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+    using hR unfolding top1_regular_on_def by (rule conjunct2)
+
+  show ?thesis
+    unfolding top1_regular_on_def
+  proof (intro conjI)
+    show "top1_T1_on Y ?TY"
+      by (rule hT1Y)
+    show "\<forall>x\<in>Y. \<forall>C. closedin_on Y ?TY C \<and> x \<notin> C
+      \<longrightarrow> (\<exists>U V. neighborhood_of x Y ?TY U \<and> V \<in> ?TY \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+    proof (intro ballI allI impI)
+      fix x C
+      assume hxY: "x \<in> Y"
+      assume hC: "closedin_on Y ?TY C \<and> x \<notin> C"
+      have hxX: "x \<in> X"
+        using hYX hxY by blast
+      have hCsubY: "C \<subseteq> Y"
+        using hC by (blast dest: closedin_sub)
+
+      obtain D where hDcl: "closedin_on X T D" and hDeq: "C = D \<inter> Y"
+        using Theorem_17_2[OF hTop hYX, of C] hC
+        by blast
+
+      have hxnotD: "x \<notin> D"
+      proof
+        assume hxD: "x \<in> D"
+        have "x \<in> D \<inter> Y"
+          using hxD hxY by blast
+        thus False
+          using hC hDeq by blast
+      qed
+
+      obtain U V where hnbx: "neighborhood_of x X T U" and hV: "V \<in> T"
+          and hDV: "D \<subseteq> V" and hdisj: "U \<inter> V = {}"
+        using hSep[rule_format, OF hxX, of D] hDcl hxnotD by blast
+
+      define U' where "U' = Y \<inter> U"
+      define V' where "V' = Y \<inter> V"
+
+      have hU'TY: "U' \<in> ?TY"
+        unfolding U'_def subspace_topology_def
+        apply (rule CollectI)
+        apply (rule exI[where x=U])
+        apply (intro conjI)
+         apply (rule refl)
+        using hnbx unfolding neighborhood_of_def by blast
+      have hV'TY: "V' \<in> ?TY"
+        unfolding V'_def subspace_topology_def
+        apply (rule CollectI)
+        apply (rule exI[where x=V])
+        apply (intro conjI)
+         apply (rule refl)
+        apply (rule hV)
+        done
+
+      have hxU': "x \<in> U'"
+      proof -
+        have hxU: "x \<in> U"
+          using hnbx unfolding neighborhood_of_def by blast
+        show ?thesis
+          unfolding U'_def using hxY hxU by blast
+      qed
+      have hnbxY: "neighborhood_of x Y ?TY U'"
+        unfolding neighborhood_of_def by (intro conjI, rule hU'TY, rule hxU')
+
+      have hCsubV': "C \<subseteq> V'"
+      proof -
+        have "D \<inter> Y \<subseteq> V \<inter> Y"
+          using hDV by blast
+        thus ?thesis
+          unfolding hDeq V'_def by simp
+      qed
+
+      have hdisj': "U' \<inter> V' = {}"
+        unfolding U'_def V'_def using hdisj by blast
+
+      show "\<exists>U V. neighborhood_of x Y ?TY U \<and> V \<in> ?TY \<and> C \<subseteq> V \<and> U \<inter> V = {}"
+        by (rule exI[where x=U'], rule exI[where x=V'], intro conjI, rule hnbxY, rule hV'TY, rule hCsubV', rule hdisj')
+    qed
+  qed
+qed
+
 (** Regularity yields the standard "point shrinking" lemma:
     if x lies in an open set U, there exists an open neighborhood V of x whose closure is still inside U. **)
 lemma regular_refine_point_into_open:
@@ -8692,6 +8961,658 @@ definition top1_normal_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool
      top1_T1_on X T \<and>
      (\<forall>C D. closedin_on X T C \<and> closedin_on X T D \<and> C \<inter> D = {}
         \<longrightarrow> (\<exists>U V. U \<in> T \<and> V \<in> T \<and> C \<subseteq> U \<and> D \<subseteq> V \<and> U \<inter> V = {}))"
+
+(** from \S32 Theorem 32.1 (Regular + second-countable \<Longrightarrow> normal) [top1.tex:~4178] **)
+theorem Theorem_32_1:
+  assumes hR: "top1_regular_on X TX"
+  assumes h2nd: "top1_second_countable_on X TX"
+  shows "top1_normal_on X TX"
+proof -
+  have hT1: "top1_T1_on X TX"
+    using hR unfolding top1_regular_on_def by (rule conjunct1)
+  have hTop: "is_topology_on X TX"
+    using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+
+  have X_TX: "X \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+  have union_TX: "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTop[unfolded is_topology_on_def]]]])
+
+  have mk_countable_cover:
+    "\<And>A B. closedin_on X TX A \<Longrightarrow> closedin_on X TX B \<Longrightarrow> A \<inter> B = {}
+      \<Longrightarrow> \<exists>Uc. top1_countable Uc \<and> Uc \<subseteq> TX \<and> A \<subseteq> \<Union>Uc
+            \<and> (\<forall>U\<in>Uc. closure_on X TX U \<subseteq> X - B)"
+  proof -
+    fix A B
+    assume hAcl: "closedin_on X TX A"
+    assume hBcl: "closedin_on X TX B"
+    assume hdisj: "A \<inter> B = {}"
+    have hAX: "A \<subseteq> X"
+      by (rule closedin_sub[OF hAcl])
+    have hXB: "X - B \<in> TX"
+      by (rule closedin_diff_open[OF hBcl])
+    have hXBsub: "X - B \<subseteq> X"
+      by blast
+
+    have exU: "\<forall>a\<in>A. \<exists>U. U \<in> TX \<and> U \<subseteq> X \<and> a \<in> U \<and> closure_on X TX U \<subseteq> X - B"
+    proof (intro ballI)
+      fix a assume haA: "a \<in> A"
+      have haX: "a \<in> X"
+        using hAX haA by blast
+      have haXB: "a \<in> X - B"
+      proof -
+        have hanB: "a \<notin> B"
+        proof
+          assume haB: "a \<in> B"
+          have "a \<in> A \<inter> B"
+            using haA haB by blast
+          thus False
+            using hdisj by blast
+        qed
+        show ?thesis
+          using haX hanB by blast
+      qed
+      have exV: "\<exists>V. V \<in> TX \<and> V \<subseteq> X \<and> a \<in> V \<and> closure_on X TX V \<subseteq> X - B"
+        by (rule regular_refine_point_into_open[OF hR haX hXB hXBsub haXB])
+      obtain V where hV: "V \<in> TX" and hVX: "V \<subseteq> X" and haV: "a \<in> V"
+          and hclV: "closure_on X TX V \<subseteq> X - B"
+        using exV by blast
+      show "\<exists>U. U \<in> TX \<and> U \<subseteq> X \<and> a \<in> U \<and> closure_on X TX U \<subseteq> X - B"
+        by (rule exI[where x=V], intro conjI, rule hV, rule hVX, rule haV, rule hclV)
+    qed
+
+    obtain f where hf:
+      "\<forall>a\<in>A. f a \<in> TX \<and> f a \<subseteq> X \<and> a \<in> f a \<and> closure_on X TX (f a) \<subseteq> X - B"
+      using bchoice[OF exU] by blast
+
+    have hcovA: "A \<subseteq> \<Union>(f ` A)"
+    proof (rule subsetI)
+      fix a assume haA: "a \<in> A"
+      have ha_in: "a \<in> f a"
+        using hf haA by blast
+      have "f a \<in> f ` A"
+        by (rule imageI[OF haA])
+      thus "a \<in> \<Union>(f ` A)"
+        using ha_in by blast
+    qed
+
+    have hfT: "f ` A \<subseteq> TX"
+      apply (rule subsetI)
+      apply (erule imageE)
+      using hf by blast
+
+    obtain Uc where hUc_cnt: "top1_countable Uc" and hUc_sub: "Uc \<subseteq> f ` A" and hUc_cov: "A \<subseteq> \<Union>Uc"
+      using second_countable_countable_subcover_of_closed[OF h2nd hAcl hfT hcovA] by blast
+
+    have hUc_sub_TX: "Uc \<subseteq> TX"
+      using hUc_sub hfT by blast
+
+    have hUc_cl: "\<forall>U\<in>Uc. closure_on X TX U \<subseteq> X - B"
+    proof (intro ballI)
+      fix U assume hU: "U \<in> Uc"
+      have hUfA: "U \<in> f ` A"
+        using hUc_sub hU by blast
+      obtain a where haA: "a \<in> A" and hUeq: "U = f a"
+        using hUfA by blast
+      have "closure_on X TX (f a) \<subseteq> X - B"
+        using hf haA by blast
+      thus "closure_on X TX U \<subseteq> X - B"
+        using hUeq by simp
+    qed
+
+    show "\<exists>Uc. top1_countable Uc \<and> Uc \<subseteq> TX \<and> A \<subseteq> \<Union>Uc
+            \<and> (\<forall>U\<in>Uc. closure_on X TX U \<subseteq> X - B)"
+      by (rule exI[where x=Uc], intro conjI, rule hUc_cnt, rule hUc_sub_TX, rule hUc_cov, rule hUc_cl)
+  qed
+
+  show ?thesis
+    unfolding top1_normal_on_def
+  proof (intro conjI)
+    show "top1_T1_on X TX"
+      by (rule hT1)
+    show "\<forall>C D. closedin_on X TX C \<and> closedin_on X TX D \<and> C \<inter> D = {}
+        \<longrightarrow> (\<exists>U V. U \<in> TX \<and> V \<in> TX \<and> C \<subseteq> U \<and> D \<subseteq> V \<and> U \<inter> V = {})"
+    proof (intro allI impI)
+      fix C D
+      assume hCD: "closedin_on X TX C \<and> closedin_on X TX D \<and> C \<inter> D = {}"
+      have hCcl: "closedin_on X TX C"
+        using hCD by blast
+      have hDcl: "closedin_on X TX D"
+        using hCD by blast
+      have hdisj: "C \<inter> D = {}"
+        using hCD by blast
+
+      have exUc:
+        "\<exists>Uc. top1_countable Uc \<and> Uc \<subseteq> TX \<and> C \<subseteq> \<Union>Uc
+          \<and> (\<forall>U\<in>Uc. closure_on X TX U \<subseteq> X - D)"
+        by (rule mk_countable_cover[OF hCcl hDcl hdisj])
+      obtain Uc where hUc_cnt: "top1_countable Uc" and hUc_sub: "Uc \<subseteq> TX" and hUc_cov: "C \<subseteq> \<Union>Uc"
+          and hUc_cl: "\<forall>U\<in>Uc. closure_on X TX U \<subseteq> X - D"
+        using exUc by blast
+
+      have hdisjDC: "D \<inter> C = {}"
+        using hdisj by (simp add: Int_commute)
+      have exVc:
+        "\<exists>Vc. top1_countable Vc \<and> Vc \<subseteq> TX \<and> D \<subseteq> \<Union>Vc
+          \<and> (\<forall>V\<in>Vc. closure_on X TX V \<subseteq> X - C)"
+        by (rule mk_countable_cover[OF hDcl hCcl hdisjDC])
+      obtain Vc where hVc_cnt: "top1_countable Vc" and hVc_sub: "Vc \<subseteq> TX" and hVc_cov: "D \<subseteq> \<Union>Vc"
+          and hVc_cl: "\<forall>V\<in>Vc. closure_on X TX V \<subseteq> X - C"
+        using exVc by blast
+
+      obtain iU :: "'a set \<Rightarrow> nat" where hiU: "inj_on iU Uc"
+        using hUc_cnt unfolding top1_countable_def by blast
+      obtain iV :: "'a set \<Rightarrow> nat" where hiV: "inj_on iV Vc"
+        using hVc_cnt unfolding top1_countable_def by blast
+
+      define U where "U n = \<Union>{S \<in> Uc. iU S = n}" for n
+      define V where "V n = \<Union>{S \<in> Vc. iV S = n}" for n
+
+      have hUopen: "\<forall>n. U n \<in> TX"
+      proof (intro allI)
+        fix n
+        have "{S \<in> Uc. iU S = n} \<subseteq> TX"
+          using hUc_sub by blast
+        thus "U n \<in> TX"
+          unfolding U_def using union_TX by blast
+      qed
+      have hVopen: "\<forall>n. V n \<in> TX"
+      proof (intro allI)
+        fix n
+        have "{S \<in> Vc. iV S = n} \<subseteq> TX"
+          using hVc_sub by blast
+        thus "V n \<in> TX"
+          unfolding V_def using union_TX by blast
+      qed
+
+      have hUsubX: "\<forall>n. U n \<subseteq> X"
+      proof (intro allI subsetI)
+        fix n x
+        assume hx: "x \<in> U n"
+        have hx': "x \<in> \<Union>{S \<in> Uc. iU S = n}"
+          using hx by (simp only: U_def)
+        then obtain S where hS: "S \<in> Uc" and hi: "iU S = n" and hxS: "x \<in> S"
+          by blast
+        have "closure_on X TX S \<subseteq> X - D"
+          using hUc_cl hS by blast
+        have hScl: "S \<subseteq> closure_on X TX S"
+          by (rule subset_closure_on)
+        have hSsubXD: "S \<subseteq> X - D"
+          by (rule subset_trans[OF hScl \<open>closure_on X TX S \<subseteq> X - D\<close>])
+        have "S \<subseteq> X"
+          by (rule subset_trans[OF hSsubXD Diff_subset])
+        show "x \<in> X"
+          using hxS \<open>S \<subseteq> X\<close> by blast
+      qed
+      have hVsubX: "\<forall>n. V n \<subseteq> X"
+      proof (intro allI subsetI)
+        fix n x
+        assume hx: "x \<in> V n"
+        have hx': "x \<in> \<Union>{S \<in> Vc. iV S = n}"
+          using hx by (simp only: V_def)
+        then obtain S where hS: "S \<in> Vc" and hi: "iV S = n" and hxS: "x \<in> S"
+          by blast
+        have "closure_on X TX S \<subseteq> X - C"
+          using hVc_cl hS by blast
+        have hScl: "S \<subseteq> closure_on X TX S"
+          by (rule subset_closure_on)
+        have hSsubXC: "S \<subseteq> X - C"
+          by (rule subset_trans[OF hScl \<open>closure_on X TX S \<subseteq> X - C\<close>])
+        have "S \<subseteq> X"
+          by (rule subset_trans[OF hSsubXC Diff_subset])
+        show "x \<in> X"
+          using hxS \<open>S \<subseteq> X\<close> by blast
+      qed
+
+      have hUc_to_U: "\<forall>S\<in>Uc. S \<subseteq> U (iU S)"
+      proof (intro ballI)
+        fix S assume hS: "S \<in> Uc"
+        have "S \<in> {T \<in> Uc. iU T = iU S}"
+          using hS by blast
+        hence "S \<subseteq> \<Union>{T \<in> Uc. iU T = iU S}"
+          by blast
+        thus "S \<subseteq> U (iU S)"
+          unfolding U_def by simp
+      qed
+
+      have hVc_to_V: "\<forall>S\<in>Vc. S \<subseteq> V (iV S)"
+      proof (intro ballI)
+        fix S assume hS: "S \<in> Vc"
+        have "S \<in> {T \<in> Vc. iV T = iV S}"
+          using hS by blast
+        hence "S \<subseteq> \<Union>{T \<in> Vc. iV T = iV S}"
+          by blast
+        thus "S \<subseteq> V (iV S)"
+          unfolding V_def by simp
+      qed
+
+      have hCcovUV: "C \<subseteq> (\<Union>n. U n)"
+      proof (rule subsetI)
+        fix x assume hxC: "x \<in> C"
+        have hxUc: "x \<in> \<Union>Uc"
+          using hUc_cov hxC by blast
+        then obtain S where hSUc: "S \<in> Uc" and hxS: "x \<in> S"
+          by blast
+        have hSsub: "S \<subseteq> U (iU S)"
+          using hUc_to_U hSUc by blast
+        have hxU: "x \<in> U (iU S)"
+          using hxS hSsub by blast
+        show "x \<in> (\<Union>n. U n)"
+        proof -
+          have "U (iU S) \<in> range U"
+            by blast
+          have "x \<in> \<Union>(range U)"
+            by (rule UnionI, rule \<open>U (iU S) \<in> range U\<close>, rule hxU)
+          thus ?thesis
+            by simp
+        qed
+      qed
+
+      have hDcovUV: "D \<subseteq> (\<Union>n. V n)"
+      proof (rule subsetI)
+        fix x assume hxD: "x \<in> D"
+        have hxVc: "x \<in> \<Union>Vc"
+          using hVc_cov hxD by blast
+        then obtain S where hSVc: "S \<in> Vc" and hxS: "x \<in> S"
+          by blast
+        have hSsub: "S \<subseteq> V (iV S)"
+          using hVc_to_V hSVc by blast
+        have hxV: "x \<in> V (iV S)"
+          using hxS hSsub by blast
+        show "x \<in> (\<Union>n. V n)"
+        proof -
+          have "V (iV S) \<in> range V"
+            by blast
+          have "x \<in> \<Union>(range V)"
+            by (rule UnionI, rule \<open>V (iV S) \<in> range V\<close>, rule hxV)
+          thus ?thesis
+            by simp
+        qed
+      qed
+
+      define ClU where "ClU n = closure_on X TX (U n)" for n
+      define ClV where "ClV n = closure_on X TX (V n)" for n
+
+      have hClU_closed: "\<forall>n. closedin_on X TX (ClU n)"
+      proof (intro allI)
+        fix n
+        have "U n \<subseteq> X"
+          using hUsubX by blast
+        thus "closedin_on X TX (ClU n)"
+          unfolding ClU_def by (rule closure_on_closed[OF hTop])
+      qed
+      have hClV_closed: "\<forall>n. closedin_on X TX (ClV n)"
+      proof (intro allI)
+        fix n
+        have "V n \<subseteq> X"
+          using hVsubX by blast
+        thus "closedin_on X TX (ClV n)"
+          unfolding ClV_def by (rule closure_on_closed[OF hTop])
+      qed
+
+      have hClU_sub: "\<forall>n. ClU n \<subseteq> X - D"
+      proof (intro allI)
+        fix n
+        let ?P = "{S \<in> Uc. iU S = n}"
+        have hUeq: "U n = \<Union>?P"
+          unfolding U_def by simp
+        show "ClU n \<subseteq> X - D"
+        proof (cases "?P = {}")
+          case True
+          have "U n = \<Union>?P"
+            by (rule hUeq)
+          also have "... = \<Union>{}"
+            by (simp only: True)
+          also have "... = {}"
+            by (simp only: Union_empty)
+          finally have "U n = {}" .
+          hence "ClU n = closure_on X TX {}"
+            unfolding ClU_def by simp
+          have empty_closed: "closedin_on X TX {}"
+          proof (rule closedin_intro)
+            show "{} \<subseteq> X" by simp
+            have "X \<in> TX"
+              by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+            thus "X - {} \<in> TX" by simp
+          qed
+          have "closure_on X TX {} \<subseteq> {}"
+            by (rule closure_on_subset_of_closed[OF empty_closed], simp)
+          hence "ClU n \<subseteq> {}"
+            using \<open>ClU n = closure_on X TX {}\<close> by simp
+          thus ?thesis by blast
+        next
+          case False
+          obtain S where hSP: "S \<in> ?P"
+            using False by blast
+          have hSUc: "S \<in> Uc" and hi: "iU S = n"
+            using hSP by blast+
+          have huniq: "\<forall>T\<in>?P. T = S"
+          proof (intro ballI)
+            fix T assume hT: "T \<in> ?P"
+            have hTUc: "T \<in> Uc" and hTi: "iU T = n"
+              using hT by blast+
+            have "iU T = iU S"
+              using hTi hi by simp
+            thus "T = S"
+              using hiU hTUc hSUc unfolding inj_on_def by blast
+          qed
+          have hPsub: "?P \<subseteq> {S}"
+            using huniq by blast
+          have hS_in: "S \<in> ?P"
+            by (rule hSP)
+          have "S \<subseteq> \<Union>?P"
+            using hS_in by blast
+          have "\<Union>?P \<subseteq> S"
+            using hPsub by blast
+          have hUnionP: "\<Union>?P = S"
+            by (rule equalityI, rule \<open>\<Union>?P \<subseteq> S\<close>, rule \<open>S \<subseteq> \<Union>?P\<close>)
+          have "U n = S"
+            unfolding hUeq using hUnionP by simp
+          hence "ClU n = closure_on X TX S"
+            unfolding ClU_def by simp
+          have "closure_on X TX S \<subseteq> X - D"
+            using hUc_cl hSUc by blast
+          thus ?thesis
+            using \<open>ClU n = closure_on X TX S\<close> by simp
+        qed
+      qed
+
+      have hClV_sub: "\<forall>n. ClV n \<subseteq> X - C"
+      proof (intro allI)
+        fix n
+        let ?P = "{S \<in> Vc. iV S = n}"
+        have hVeq: "V n = \<Union>?P"
+          unfolding V_def by simp
+        show "ClV n \<subseteq> X - C"
+        proof (cases "?P = {}")
+          case True
+          have "V n = \<Union>?P"
+            by (rule hVeq)
+          also have "... = \<Union>{}"
+            by (simp only: True)
+          also have "... = {}"
+            by (simp only: Union_empty)
+          finally have "V n = {}" .
+          hence "ClV n = closure_on X TX {}"
+            unfolding ClV_def by simp
+          have empty_closed: "closedin_on X TX {}"
+          proof (rule closedin_intro)
+            show "{} \<subseteq> X" by simp
+            have "X \<in> TX"
+              by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+            thus "X - {} \<in> TX" by simp
+          qed
+          have "closure_on X TX {} \<subseteq> {}"
+            by (rule closure_on_subset_of_closed[OF empty_closed], simp)
+          hence "ClV n \<subseteq> {}"
+            using \<open>ClV n = closure_on X TX {}\<close> by simp
+          thus ?thesis by blast
+        next
+          case False
+          obtain S where hSP: "S \<in> ?P"
+            using False by blast
+          have hSVc: "S \<in> Vc" and hi: "iV S = n"
+            using hSP by blast+
+          have huniq: "\<forall>T\<in>?P. T = S"
+          proof (intro ballI)
+            fix T assume hT: "T \<in> ?P"
+            have hTVc: "T \<in> Vc" and hTi: "iV T = n"
+              using hT by blast+
+            have "iV T = iV S"
+              using hTi hi by simp
+            thus "T = S"
+              using hiV hTVc hSVc unfolding inj_on_def by blast
+          qed
+          have hPsub: "?P \<subseteq> {S}"
+            using huniq by blast
+          have hS_in: "S \<in> ?P"
+            by (rule hSP)
+          have "S \<subseteq> \<Union>?P"
+            using hS_in by blast
+          have "\<Union>?P \<subseteq> S"
+            using hPsub by blast
+          have hUnionP: "\<Union>?P = S"
+            by (rule equalityI, rule \<open>\<Union>?P \<subseteq> S\<close>, rule \<open>S \<subseteq> \<Union>?P\<close>)
+          have "V n = S"
+            unfolding hVeq using hUnionP by simp
+          hence "ClV n = closure_on X TX S"
+            unfolding ClV_def by simp
+          have "closure_on X TX S \<subseteq> X - C"
+            using hVc_cl hSVc by blast
+          thus ?thesis
+            using \<open>ClV n = closure_on X TX S\<close> by simp
+        qed
+      qed
+
+      define KClU where "KClU n = \<Union>((\<lambda>i. ClU i) ` {i. i \<le> n})" for n
+      define KClV where "KClV n = \<Union>((\<lambda>i. ClV i) ` {i. i \<le> n})" for n
+
+      have hKClU_closed: "\<forall>n. closedin_on X TX (KClU n)"
+      proof (intro allI)
+        fix n
+        have hfin: "finite {i::nat. i \<le> n}"
+          by simp
+        have hall: "\<forall>A\<in>(\<lambda>i. ClU i) ` {i. i \<le> n}. closedin_on X TX A"
+        proof (intro ballI)
+          fix A assume hA: "A \<in> (\<lambda>i. ClU i) ` {i. i \<le> n}"
+          then obtain i where hi: "i \<le> n" and hAe: "A = ClU i"
+            by blast
+          show "closedin_on X TX A"
+            using hClU_closed hAe by blast
+        qed
+        show "closedin_on X TX (KClU n)"
+          unfolding KClU_def
+          by (rule closedin_Union_finite[OF hTop], rule finite_imageI[OF hfin], rule hall)
+      qed
+
+      have hKClV_closed: "\<forall>n. closedin_on X TX (KClV n)"
+      proof (intro allI)
+        fix n
+        have hfin: "finite {i::nat. i \<le> n}"
+          by simp
+        have hall: "\<forall>A\<in>(\<lambda>i. ClV i) ` {i. i \<le> n}. closedin_on X TX A"
+        proof (intro ballI)
+          fix A assume hA: "A \<in> (\<lambda>i. ClV i) ` {i. i \<le> n}"
+          then obtain i where hi: "i \<le> n" and hAe: "A = ClV i"
+            by blast
+          show "closedin_on X TX A"
+            using hClV_closed hAe by blast
+        qed
+        show "closedin_on X TX (KClV n)"
+          unfolding KClV_def
+          by (rule closedin_Union_finite[OF hTop], rule finite_imageI[OF hfin], rule hall)
+      qed
+
+      define U' where "U' n = U n \<inter> (X - KClV n)" for n
+      define V' where "V' n = V n \<inter> (X - KClU n)" for n
+
+      have hU'open: "\<forall>n. U' n \<in> TX"
+      proof (intro allI)
+        fix n
+        have hXm: "X - KClV n \<in> TX"
+          by (rule closedin_diff_open[OF hKClV_closed[rule_format, of n]])
+        have "U n \<in> TX"
+          using hUopen by blast
+        have "U n \<inter> (X - KClV n) \<in> TX"
+          by (rule topology_inter2[OF hTop \<open>U n \<in> TX\<close> hXm])
+        thus "U' n \<in> TX"
+          unfolding U'_def by simp
+      qed
+      have hV'open: "\<forall>n. V' n \<in> TX"
+      proof (intro allI)
+        fix n
+        have hXm: "X - KClU n \<in> TX"
+          by (rule closedin_diff_open[OF hKClU_closed[rule_format, of n]])
+        have "V n \<in> TX"
+          using hVopen by blast
+        have "V n \<inter> (X - KClU n) \<in> TX"
+          by (rule topology_inter2[OF hTop \<open>V n \<in> TX\<close> hXm])
+        thus "V' n \<in> TX"
+          unfolding V'_def by simp
+      qed
+
+      define Ubig where "Ubig = (\<Union>n. U' n)"
+      define Vbig where "Vbig = (\<Union>n. V' n)"
+
+      have hUbig_open: "Ubig \<in> TX"
+      proof -
+        have "range U' \<subseteq> TX"
+          using hU'open by blast
+        have "\<Union>(range U') \<in> TX"
+          by (rule union_TX[rule_format], rule \<open>range U' \<subseteq> TX\<close>)
+        thus ?thesis
+          unfolding Ubig_def by simp
+      qed
+
+      have hVbig_open: "Vbig \<in> TX"
+      proof -
+        have "range V' \<subseteq> TX"
+          using hV'open by blast
+        have "\<Union>(range V') \<in> TX"
+          by (rule union_TX[rule_format], rule \<open>range V' \<subseteq> TX\<close>)
+        thus ?thesis
+          unfolding Vbig_def by simp
+      qed
+
+      have hCsubUbig: "C \<subseteq> Ubig"
+      proof (rule subsetI)
+        fix x assume hxC: "x \<in> C"
+        have hxU: "x \<in> (\<Union>n. U n)"
+          using hCcovUV hxC by blast
+        obtain n where hxn: "x \<in> U n"
+          using hxU by blast
+        have hxnot: "x \<notin> KClV n"
+        proof
+          assume hxK: "x \<in> KClV n"
+          then obtain i where hi: "i \<le> n" and hxi: "x \<in> ClV i"
+            unfolding KClV_def by blast
+          have "x \<in> X - C"
+            using hClV_sub[rule_format, of i] hxi by blast
+          thus False
+            using hxC by blast
+        qed
+        have hxX: "x \<in> X"
+          using hUsubX[rule_format, of n] hxn by blast
+        have hxXm: "x \<in> X - KClV n"
+          by (rule DiffI, rule hxX, rule hxnot)
+        have hxInt: "x \<in> U n \<inter> (X - KClV n)"
+          by (rule IntI, rule hxn, rule hxXm)
+        have "x \<in> U' n"
+          unfolding U'_def using hxInt by simp
+        hence "x \<in> Ubig"
+          unfolding Ubig_def
+          by blast
+        thus "x \<in> Ubig" .
+      qed
+
+      have hDsubVbig: "D \<subseteq> Vbig"
+      proof (rule subsetI)
+        fix x assume hxD: "x \<in> D"
+        have hxV: "x \<in> (\<Union>n. V n)"
+          using hDcovUV hxD by blast
+        obtain n where hxn: "x \<in> V n"
+          using hxV by blast
+        have hxnot: "x \<notin> KClU n"
+        proof
+          assume hxK: "x \<in> KClU n"
+          then obtain i where hi: "i \<le> n" and hxi: "x \<in> ClU i"
+            unfolding KClU_def by blast
+          have "x \<in> X - D"
+            using hClU_sub[rule_format, of i] hxi by blast
+          thus False
+            using hxD by blast
+        qed
+        have hxX: "x \<in> X"
+          using hVsubX[rule_format, of n] hxn by blast
+        have hxXm: "x \<in> X - KClU n"
+          by (rule DiffI, rule hxX, rule hxnot)
+        have hxInt: "x \<in> V n \<inter> (X - KClU n)"
+          by (rule IntI, rule hxn, rule hxXm)
+        have "x \<in> V' n"
+          unfolding V'_def using hxInt by simp
+        hence "x \<in> Vbig"
+          unfolding Vbig_def by blast
+        thus "x \<in> Vbig" .
+      qed
+
+      have hdisjUV: "Ubig \<inter> Vbig = {}"
+      proof (rule equalityI)
+        show "Ubig \<inter> Vbig \<subseteq> {}"
+        proof (rule subsetI)
+          fix x assume hx: "x \<in> Ubig \<inter> Vbig"
+          have hxU: "x \<in> Ubig" and hxV: "x \<in> Vbig"
+            using hx by blast+
+          obtain j where hxj: "x \<in> U' j"
+            using hxU unfolding Ubig_def by blast
+          obtain k where hxk: "x \<in> V' k"
+            using hxV unfolding Vbig_def by blast
+          have hcase: "j \<le> k \<or> k \<le> j"
+          proof (cases "j \<le> k")
+            case True
+            show ?thesis
+              using True by blast
+          next
+            case False
+            have "k \<le> j"
+              using False by simp
+            thus ?thesis
+              by blast
+          qed
+          show "x \<in> {}"
+          proof (rule disjE[OF hcase])
+            assume hjk: "j \<le> k"
+            have hxUj: "x \<in> U j"
+              using hxj unfolding U'_def by blast
+            have hxClUj: "x \<in> ClU j"
+            proof -
+              have hsub: "U j \<subseteq> closure_on X TX (U j)"
+                by (rule subset_closure_on)
+              have "x \<in> closure_on X TX (U j)"
+                by (rule subsetD[OF hsub hxUj])
+              thus ?thesis
+                unfolding ClU_def by simp
+            qed
+            have hClUj_in: "ClU j \<subseteq> KClU k"
+              unfolding KClU_def using hjk by blast
+            have hxK: "x \<in> KClU k"
+              using hClUj_in hxClUj by blast
+            have hxnotK: "x \<notin> KClU k"
+              using hxk unfolding V'_def by blast
+            show "x \<in> {}"
+              using hxK hxnotK by blast
+          next
+            assume hkj: "k \<le> j"
+            have hxVk: "x \<in> V k"
+              using hxk unfolding V'_def by blast
+            have hxClVk: "x \<in> ClV k"
+            proof -
+              have hsub: "V k \<subseteq> closure_on X TX (V k)"
+                by (rule subset_closure_on)
+              have "x \<in> closure_on X TX (V k)"
+                by (rule subsetD[OF hsub hxVk])
+              thus ?thesis
+                unfolding ClV_def by simp
+            qed
+            have hClVk_in: "ClV k \<subseteq> KClV j"
+              unfolding KClV_def using hkj by blast
+            have hxK: "x \<in> KClV j"
+              using hClVk_in hxClVk by blast
+            have hxnotK: "x \<notin> KClV j"
+              using hxj unfolding U'_def by blast
+            show "x \<in> {}"
+              using hxK hxnotK by blast
+          qed
+        qed
+        show "{} \<subseteq> Ubig \<inter> Vbig"
+          by simp
+      qed
+
+      show "\<exists>U V. U \<in> TX \<and> V \<in> TX \<and> C \<subseteq> U \<and> D \<subseteq> V \<and> U \<inter> V = {}"
+        by (rule exI[where x=Ubig], rule exI[where x=Vbig],
+            intro conjI, rule hUbig_open, rule hVbig_open, rule hCsubUbig, rule hDsubVbig, rule hdisjUV)
+    qed
+  qed
+qed
 
 (** from \S32 Theorem 32.2 (Every metrizable space is normal) [top1.tex:4202] **)
 theorem Theorem_32_2:
