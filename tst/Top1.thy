@@ -59,6 +59,123 @@ definition topology_generated_by_basis :: "'a set \<Rightarrow> 'a set set \<Rig
 definition basis_for :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "basis_for X B T \<longleftrightarrow> is_basis_on X B \<and> T = topology_generated_by_basis X B"
 
+(** If B is a basis on X, then the topology it generates is a topology on X. **)
+lemma topology_generated_by_basis_is_topology_on:
+  assumes hB: "is_basis_on X B"
+  shows "is_topology_on X (topology_generated_by_basis X B)"
+proof (unfold is_topology_on_def, intro conjI)
+  have hBsub: "\<forall>b\<in>B. b \<subseteq> X"
+    by (rule conjunct1[OF hB[unfolded is_basis_on_def]])
+  have hBcov: "\<forall>x\<in>X. \<exists>b\<in>B. x \<in> b"
+    by (rule conjunct1[OF conjunct2[OF hB[unfolded is_basis_on_def]]])
+
+  show "{} \<in> topology_generated_by_basis X B"
+    unfolding topology_generated_by_basis_def
+    apply (rule CollectI)
+    apply (intro conjI)
+     apply simp
+    apply simp
+    done
+  show "X \<in> topology_generated_by_basis X B"
+    unfolding topology_generated_by_basis_def
+  proof (rule CollectI, intro conjI)
+    show "X \<subseteq> X" by simp
+    show "\<forall>x\<in>X. \<exists>b\<in>B. x \<in> b \<and> b \<subseteq> X"
+    proof (rule ballI)
+      fix x assume hxX: "x \<in> X"
+      obtain b where hbB: "b \<in> B" and hxb: "x \<in> b"
+        using hBcov[rule_format, OF hxX] by blast
+      have hbX: "b \<subseteq> X" using hBsub hbB by blast
+      show "\<exists>b\<in>B. x \<in> b \<and> b \<subseteq> X"
+        apply (rule bexI[where x=b])
+         apply (intro conjI hxb hbX)
+        apply (rule hbB)
+        done
+    qed
+  qed
+  show "\<forall>U. U \<subseteq> topology_generated_by_basis X B \<longrightarrow> \<Union>U \<in> topology_generated_by_basis X B"
+  proof (intro allI impI)
+    fix U assume hU: "U \<subseteq> topology_generated_by_basis X B"
+    show "\<Union>U \<in> topology_generated_by_basis X B"
+      unfolding topology_generated_by_basis_def
+    proof (rule CollectI, rule conjI)
+      show "\<Union>U \<subseteq> X"
+        using hU unfolding topology_generated_by_basis_def by blast
+      show "\<forall>x\<in>\<Union>U. \<exists>b\<in>B. x \<in> b \<and> b \<subseteq> \<Union>U"
+      proof (rule ballI)
+        fix x assume hx: "x \<in> \<Union>U"
+        obtain V where hVU: "V \<in> U" and hxV: "x \<in> V" using hx by blast
+        have hVopen: "V \<in> topology_generated_by_basis X B" using hU hVU by blast
+        have hVcov: "\<exists>b\<in>B. x \<in> b \<and> b \<subseteq> V"
+          using hVopen hxV unfolding topology_generated_by_basis_def by blast
+        obtain b where hbB: "b \<in> B" and hxb: "x \<in> b" and hbV: "b \<subseteq> V"
+          using hVcov by blast
+        have hbU: "b \<subseteq> \<Union>U" using hbV Union_upper hVU by blast
+        show "\<exists>b\<in>B. x \<in> b \<and> b \<subseteq> \<Union>U"
+          apply (rule bexI[where x=b])
+           apply (intro conjI hxb hbU)
+          apply (rule hbB)
+          done
+      qed
+    qed
+  qed
+  show "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> topology_generated_by_basis X B \<longrightarrow> \<Inter>F \<in> topology_generated_by_basis X B"
+  proof (intro allI impI)
+    fix F assume hF: "finite F \<and> F \<noteq> {} \<and> F \<subseteq> topology_generated_by_basis X B"
+    have hFin: "finite F" and hNe: "F \<noteq> {}" and hFsub: "F \<subseteq> topology_generated_by_basis X B"
+      using hF by blast+
+
+    have hBInt: "\<forall>b1\<in>B. \<forall>b2\<in>B. \<forall>x\<in>(b1 \<inter> b2).
+        \<exists>b3\<in>B. x \<in> b3 \<and> b3 \<subseteq> (b1 \<inter> b2)"
+      using hB unfolding is_basis_on_def by blast
+
+    have hBinInt: "\<forall>U\<in>topology_generated_by_basis X B. \<forall>V\<in>topology_generated_by_basis X B.
+        (U \<inter> V) \<in> topology_generated_by_basis X B"
+    proof (intro ballI)
+      fix U V assume hU: "U \<in> topology_generated_by_basis X B" and hV: "V \<in> topology_generated_by_basis X B"
+      show "U \<inter> V \<in> topology_generated_by_basis X B"
+        unfolding topology_generated_by_basis_def
+      proof (rule CollectI, rule conjI)
+        show "U \<inter> V \<subseteq> X"
+          using hU hV unfolding topology_generated_by_basis_def by blast
+        show "\<forall>x\<in>U \<inter> V. \<exists>b\<in>B. x \<in> b \<and> b \<subseteq> U \<inter> V"
+        proof (rule ballI)
+          fix x assume hx: "x \<in> U \<inter> V"
+          have hxU: "x \<in> U" and hxV: "x \<in> V" using hx by blast+
+          obtain b1 where hb1B: "b1 \<in> B" and hxb1: "x \<in> b1" and hb1U: "b1 \<subseteq> U"
+            using hU hxU unfolding topology_generated_by_basis_def by blast
+          obtain b2 where hb2B: "b2 \<in> B" and hxb2: "x \<in> b2" and hb2V: "b2 \<subseteq> V"
+            using hV hxV unfolding topology_generated_by_basis_def by blast
+          have hx12: "x \<in> b1 \<inter> b2" using hxb1 hxb2 by blast
+          obtain b3 where hb3B: "b3 \<in> B" and hxb3: "x \<in> b3" and hb3sub12: "b3 \<subseteq> b1 \<inter> b2"
+            using hBInt[rule_format, OF hb1B hb2B hx12] by blast
+          have hb3UV: "b3 \<subseteq> U \<inter> V"
+            using hb3sub12 hb1U hb2V by blast
+          show "\<exists>b\<in>B. x \<in> b \<and> b \<subseteq> U \<inter> V"
+            apply (rule bexI[where x=b3])
+             apply (intro conjI hxb3 hb3UV)
+            apply (rule hb3B)
+            done
+        qed
+      qed
+    qed
+
+    show "\<Inter>F \<in> topology_generated_by_basis X B"
+      using hFin hNe hFsub
+    proof (induct F rule: finite_ne_induct)
+      case (singleton U)
+      then show ?case by simp
+    next
+      case (insert U F)
+      have hU: "U \<in> topology_generated_by_basis X B" using insert by blast
+      have hIF: "\<Inter>F \<in> topology_generated_by_basis X B" using insert by blast
+      have "U \<inter> \<Inter>F \<in> topology_generated_by_basis X B"
+        using hBinInt[rule_format, OF hU hIF] by blast
+      thus ?case by simp
+    qed
+  qed
+qed
+
 (** from \S13 Lemma 13.1 [top1.tex:168] **)
 (** LATEX VERSION: "T equals the collection of all unions of elements of B." **)
 theorem Lemma_13_1:
@@ -823,6 +940,379 @@ proof -
     apply (rule refl)
     done
 qed
+
+(** The standard UNIV-order-topology basis is indeed a basis on UNIV. **)
+
+lemma basis_order_topology_cases:
+  assumes hb: "b \<in> basis_order_topology"
+  shows "(\<exists>a c. a < c \<and> b = open_interval a c)
+      \<or> (\<exists>a. b = open_ray_gt a)
+      \<or> (\<exists>a. b = open_ray_lt a)
+      \<or> b = (UNIV::'a::linorder set)"
+  using hb unfolding basis_order_topology_def by blast
+
+lemma basis_order_topology_refine_intersection:
+  fixes b1 b2 :: "'a::linorder set" and x :: 'a
+  assumes hb1: "b1 \<in> basis_order_topology"
+  assumes hb2: "b2 \<in> basis_order_topology"
+  assumes hx: "x \<in> b1 \<inter> b2"
+  shows "\<exists>b3\<in>basis_order_topology. x \<in> b3 \<and> b3 \<subseteq> b1 \<inter> b2"
+proof -
+  have hb1c: "(\<exists>a c. a < c \<and> b1 = open_interval a c)
+        \<or> (\<exists>a. b1 = open_ray_gt a)
+        \<or> (\<exists>a. b1 = open_ray_lt a)
+        \<or> b1 = (UNIV::'a set)"
+    by (rule basis_order_topology_cases[OF hb1])
+  have hb2c: "(\<exists>a c. a < c \<and> b2 = open_interval a c)
+        \<or> (\<exists>a. b2 = open_ray_gt a)
+        \<or> (\<exists>a. b2 = open_ray_lt a)
+        \<or> b2 = (UNIV::'a set)"
+    by (rule basis_order_topology_cases[OF hb2])
+
+  from hb1c show ?thesis
+  proof (elim disjE)
+    assume hI1: "\<exists>a c. a < c \<and> b1 = open_interval a c"
+    obtain a b where hab: "a < b" and hb1eq: "b1 = open_interval a b"
+      using hI1 by blast
+    from hb2c show ?thesis
+    proof (elim disjE)
+      assume hI2: "\<exists>a c. a < c \<and> b2 = open_interval a c"
+      obtain c d where hcd: "c < d" and hb2eq: "b2 = open_interval c d"
+        using hI2 by blast
+      have hxa: "a < x" and hxb: "x < b" and hxc: "c < x" and hxd: "x < d"
+        using hx unfolding hb1eq hb2eq open_interval_def by blast+
+      define L where "L = max a c"
+      define U where "U = min b d"
+      have hLx: "L < x" using hxa hxc unfolding L_def by simp
+      have hxU: "x < U" using hxb hxd unfolding U_def by simp
+      have hLU: "L < U" using hLx hxU by (rule less_trans)
+      have hb3B: "open_interval L U \<in> basis_order_topology"
+        unfolding basis_order_topology_def using hLU by blast
+      have hxin: "x \<in> open_interval L U"
+        using hLx hxU unfolding open_interval_def by blast
+      have hsub: "open_interval L U \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_interval L U"
+        have hLt: "L < t" and htU: "t < U"
+          using ht unfolding open_interval_def by blast+
+        have haL: "a \<le> L" unfolding L_def by simp
+        have hcL: "c \<le> L" unfolding L_def by simp
+        have hat: "a < t" using haL hLt by (rule le_less_trans)
+        have hct: "c < t" using hcL hLt by (rule le_less_trans)
+        have htb: "t < b" using htU unfolding U_def by simp
+        have htd: "t < d" using htU unfolding U_def by simp
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_interval_def
+          using hat htb hct htd by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_interval L U"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hG2: "\<exists>a. b2 = open_ray_gt a"
+      obtain c where hb2eq: "b2 = open_ray_gt c" using hG2 by blast
+      have hxa: "a < x" and hxb: "x < b" and hxc: "c < x"
+        using hx unfolding hb1eq hb2eq open_interval_def open_ray_gt_def by blast+
+      define L where "L = max a c"
+      have hLx: "L < x" using hxa hxc unfolding L_def by simp
+      have hLU: "L < b" using hLx hxb by (rule less_trans)
+      have hb3B: "open_interval L b \<in> basis_order_topology"
+        unfolding basis_order_topology_def using hLU by blast
+      have hxin: "x \<in> open_interval L b"
+        using hLx hxb unfolding open_interval_def by blast
+      have hsub: "open_interval L b \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_interval L b"
+        have hLt: "L < t" and htb: "t < b"
+          using ht unfolding open_interval_def by blast+
+        have haL: "a \<le> L" unfolding L_def by simp
+        have hcL: "c \<le> L" unfolding L_def by simp
+        have hat: "a < t" using haL hLt by (rule le_less_trans)
+        have hct: "c < t" using hcL hLt by (rule le_less_trans)
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_interval_def open_ray_gt_def
+          using hat htb hct by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_interval L b"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hL2: "\<exists>a. b2 = open_ray_lt a"
+      obtain d where hb2eq: "b2 = open_ray_lt d" using hL2 by blast
+      have hxa: "a < x" and hxb: "x < b" and hxd: "x < d"
+        using hx unfolding hb1eq hb2eq open_interval_def open_ray_lt_def by blast+
+      define U where "U = min b d"
+      have hxU: "x < U" using hxb hxd unfolding U_def by simp
+      have hLU: "a < U" using hxa hxU by (rule less_trans)
+      have hb3B: "open_interval a U \<in> basis_order_topology"
+        unfolding basis_order_topology_def using hLU by blast
+      have hxin: "x \<in> open_interval a U"
+        using hxa hxU unfolding open_interval_def by blast
+      have hsub: "open_interval a U \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_interval a U"
+        have hat: "a < t" and htU: "t < U"
+          using ht unfolding open_interval_def by blast+
+        have htb: "t < b" using htU unfolding U_def by simp
+        have htd: "t < d" using htU unfolding U_def by simp
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_interval_def open_ray_lt_def
+          using hat htb htd by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_interval a U"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hb2U: "b2 = (UNIV::'a set)"
+      have hxin: "x \<in> b1" using hx by blast
+      have hsub: "b1 \<subseteq> b1 \<inter> b2" using hb2U by blast
+      show ?thesis
+        apply (rule bexI[where x=b1])
+         apply (intro conjI hxin hsub)
+        apply (rule hb1)
+        done
+    qed
+  next
+    assume hG1: "\<exists>a. b1 = open_ray_gt a"
+    obtain a where hb1eq: "b1 = open_ray_gt a" using hG1 by blast
+    from hb2c show ?thesis
+    proof (elim disjE)
+      assume hI2: "\<exists>a c. a < c \<and> b2 = open_interval a c"
+      obtain c d where hcd: "c < d" and hb2eq: "b2 = open_interval c d"
+        using hI2 by blast
+      have hxa: "a < x" and hxc: "c < x" and hxd: "x < d"
+        using hx unfolding hb1eq hb2eq open_interval_def open_ray_gt_def by blast+
+      define L where "L = max a c"
+      have hLx: "L < x" using hxa hxc unfolding L_def by simp
+      have hLU: "L < d" using hLx hxd by (rule less_trans)
+      have hb3B: "open_interval L d \<in> basis_order_topology"
+        unfolding basis_order_topology_def using hLU by blast
+      have hxin: "x \<in> open_interval L d"
+        using hLx hxd unfolding open_interval_def by blast
+      have hsub: "open_interval L d \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_interval L d"
+        have hLt: "L < t" and htd: "t < d"
+          using ht unfolding open_interval_def by blast+
+        have haL: "a \<le> L" unfolding L_def by simp
+        have hcL: "c \<le> L" unfolding L_def by simp
+        have hat: "a < t" using haL hLt by (rule le_less_trans)
+        have hct: "c < t" using hcL hLt by (rule le_less_trans)
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_ray_gt_def open_interval_def
+          using hat hct htd by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_interval L d"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hG2: "\<exists>a. b2 = open_ray_gt a"
+      obtain c where hb2eq: "b2 = open_ray_gt c" using hG2 by blast
+      have hxa: "a < x" and hxc: "c < x"
+        using hx unfolding hb1eq hb2eq open_ray_gt_def by blast+
+      define L where "L = max a c"
+      have hLx: "L < x" using hxa hxc unfolding L_def by simp
+      have hb3B: "open_ray_gt L \<in> basis_order_topology"
+        unfolding basis_order_topology_def by blast
+      have hxin: "x \<in> open_ray_gt L"
+        using hLx unfolding open_ray_gt_def by blast
+      have hsub: "open_ray_gt L \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_ray_gt L"
+        have hLt: "L < t" using ht unfolding open_ray_gt_def by blast
+        have haL: "a \<le> L" unfolding L_def by simp
+        have hcL: "c \<le> L" unfolding L_def by simp
+        have hat: "a < t" using haL hLt by (rule le_less_trans)
+        have hct: "c < t" using hcL hLt by (rule le_less_trans)
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_ray_gt_def
+          using hat hct by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_ray_gt L"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hL2: "\<exists>a. b2 = open_ray_lt a"
+      obtain d where hb2eq: "b2 = open_ray_lt d" using hL2 by blast
+      have hxa: "a < x" and hxd: "x < d"
+        using hx unfolding hb1eq hb2eq open_ray_gt_def open_ray_lt_def by blast+
+      have had: "a < d" using hxa hxd by (rule less_trans)
+      have hb3B: "open_interval a d \<in> basis_order_topology"
+        unfolding basis_order_topology_def using had by blast
+      have hxin: "x \<in> open_interval a d"
+        using hxa hxd unfolding open_interval_def by blast
+      have hsub: "open_interval a d \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_interval a d"
+        have hat: "a < t" and htd: "t < d"
+          using ht unfolding open_interval_def by blast+
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_interval_def open_ray_gt_def open_ray_lt_def
+          using hat htd by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_interval a d"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hb2U: "b2 = (UNIV::'a set)"
+      have hxin: "x \<in> b1" using hx by blast
+      have hsub: "b1 \<subseteq> b1 \<inter> b2" using hb2U by blast
+      show ?thesis
+        apply (rule bexI[where x=b1])
+         apply (intro conjI hxin hsub)
+        apply (rule hb1)
+        done
+    qed
+  next
+    assume hL1: "\<exists>a. b1 = open_ray_lt a"
+    obtain a where hb1eq: "b1 = open_ray_lt a" using hL1 by blast
+    from hb2c show ?thesis
+    proof (elim disjE)
+      assume hI2: "\<exists>a c. a < c \<and> b2 = open_interval a c"
+      obtain c d where hcd: "c < d" and hb2eq: "b2 = open_interval c d"
+        using hI2 by blast
+      have hxc: "c < x" and hxd: "x < d" and hxa: "x < a"
+        using hx unfolding hb1eq hb2eq open_interval_def open_ray_lt_def by blast+
+      define U where "U = min a d"
+      have hxU: "x < U" using hxa hxd unfolding U_def by simp
+      have hLU: "c < U" using hxc hxU by (rule less_trans)
+      have hb3B: "open_interval c U \<in> basis_order_topology"
+        unfolding basis_order_topology_def using hLU by blast
+      have hxin: "x \<in> open_interval c U"
+        using hxc hxU unfolding open_interval_def by blast
+      have hsub: "open_interval c U \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_interval c U"
+        have hct: "c < t" and htU: "t < U"
+          using ht unfolding open_interval_def by blast+
+        have hta: "t < a" using htU unfolding U_def by simp
+        have htd: "t < d" using htU unfolding U_def by simp
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_interval_def open_ray_lt_def
+          using hct hta htd by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_interval c U"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hG2: "\<exists>a. b2 = open_ray_gt a"
+      obtain c where hb2eq: "b2 = open_ray_gt c" using hG2 by blast
+      have hxc: "c < x" and hxa: "x < a"
+        using hx unfolding hb1eq hb2eq open_ray_gt_def open_ray_lt_def by blast+
+      have hca: "c < a" using hxc hxa by (rule less_trans)
+      have hb3B: "open_interval c a \<in> basis_order_topology"
+        unfolding basis_order_topology_def using hca by blast
+      have hxin: "x \<in> open_interval c a"
+        using hxc hxa unfolding open_interval_def by blast
+      have hsub: "open_interval c a \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_interval c a"
+        have hct: "c < t" and hta: "t < a"
+          using ht unfolding open_interval_def by blast+
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_interval_def open_ray_gt_def open_ray_lt_def
+          using hct hta by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_interval c a"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hL2: "\<exists>a. b2 = open_ray_lt a"
+      obtain d where hb2eq: "b2 = open_ray_lt d" using hL2 by blast
+      have hxa: "x < a" and hxd: "x < d"
+        using hx unfolding hb1eq hb2eq open_ray_lt_def by blast+
+      define U where "U = min a d"
+      have hxU: "x < U" using hxa hxd unfolding U_def by simp
+      have hb3B: "open_ray_lt U \<in> basis_order_topology"
+        unfolding basis_order_topology_def by blast
+      have hxin: "x \<in> open_ray_lt U"
+        using hxU unfolding open_ray_lt_def by blast
+      have hsub: "open_ray_lt U \<subseteq> b1 \<inter> b2"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> open_ray_lt U"
+        have htU: "t < U" using ht unfolding open_ray_lt_def by blast
+        have hta: "t < a" using htU unfolding U_def by simp
+        have htd: "t < d" using htU unfolding U_def by simp
+        show "t \<in> b1 \<inter> b2"
+          unfolding hb1eq hb2eq open_ray_lt_def
+          using hta htd by blast
+      qed
+      show ?thesis
+        apply (rule bexI[where x="open_ray_lt U"])
+         apply (intro conjI hxin hsub)
+        apply (rule hb3B)
+        done
+    next
+      assume hb2U: "b2 = (UNIV::'a set)"
+      have hxin: "x \<in> b1" using hx by blast
+      have hsub: "b1 \<subseteq> b1 \<inter> b2" using hb2U by blast
+      show ?thesis
+        apply (rule bexI[where x=b1])
+         apply (intro conjI hxin hsub)
+        apply (rule hb1)
+        done
+    qed
+  next
+    assume hb1U: "b1 = (UNIV::'a set)"
+    have hxin: "x \<in> b2" using hx by blast
+    have hsub: "b2 \<subseteq> b1 \<inter> b2" using hb1U by blast
+    show ?thesis
+      apply (rule bexI[where x=b2])
+       apply (intro conjI hxin hsub)
+      apply (rule hb2)
+      done
+  qed
+qed
+
+lemma basis_order_topology_is_basis_on_UNIV:
+  "is_basis_on (UNIV::'a::linorder set) basis_order_topology"
+proof -
+  have hsub: "\<forall>b\<in>basis_order_topology. b \<subseteq> (UNIV::'a set)" by simp
+  have hcov: "\<forall>x\<in>(UNIV::'a set). \<exists>b\<in>basis_order_topology. x \<in> b"
+  proof (rule ballI)
+    fix x :: 'a assume hx: "x \<in> (UNIV::'a set)"
+    have hU: "(UNIV::'a set) \<in> basis_order_topology"
+      unfolding basis_order_topology_def by blast
+    show "\<exists>b\<in>basis_order_topology. x \<in> b"
+      apply (rule bexI[where x="(UNIV::'a set)"])
+       apply simp
+      apply (rule hU)
+      done
+  qed
+  have hint: "\<forall>b1\<in>basis_order_topology. \<forall>b2\<in>basis_order_topology. \<forall>x\<in>(b1 \<inter> b2).
+      \<exists>b3\<in>basis_order_topology. x \<in> b3 \<and> b3 \<subseteq> (b1 \<inter> b2)"
+    by (intro ballI, rule basis_order_topology_refine_intersection)
+  show ?thesis
+    unfolding is_basis_on_def
+    apply (intro conjI)
+      apply (rule hsub)
+     apply (rule hcov)
+    apply (rule hint)
+    done
+qed
+
+lemma order_topology_on_UNIV_is_topology_on:
+  "is_topology_on (UNIV::'a::linorder set) order_topology_on_UNIV"
+  unfolding order_topology_on_UNIV_def
+  apply (rule topology_generated_by_basis_is_topology_on)
+  apply (rule basis_order_topology_is_basis_on_UNIV)
+  done
 
 (** from \S14 Definition (Four interval types determined by a and b) [top1.tex:345] **)
 (** LATEX VERSION: "If X ordered and a element, there are four intervals ..." **)
@@ -3491,12 +3981,9 @@ qed
 
 (** from \S17 Theorem 17.11 [top1.tex:809] **)
 (** LATEX VERSION: "Order topology on simply ordered set is Hausdorff; products/subspaces preserve Hausdorff." **)
-(** NOTE: Part 1 requires is_topology_on UNIV order_topology_on_UNIV as a hypothesis
-    (not true for all linorder types, e.g., singleton types). **)
 theorem Theorem_17_11:
-  assumes hTO: "is_topology_on (UNIV::'a::linorder set) order_topology_on_UNIV"
   shows
-    "(is_hausdorff_on (UNIV::'a set) order_topology_on_UNIV)
+    "(is_hausdorff_on (UNIV::'a::linorder set) order_topology_on_UNIV)
      \<and> (\<forall>X1 T1 X2 T2.
             is_hausdorff_on X1 T1 \<and> is_hausdorff_on X2 T2 \<longrightarrow>
             is_hausdorff_on (X1 \<times> X2) (product_topology_on T1 T2))
@@ -3504,9 +3991,10 @@ theorem Theorem_17_11:
             is_hausdorff_on X T \<and> Y \<subseteq> X \<longrightarrow>
             is_hausdorff_on Y (subspace_topology X T Y))"
 proof (intro conjI)
-  show "is_hausdorff_on (UNIV::'a set) order_topology_on_UNIV"
+  show "is_hausdorff_on (UNIV::'a::linorder set) order_topology_on_UNIV"
   proof (unfold is_hausdorff_on_def, intro conjI)
-    show "is_topology_on (UNIV::'a set) order_topology_on_UNIV" using hTO .
+    show "is_topology_on (UNIV::'a::linorder set) order_topology_on_UNIV"
+      by (rule order_topology_on_UNIV_is_topology_on)
     show "\<forall>x\<in>(UNIV::'a set). \<forall>y\<in>UNIV. x \<noteq> y \<longrightarrow>
            (\<exists>U V. neighborhood_of x UNIV order_topology_on_UNIV U \<and>
                   neighborhood_of y UNIV order_topology_on_UNIV V \<and> U \<inter> V = {})"
