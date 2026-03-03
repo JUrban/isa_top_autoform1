@@ -128,10 +128,113 @@ qed
 (** from \S13 Lemma 13.2 [top1.tex:176] **)
 (** LATEX VERSION: "If C is a collection of open sets with local refinement property, then C is a basis." **)
 theorem Lemma_13_2:
-  assumes "is_topology_on X T"
-  assumes "\<And>U x. U \<in> T \<Longrightarrow> x \<in> U \<Longrightarrow> \<exists>C\<in>Cc. C \<in> T \<and> x \<in> C \<and> C \<subseteq> U"
+  assumes hT: "is_topology_on X T"
+  assumes hCcT: "Cc \<subseteq> T"
+  assumes hTX: "\<forall>U\<in>T. U \<subseteq> X"
+  assumes hrefine: "\<And>U x. U \<in> T \<Longrightarrow> x \<in> U \<Longrightarrow> \<exists>C\<in>Cc. C \<in> T \<and> x \<in> C \<and> C \<subseteq> U"
   shows "basis_for X Cc T"
-  sorry
+proof -
+  have hXT: "X \<in> T"
+    by (rule conjunct1[OF conjunct2[OF hT[unfolded is_topology_on_def]]])
+  have hunion: "\<forall>U. U \<subseteq> T \<longrightarrow> \<Union>U \<in> T"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hT[unfolded is_topology_on_def]]]])
+  have hinter: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> T \<longrightarrow> \<Inter>F \<in> T"
+    by (rule conjunct2[OF conjunct2[OF conjunct2[OF hT[unfolded is_topology_on_def]]]])
+  have hbas: "is_basis_on X Cc"
+  proof -
+    have hc_sub: "\<forall>c\<in>Cc. c \<subseteq> X"
+    proof (rule ballI)
+      fix c assume hc: "c \<in> Cc"
+      have hcT: "c \<in> T" using hCcT hc by blast
+      show "c \<subseteq> X" using hTX hcT by blast
+    qed
+    have hcov: "\<forall>x\<in>X. \<exists>c\<in>Cc. x \<in> c"
+    proof (rule ballI)
+      fix x assume hxX: "x \<in> X"
+      obtain C where hCCc: "C \<in> Cc" and hxC: "x \<in> C"
+        using hrefine[OF hXT hxX] by blast
+      show "\<exists>c\<in>Cc. x \<in> c" using hCCc hxC by blast
+    qed
+    have hinter_cond: "\<forall>c1\<in>Cc. \<forall>c2\<in>Cc. \<forall>y\<in>(c1 \<inter> c2). \<exists>c3\<in>Cc. y \<in> c3 \<and> c3 \<subseteq> (c1 \<inter> c2)"
+    proof (intro ballI)
+      fix c1 c2 assume hc1: "c1 \<in> Cc" and hc2: "c2 \<in> Cc"
+      fix y assume hy: "y \<in> c1 \<inter> c2"
+      have hc1T: "c1 \<in> T" using hCcT hc1 by blast
+      have hc2T: "c2 \<in> T" using hCcT hc2 by blast
+      have hc12T: "c1 \<inter> c2 \<in> T"
+      proof -
+        have hF: "{c1, c2} \<subseteq> T" using hc1T hc2T by blast
+        have hIT: "\<Inter>{c1, c2} \<in> T"
+          apply (rule hinter[rule_format])
+          apply (intro conjI)
+            apply simp
+           apply (rule insert_not_empty)
+          apply (rule hF)
+          done
+        show "c1 \<inter> c2 \<in> T" using hIT by simp
+      qed
+      obtain C where hCCc: "C \<in> Cc" and hyC: "y \<in> C" and hCsub: "C \<subseteq> c1 \<inter> c2"
+        using hrefine[OF hc12T hy] by blast
+      show "\<exists>c3\<in>Cc. y \<in> c3 \<and> c3 \<subseteq> c1 \<inter> c2" using hCCc hyC hCsub by blast
+    qed
+    show "is_basis_on X Cc"
+      unfolding is_basis_on_def
+      apply (intro conjI)
+        apply (rule hc_sub)
+       apply (rule hcov)
+      apply (rule hinter_cond)
+      done
+  qed
+  have hTeq: "T = topology_generated_by_basis X Cc"
+  proof (rule set_eqI)
+    fix W
+    show "W \<in> T \<longleftrightarrow> W \<in> topology_generated_by_basis X Cc"
+    proof (rule iffI)
+      assume hWT: "W \<in> T"
+      show "W \<in> topology_generated_by_basis X Cc"
+        unfolding topology_generated_by_basis_def
+      proof (rule CollectI, rule conjI)
+        show "W \<subseteq> X" using hTX hWT by blast
+      next
+        show "\<forall>x\<in>W. \<exists>c\<in>Cc. x \<in> c \<and> c \<subseteq> W"
+        proof (rule ballI)
+          fix x assume hxW: "x \<in> W"
+          obtain C where hCCc: "C \<in> Cc" and hxC: "x \<in> C" and hCW: "C \<subseteq> W"
+            using hrefine[OF hWT hxW] by blast
+          show "\<exists>c\<in>Cc. x \<in> c \<and> c \<subseteq> W" using hCCc hxC hCW by blast
+        qed
+      qed
+    next
+      assume hWtgb: "W \<in> topology_generated_by_basis X Cc"
+      have hWcov: "\<forall>x\<in>W. \<exists>c\<in>Cc. x \<in> c \<and> c \<subseteq> W"
+        using hWtgb unfolding topology_generated_by_basis_def by blast
+      have hWeq: "W = \<Union>{C \<in> Cc. C \<subseteq> W}"
+      proof (rule set_eqI)
+        fix z
+        show "z \<in> W \<longleftrightarrow> z \<in> \<Union>{C \<in> Cc. C \<subseteq> W}"
+        proof (rule iffI)
+          assume hzW: "z \<in> W"
+          obtain C where hCCc: "C \<in> Cc" and hzC: "z \<in> C" and hCW: "C \<subseteq> W"
+            using hWcov[rule_format, OF hzW] by blast
+          show "z \<in> \<Union>{C \<in> Cc. C \<subseteq> W}" using hCCc hzC hCW by blast
+        next
+          assume hz: "z \<in> \<Union>{C \<in> Cc. C \<subseteq> W}"
+          obtain C where hCmem: "C \<in> {C \<in> Cc. C \<subseteq> W}" and hzC: "z \<in> C" using hz by blast
+          show "z \<in> W" using hzC hCmem by blast
+        qed
+      qed
+      have hsubT: "{C \<in> Cc. C \<subseteq> W} \<subseteq> T" using hCcT by blast
+      have hbigT: "\<Union>{C \<in> Cc. C \<subseteq> W} \<in> T" using hunion[rule_format, OF hsubT] by blast
+      show "W \<in> T" using hWeq hbigT by simp
+    qed
+  qed
+  show "basis_for X Cc T"
+    unfolding basis_for_def
+    apply (intro conjI)
+     apply (rule hbas)
+    apply (rule hTeq)
+    done
+qed
 
 (** from \S13 Lemma 13.3 [top1.tex:184] **)
 (** LATEX VERSION: "Criterion for T' finer than T in terms of bases." **)
@@ -339,8 +442,8 @@ definition preimage :: "('a \<Rightarrow> 'b) \<Rightarrow> 'b set \<Rightarrow>
 (** from \S15 Theorem 15.1 [top1.tex:379] **)
 (** LATEX VERSION: "If B,C bases for X,Y then {B\<times>C} is a basis for X\<times>Y." **)
 theorem Theorem_15_1:
-  assumes "basis_for UNIV BX TX"
-  assumes "basis_for UNIV BY TY"
+  assumes hBX: "basis_for UNIV BX TX"
+  assumes hBY: "basis_for UNIV BY TY"
   defines "D \<equiv> {B \<times> C | B C. B \<in> BX \<and> C \<in> BY}"
   shows "basis_for UNIV D (product_topology_on TX TY)"
   sorry
@@ -1822,17 +1925,467 @@ proof (rule ccontr)
   with disj show False by simp
 qed
 
+(** Helper: open rays belong to the order topology **)
+lemma open_ray_lt_in_order_topology:
+  fixes a :: "'a::linorder"
+  shows "open_ray_lt a \<in> order_topology_on_UNIV"
+proof -
+  have hb: "open_ray_lt a \<in> basis_order_topology"
+    unfolding basis_order_topology_def by blast
+  show ?thesis
+    unfolding order_topology_on_UNIV_def topology_generated_by_basis_def
+    using hb by blast
+qed
+
+lemma open_ray_gt_in_order_topology:
+  fixes a :: "'a::linorder"
+  shows "open_ray_gt a \<in> order_topology_on_UNIV"
+proof -
+  have hb: "open_ray_gt a \<in> basis_order_topology"
+    unfolding basis_order_topology_def by blast
+  show ?thesis
+    unfolding order_topology_on_UNIV_def topology_generated_by_basis_def
+    using hb by blast
+qed
+
 (** from \S17 Theorem 17.11 [top1.tex:809] **)
 (** LATEX VERSION: "Order topology on simply ordered set is Hausdorff; products/subspaces preserve Hausdorff." **)
+(** NOTE: Part 1 requires is_topology_on UNIV order_topology_on_UNIV as a hypothesis
+    (not true for all linorder types, e.g., singleton types). **)
 theorem Theorem_17_11:
+  assumes hTO: "is_topology_on (UNIV::'a::linorder set) order_topology_on_UNIV"
   shows
-    "(\<forall>(X::'a::linorder set). is_hausdorff_on X order_topology_on_UNIV)
+    "(is_hausdorff_on (UNIV::'a set) order_topology_on_UNIV)
      \<and> (\<forall>X1 T1 X2 T2.
             is_hausdorff_on X1 T1 \<and> is_hausdorff_on X2 T2 \<longrightarrow>
             is_hausdorff_on (X1 \<times> X2) (product_topology_on T1 T2))
      \<and> (\<forall>X T Y.
             is_hausdorff_on X T \<and> Y \<subseteq> X \<longrightarrow>
             is_hausdorff_on Y (subspace_topology X T Y))"
-  sorry
+proof (intro conjI)
+  show "is_hausdorff_on (UNIV::'a set) order_topology_on_UNIV"
+  proof (unfold is_hausdorff_on_def, intro conjI)
+    show "is_topology_on (UNIV::'a set) order_topology_on_UNIV" using hTO .
+    show "\<forall>x\<in>(UNIV::'a set). \<forall>y\<in>UNIV. x \<noteq> y \<longrightarrow>
+           (\<exists>U V. neighborhood_of x UNIV order_topology_on_UNIV U \<and>
+                  neighborhood_of y UNIV order_topology_on_UNIV V \<and> U \<inter> V = {})"
+    proof (intro ballI impI)
+      fix x y :: 'a
+      assume hne: "x \<noteq> y"
+      have hcase: "x < y \<or> y < x" using hne neq_iff by blast
+      show "\<exists>U V. neighborhood_of x UNIV order_topology_on_UNIV U \<and>
+                 neighborhood_of y UNIV order_topology_on_UNIV V \<and> U \<inter> V = {}"
+      proof (rule disjE[OF hcase])
+        assume hxy: "x < y"
+        show "\<exists>U V. neighborhood_of x UNIV order_topology_on_UNIV U \<and>
+                   neighborhood_of y UNIV order_topology_on_UNIV V \<and> U \<inter> V = {}"
+        proof (cases "\<exists>z. x < z \<and> z < y")
+          case True
+          then obtain z where hxz: "x < z" and hzy: "z < y" by blast
+          have hUx: "neighborhood_of x UNIV order_topology_on_UNIV (open_ray_lt z)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_lt_in_order_topology])
+            apply (simp add: open_ray_lt_def hxz)
+            done
+          have hVy: "neighborhood_of y UNIV order_topology_on_UNIV (open_ray_gt z)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_gt_in_order_topology])
+            apply (simp add: open_ray_gt_def hzy)
+            done
+          have hdisj: "open_ray_lt z \<inter> open_ray_gt z = {}"
+            unfolding open_ray_lt_def open_ray_gt_def by auto
+          show ?thesis using hUx hVy hdisj by blast
+        next
+          case False
+          have hnmid: "\<forall>z. \<not>(x < z \<and> z < y)" using False by blast
+          have hUx: "neighborhood_of x UNIV order_topology_on_UNIV (open_ray_lt y)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_lt_in_order_topology])
+            apply (simp add: open_ray_lt_def hxy)
+            done
+          have hVy: "neighborhood_of y UNIV order_topology_on_UNIV (open_ray_gt x)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_gt_in_order_topology])
+            apply (simp add: open_ray_gt_def hxy)
+            done
+          have hdisj: "open_ray_lt y \<inter> open_ray_gt x = {}"
+            unfolding open_ray_lt_def open_ray_gt_def using hnmid by blast
+          show ?thesis using hUx hVy hdisj by blast
+        qed
+      next
+        assume hyx: "y < x"
+        show "\<exists>U V. neighborhood_of x UNIV order_topology_on_UNIV U \<and>
+                   neighborhood_of y UNIV order_topology_on_UNIV V \<and> U \<inter> V = {}"
+        proof (cases "\<exists>z. y < z \<and> z < x")
+          case True
+          then obtain z where hyz: "y < z" and hzx: "z < x" by blast
+          have hUx: "neighborhood_of x UNIV order_topology_on_UNIV (open_ray_gt z)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_gt_in_order_topology])
+            apply (simp add: open_ray_gt_def hzx)
+            done
+          have hVy: "neighborhood_of y UNIV order_topology_on_UNIV (open_ray_lt z)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_lt_in_order_topology])
+            apply (simp add: open_ray_lt_def hyz)
+            done
+          have hdisj: "open_ray_gt z \<inter> open_ray_lt z = {}"
+            unfolding open_ray_gt_def open_ray_lt_def by auto
+          show ?thesis using hUx hVy hdisj by blast
+        next
+          case False
+          have hnmid: "\<forall>z. \<not>(y < z \<and> z < x)" using False by blast
+          have hUx: "neighborhood_of x UNIV order_topology_on_UNIV (open_ray_gt y)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_gt_in_order_topology])
+            apply (simp add: open_ray_gt_def hyx)
+            done
+          have hVy: "neighborhood_of y UNIV order_topology_on_UNIV (open_ray_lt x)"
+            unfolding neighborhood_of_def
+            apply (rule conjI[OF open_ray_lt_in_order_topology])
+            apply (simp add: open_ray_lt_def hyx)
+            done
+          have hdisj: "open_ray_gt y \<inter> open_ray_lt x = {}"
+            unfolding open_ray_gt_def open_ray_lt_def using hnmid by blast
+          show ?thesis using hUx hVy hdisj by blast
+        qed
+      qed
+    qed
+  qed
+next
+  show "\<forall>X1 T1 X2 T2.
+            is_hausdorff_on X1 T1 \<and> is_hausdorff_on X2 T2 \<longrightarrow>
+            is_hausdorff_on (X1 \<times> X2) (product_topology_on T1 T2)"
+  proof (intro allI impI, elim conjE)
+    fix X1 T1 X2 T2
+    assume hH1: "is_hausdorff_on X1 T1" and hH2: "is_hausdorff_on X2 T2"
+    let ?TP = "product_topology_on T1 T2"
+    have hT1: "is_topology_on X1 T1" using hH1 unfolding is_hausdorff_on_def by blast
+    have hT2: "is_topology_on X2 T2" using hH2 unfolding is_hausdorff_on_def by blast
+    have hX1T1: "X1 \<in> T1" using hT1 unfolding is_topology_on_def by blast
+    have hX2T2: "X2 \<in> T2" using hT2 unfolding is_topology_on_def by blast
+    have hinterT1: "\<forall>G. finite G \<and> G \<noteq> {} \<and> G \<subseteq> T1 \<longrightarrow> \<Inter>G \<in> T1"
+      using hT1 unfolding is_topology_on_def by blast
+    have hinterT2: "\<forall>G. finite G \<and> G \<noteq> {} \<and> G \<subseteq> T2 \<longrightarrow> \<Inter>G \<in> T2"
+      using hT2 unfolding is_topology_on_def by blast
+    have hausd1: "\<forall>x\<in>X1. \<forall>y\<in>X1. x \<noteq> y \<longrightarrow>
+                   (\<exists>U V. neighborhood_of x X1 T1 U \<and> neighborhood_of y X1 T1 V \<and> U \<inter> V = {})"
+      using hH1 unfolding is_hausdorff_on_def by blast
+    have hausd2: "\<forall>x\<in>X2. \<forall>y\<in>X2. x \<noteq> y \<longrightarrow>
+                   (\<exists>U V. neighborhood_of x X2 T2 U \<and> neighborhood_of y X2 T2 V \<and> U \<inter> V = {})"
+      using hH2 unfolding is_hausdorff_on_def by blast
+    (* Helper: product of opens is open in ?TP *)
+    have prod_open: "\<forall>U\<in>T1. \<forall>V\<in>T2. U \<times> V \<in> ?TP"
+    proof (intro ballI)
+      fix U V assume hU: "U \<in> T1" and hV: "V \<in> T2"
+      show "U \<times> V \<in> ?TP"
+        unfolding product_topology_on_def topology_generated_by_basis_def product_basis_def
+      proof (rule CollectI, rule conjI, rule subset_UNIV)
+        show "\<forall>x\<in>U \<times> V. \<exists>b\<in>{U \<times> V | U V. U \<in> T1 \<and> V \<in> T2}. x \<in> b \<and> b \<subseteq> U \<times> V"
+        proof (rule ballI)
+          fix x assume hx: "x \<in> U \<times> V"
+          show "\<exists>b\<in>{U \<times> V | U V. U \<in> T1 \<and> V \<in> T2}. x \<in> b \<and> b \<subseteq> U \<times> V"
+            apply (rule bexI[where x="U \<times> V"])
+             apply (rule conjI[OF hx], blast)
+            apply (rule CollectI, rule exI[where x=U], rule exI[where x=V])
+            apply (intro conjI refl hU hV)
+            done
+        qed
+      qed
+    qed
+    (* Helper: binary intersection of product topology elements is in product topology *)
+    have bin_inter: "\<forall>W1 W2. W1 \<in> ?TP \<longrightarrow> W2 \<in> ?TP \<longrightarrow> W1 \<inter> W2 \<in> ?TP"
+    proof (intro allI impI)
+      fix W1 W2 assume hW1: "W1 \<in> ?TP" and hW2: "W2 \<in> ?TP"
+      have hW1cov: "\<forall>x\<in>W1. \<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> W1"
+        using hW1 unfolding product_topology_on_def topology_generated_by_basis_def by blast
+      have hW2cov: "\<forall>x\<in>W2. \<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> W2"
+        using hW2 unfolding product_topology_on_def topology_generated_by_basis_def by blast
+      show "W1 \<inter> W2 \<in> ?TP"
+        unfolding product_topology_on_def topology_generated_by_basis_def
+      proof (rule CollectI, rule conjI, rule subset_UNIV)
+        show "\<forall>x\<in>W1 \<inter> W2. \<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> W1 \<inter> W2"
+        proof (rule ballI)
+          fix x assume hx: "x \<in> W1 \<inter> W2"
+          have hxW1: "x \<in> W1" and hxW2: "x \<in> W2" using hx by blast+
+          obtain b1 where hb1: "b1 \<in> product_basis T1 T2" and hxb1: "x \<in> b1" and hb1W1: "b1 \<subseteq> W1"
+            using hW1cov[rule_format, OF hxW1] by blast
+          obtain b2 where hb2: "b2 \<in> product_basis T1 T2" and hxb2: "x \<in> b2" and hb2W2: "b2 \<subseteq> W2"
+            using hW2cov[rule_format, OF hxW2] by blast
+          obtain U1 V1 where hU1T1: "U1 \<in> T1" and hV1T2: "V1 \<in> T2" and hb1eq: "b1 = U1 \<times> V1"
+            using hb1 unfolding product_basis_def by blast
+          obtain U2 V2 where hU2T1: "U2 \<in> T1" and hV2T2: "V2 \<in> T2" and hb2eq: "b2 = U2 \<times> V2"
+            using hb2 unfolding product_basis_def by blast
+          have hU12T1: "U1 \<inter> U2 \<in> T1"
+          proof -
+            have "finite {U1,U2} \<and> {U1,U2} \<noteq> {} \<and> {U1,U2} \<subseteq> T1"
+              using hU1T1 hU2T1 by auto
+            hence "(\<Inter>{U1,U2}) \<in> T1" using hinterT1[rule_format] by blast
+            thus ?thesis by simp
+          qed
+          have hV12T2: "V1 \<inter> V2 \<in> T2"
+          proof -
+            have "finite {V1,V2} \<and> {V1,V2} \<noteq> {} \<and> {V1,V2} \<subseteq> T2"
+              using hV1T2 hV2T2 by auto
+            hence "(\<Inter>{V1,V2}) \<in> T2" using hinterT2[rule_format] by blast
+            thus ?thesis by simp
+          qed
+          have hbasis: "(U1 \<inter> U2) \<times> (V1 \<inter> V2) \<in> product_basis T1 T2"
+            unfolding product_basis_def
+            apply (rule CollectI, rule exI[where x="U1 \<inter> U2"], rule exI[where x="V1 \<inter> V2"])
+            apply (intro conjI refl hU12T1 hV12T2)
+            done
+          have hx_in: "x \<in> (U1 \<inter> U2) \<times> (V1 \<inter> V2)"
+            using hxb1 hb1eq hxb2 hb2eq by blast
+          have hcovW: "(U1 \<inter> U2) \<times> (V1 \<inter> V2) \<subseteq> W1 \<inter> W2"
+            using hb1eq hb2eq hb1W1 hb2W2 by blast
+          show "\<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> W1 \<inter> W2"
+            apply (rule bexI[where x="(U1 \<inter> U2) \<times> (V1 \<inter> V2)"])
+             apply (rule conjI[OF hx_in hcovW])
+            apply (rule hbasis)
+            done
+        qed
+      qed
+    qed
+    (* is_topology_on (X1 × X2) ?TP *)
+    have hTP_top: "is_topology_on (X1 \<times> X2) ?TP"
+    proof (unfold is_topology_on_def, intro conjI)
+      show "{} \<in> ?TP"
+        unfolding product_topology_on_def topology_generated_by_basis_def by blast
+      show "X1 \<times> X2 \<in> ?TP"
+        using prod_open[rule_format, OF hX1T1 hX2T2] by blast
+      show "\<forall>U. U \<subseteq> ?TP \<longrightarrow> \<Union>U \<in> ?TP"
+      proof (intro allI impI)
+        fix U assume hU: "U \<subseteq> ?TP"
+        have hUcov: "\<forall>W\<in>U. \<forall>x\<in>W. \<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> W"
+        proof (rule ballI)
+          fix W assume hWU: "W \<in> U"
+          have hWT: "W \<in> ?TP" using hU hWU by blast
+          show "\<forall>x\<in>W. \<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> W"
+            using hWT unfolding product_topology_on_def topology_generated_by_basis_def by blast
+        qed
+        show "\<Union>U \<in> ?TP"
+          unfolding product_topology_on_def topology_generated_by_basis_def
+        proof (rule CollectI, rule conjI, rule subset_UNIV)
+          show "\<forall>x\<in>\<Union>U. \<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> \<Union>U"
+          proof (rule ballI)
+            fix x assume hx: "x \<in> \<Union>U"
+            obtain W where hWU: "W \<in> U" and hxW: "x \<in> W" using hx by blast
+            obtain b where hb: "b \<in> product_basis T1 T2" and hxb: "x \<in> b" and hbW: "b \<subseteq> W"
+              using hUcov[rule_format, OF hWU, rule_format, OF hxW] by blast
+            show "\<exists>b\<in>product_basis T1 T2. x \<in> b \<and> b \<subseteq> \<Union>U"
+              apply (rule bexI[where x=b])
+               apply (rule conjI[OF hxb])
+               using hbW hWU apply blast
+              apply (rule hb)
+              done
+          qed
+        qed
+      qed
+      show "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TP \<longrightarrow> \<Inter>F \<in> ?TP"
+      proof (intro allI impI, elim conjE)
+        fix F assume hfin: "finite F" and hne: "F \<noteq> {}" and hF: "F \<subseteq> ?TP"
+        show "\<Inter>F \<in> ?TP"
+        using hfin hne hF
+        proof (induction F rule: finite_induct)
+          case empty thus ?case by simp
+        next
+          case (insert W F0)
+          have hWT: "W \<in> ?TP" using insert.prems by blast
+          show "\<Inter>(insert W F0) \<in> ?TP"
+          proof (cases "F0 = {}")
+            case True thus ?thesis using hWT by simp
+          next
+            case False
+            have hF0T: "F0 \<subseteq> ?TP" using insert.prems by blast
+            have hIF0: "\<Inter>F0 \<in> ?TP" using insert.IH insert.hyps False hF0T by blast
+            have hinter: "\<Inter>(insert W F0) = W \<inter> \<Inter>F0" by simp
+            show ?thesis using hinter bin_inter[rule_format, OF hWT hIF0] by simp
+          qed
+        qed
+      qed
+    qed
+    (* Hausdorff separation for X1 × X2 *)
+    have hhausd_prod: "\<forall>p\<in>X1\<times>X2. \<forall>q\<in>X1\<times>X2. p \<noteq> q \<longrightarrow>
+              (\<exists>U V. neighborhood_of p (X1\<times>X2) ?TP U \<and> neighborhood_of q (X1\<times>X2) ?TP V \<and> U \<inter> V = {})"
+    proof (intro ballI impI)
+      fix p q assume hpX: "p \<in> X1 \<times> X2" and hqX: "q \<in> X1 \<times> X2" and hpq: "p \<noteq> q"
+      obtain p1 p2 where hpeq: "p = (p1, p2)" by (cases p)
+      obtain q1 q2 where hqeq: "q = (q1, q2)" by (cases q)
+      have hp1X1: "p1 \<in> X1" and hp2X2: "p2 \<in> X2" using hpX hpeq by auto
+      have hq1X1: "q1 \<in> X1" and hq2X2: "q2 \<in> X2" using hqX hqeq by auto
+      have hne: "p1 \<noteq> q1 \<or> p2 \<noteq> q2" using hpq hpeq hqeq by auto
+      show "\<exists>U V. neighborhood_of p (X1\<times>X2) ?TP U \<and> neighborhood_of q (X1\<times>X2) ?TP V \<and> U \<inter> V = {}"
+      proof (rule disjE[OF hne])
+        assume hne1: "p1 \<noteq> q1"
+        obtain U1 V1 where hU1: "neighborhood_of p1 X1 T1 U1"
+            and hV1: "neighborhood_of q1 X1 T1 V1" and hdisj1: "U1 \<inter> V1 = {}"
+          using hausd1 hp1X1 hq1X1 hne1 by blast
+        have hU1T1: "U1 \<in> T1" and hp1U1: "p1 \<in> U1"
+          using hU1 unfolding neighborhood_of_def by blast+
+        have hV1T1: "V1 \<in> T1" and hq1V1: "q1 \<in> V1"
+          using hV1 unfolding neighborhood_of_def by blast+
+        have hU1X2: "U1 \<times> X2 \<in> ?TP" using prod_open[rule_format, OF hU1T1 hX2T2] by blast
+        have hV1X2: "V1 \<times> X2 \<in> ?TP" using prod_open[rule_format, OF hV1T1 hX2T2] by blast
+        have hp_in: "p \<in> U1 \<times> X2" using hp1U1 hp2X2 hpeq by simp
+        have hq_in: "q \<in> V1 \<times> X2" using hq1V1 hq2X2 hqeq by simp
+        have hdisj: "(U1 \<times> X2) \<inter> (V1 \<times> X2) = {}" using hdisj1 by blast
+        have hnp: "neighborhood_of p (X1 \<times> X2) ?TP (U1 \<times> X2)"
+          unfolding neighborhood_of_def using hU1X2 hp_in by blast
+        have hnq: "neighborhood_of q (X1 \<times> X2) ?TP (V1 \<times> X2)"
+          unfolding neighborhood_of_def using hV1X2 hq_in by blast
+        show ?thesis using hnp hnq hdisj by blast
+      next
+        assume hne2: "p2 \<noteq> q2"
+        obtain U2 V2 where hU2: "neighborhood_of p2 X2 T2 U2"
+            and hV2: "neighborhood_of q2 X2 T2 V2" and hdisj2: "U2 \<inter> V2 = {}"
+          using hausd2 hp2X2 hq2X2 hne2 by blast
+        have hU2T2: "U2 \<in> T2" and hp2U2: "p2 \<in> U2"
+          using hU2 unfolding neighborhood_of_def by blast+
+        have hV2T2: "V2 \<in> T2" and hq2V2: "q2 \<in> V2"
+          using hV2 unfolding neighborhood_of_def by blast+
+        have hX1U2: "X1 \<times> U2 \<in> ?TP" using prod_open[rule_format, OF hX1T1 hU2T2] by blast
+        have hX1V2: "X1 \<times> V2 \<in> ?TP" using prod_open[rule_format, OF hX1T1 hV2T2] by blast
+        have hp_in: "p \<in> X1 \<times> U2" using hp1X1 hp2U2 hpeq by simp
+        have hq_in: "q \<in> X1 \<times> V2" using hq1X1 hq2V2 hqeq by simp
+        have hdisj: "(X1 \<times> U2) \<inter> (X1 \<times> V2) = {}" using hdisj2 by blast
+        have hnp: "neighborhood_of p (X1 \<times> X2) ?TP (X1 \<times> U2)"
+          unfolding neighborhood_of_def using hX1U2 hp_in by blast
+        have hnq: "neighborhood_of q (X1 \<times> X2) ?TP (X1 \<times> V2)"
+          unfolding neighborhood_of_def using hX1V2 hq_in by blast
+        show ?thesis using hnp hnq hdisj by blast
+      qed
+    qed
+    show "is_hausdorff_on (X1 \<times> X2) ?TP"
+      unfolding is_hausdorff_on_def using hTP_top hhausd_prod by blast
+  qed
+next
+  show "\<forall>X T Y.
+            is_hausdorff_on X T \<and> Y \<subseteq> X \<longrightarrow>
+            is_hausdorff_on Y (subspace_topology X T Y)"
+  proof (intro allI impI, elim conjE)
+    fix X T Y
+    assume hH: "is_hausdorff_on X T" and hYX: "Y \<subseteq> X"
+    have hT: "is_topology_on X T" using hH unfolding is_hausdorff_on_def by blast
+    have hempty: "{} \<in> T" and hXT: "X \<in> T"
+      and hunion: "\<forall>U. U \<subseteq> T \<longrightarrow> \<Union>U \<in> T"
+      and hinter: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> T \<longrightarrow> \<Inter>F \<in> T"
+      using hT unfolding is_topology_on_def by blast+
+    have hausd: "\<forall>x\<in>X. \<forall>y\<in>X. x \<noteq> y \<longrightarrow>
+                   (\<exists>U V. neighborhood_of x X T U \<and> neighborhood_of y X T V \<and> U \<inter> V = {})"
+      using hH unfolding is_hausdorff_on_def by blast
+    let ?TY = "subspace_topology X T Y"
+    have hTY: "is_topology_on Y ?TY"
+    proof (unfold is_topology_on_def, intro conjI)
+      show "{} \<in> ?TY"
+        unfolding subspace_topology_def using hempty by blast
+      show "Y \<in> ?TY"
+        unfolding subspace_topology_def using hXT hYX by blast
+      show "\<forall>U. U \<subseteq> ?TY \<longrightarrow> \<Union>U \<in> ?TY"
+      proof (intro allI impI)
+        fix U assume hU: "U \<subseteq> ?TY"
+        have hcov: "\<forall>W\<in>U. \<exists>V. V \<in> T \<and> W = Y \<inter> V"
+          using hU unfolding subspace_topology_def by blast
+        obtain Vf where hVf: "\<forall>W\<in>U. Vf W \<in> T \<and> W = Y \<inter> Vf W"
+          using bchoice[OF hcov] by blast
+        have union_eq: "\<Union>U = Y \<inter> \<Union>(Vf ` U)"
+        proof (rule set_eqI)
+          fix x show "x \<in> \<Union>U \<longleftrightarrow> x \<in> Y \<inter> \<Union>(Vf ` U)"
+          proof
+            assume "x \<in> \<Union>U"
+            then obtain W where hW: "W \<in> U" and hxW: "x \<in> W" by blast
+            have heq: "W = Y \<inter> Vf W" using hVf hW by blast
+            have hxY: "x \<in> Y" and hxVf: "x \<in> Vf W" using hxW heq by blast+
+            show "x \<in> Y \<inter> \<Union>(Vf ` U)" using hxY hW hxVf by blast
+          next
+            assume "x \<in> Y \<inter> \<Union>(Vf ` U)"
+            then obtain W where hxY: "x \<in> Y" and hW: "W \<in> U" and hxVf: "x \<in> Vf W"
+              by blast
+            have heq: "W = Y \<inter> Vf W" using hVf hW by blast
+            show "x \<in> \<Union>U" using hW heq hxY hxVf by blast
+          qed
+        qed
+        have hVfT: "Vf ` U \<subseteq> T" using hVf by blast
+        have hUVf: "\<Union>(Vf ` U) \<in> T" using hunion hVfT by blast
+        show "\<Union>U \<in> ?TY"
+          unfolding subspace_topology_def using hUVf union_eq by blast
+      qed
+      show "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TY \<longrightarrow> \<Inter>F \<in> ?TY"
+      proof (intro allI impI, elim conjE)
+        fix F
+        assume hfin: "finite F" and hne: "F \<noteq> {}" and hF: "F \<subseteq> ?TY"
+        have hcov: "\<forall>W\<in>F. \<exists>V. V \<in> T \<and> W = Y \<inter> V"
+          using hF unfolding subspace_topology_def by blast
+        obtain Vf where hVf: "\<forall>W\<in>F. Vf W \<in> T \<and> W = Y \<inter> Vf W"
+          using bchoice[OF hcov] by blast
+        have inter_eq: "\<Inter>F = Y \<inter> \<Inter>(Vf ` F)"
+        proof (rule set_eqI)
+          fix x show "x \<in> \<Inter>F \<longleftrightarrow> x \<in> Y \<inter> \<Inter>(Vf ` F)"
+          proof
+            assume hx: "x \<in> \<Inter>F"
+            obtain W where hW: "W \<in> F" using hne by blast
+            have hxW: "x \<in> W" using hx hW by blast
+            have heq: "W = Y \<inter> Vf W" using hVf hW by blast
+            have hxY: "x \<in> Y" using hxW heq by blast
+            have hxVfF: "x \<in> \<Inter>(Vf ` F)"
+            proof (rule InterI)
+              fix S assume "S \<in> Vf ` F"
+              then obtain W2 where hW2: "W2 \<in> F" and hS: "S = Vf W2" by blast
+              have "x \<in> W2" using hx hW2 by blast
+              moreover have "W2 = Y \<inter> Vf W2" using hVf hW2 by blast
+              ultimately show "x \<in> S" using hS by blast
+            qed
+            show "x \<in> Y \<inter> \<Inter>(Vf ` F)" using hxY hxVfF by blast
+          next
+            assume hx: "x \<in> Y \<inter> \<Inter>(Vf ` F)"
+            then have hxY: "x \<in> Y" and hxVfF: "x \<in> \<Inter>(Vf ` F)" by blast+
+            show "x \<in> \<Inter>F"
+            proof (rule InterI)
+              fix W assume hW: "W \<in> F"
+              have "Vf W \<in> Vf ` F" using hW by blast
+              hence "x \<in> Vf W" using hxVfF by blast
+              moreover have "W = Y \<inter> Vf W" using hVf hW by blast
+              ultimately show "x \<in> W" using hxY by blast
+            qed
+          qed
+        qed
+        have hVfFT: "Vf ` F \<subseteq> T" using hVf by blast
+        have hfVfF: "finite (Vf ` F)" using hfin by (rule finite_imageI)
+        have hneVfF: "Vf ` F \<noteq> {}" using hne by blast
+        have h_inter: "\<Inter>(Vf ` F) \<in> T"
+          using hinter hfVfF hneVfF hVfFT by blast
+        show "\<Inter>F \<in> ?TY"
+          unfolding subspace_topology_def using h_inter inter_eq by blast
+      qed
+    qed
+    show "is_hausdorff_on Y (subspace_topology X T Y)"
+    proof (unfold is_hausdorff_on_def, intro conjI)
+      show "is_topology_on Y ?TY" using hTY .
+      show "\<forall>x\<in>Y. \<forall>y\<in>Y. x \<noteq> y \<longrightarrow>
+               (\<exists>U V. neighborhood_of x Y ?TY U \<and> neighborhood_of y Y ?TY V \<and> U \<inter> V = {})"
+      proof (intro ballI impI)
+        fix x y
+        assume hxY: "x \<in> Y" and hyY: "y \<in> Y" and hne: "x \<noteq> y"
+        have hxX: "x \<in> X" using hxY hYX by blast
+        have hyX: "y \<in> X" using hyY hYX by blast
+        obtain U V where hU: "neighborhood_of x X T U"
+            and hV: "neighborhood_of y X T V" and hdisj: "U \<inter> V = {}"
+          using hausd hxX hyX hne by blast
+        have hUT: "U \<in> T" and hxU: "x \<in> U"
+          using hU unfolding neighborhood_of_def by blast+
+        have hVT: "V \<in> T" and hyV: "y \<in> V"
+          using hV unfolding neighborhood_of_def by blast+
+        have hYUT: "Y \<inter> U \<in> ?TY"
+          unfolding subspace_topology_def using hUT by blast
+        have hYVT: "Y \<inter> V \<in> ?TY"
+          unfolding subspace_topology_def using hVT by blast
+        have hdisj': "(Y \<inter> U) \<inter> (Y \<inter> V) = {}" using hdisj by blast
+        show "\<exists>U' V'. neighborhood_of x Y ?TY U' \<and> neighborhood_of y Y ?TY V' \<and> U' \<inter> V' = {}"
+          using hYUT hxY hxU hYVT hyY hyV hdisj'
+          unfolding neighborhood_of_def by blast
+      qed
+    qed
+  qed
+qed
 
 end
