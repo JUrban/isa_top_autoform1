@@ -11655,266 +11655,62 @@ proof -
     by (rule subset_trans[OF hcl_succ hmono])
 qed
 
-(*
+lemma top1_urysohn_U_closure_mono_dyadic:
+  assumes hN: "top1_normal_on X TX"
+  assumes hU0: "U0 \<in> TX" "U0 \<subseteq> X"
+  assumes hU1: "U1 \<in> TX" "U1 \<subseteq> X"
+  assumes hcl01: "closure_on X TX U0 \<subseteq> U1"
+  assumes hk1: "k1 \<le> (2::nat) ^ n1"
+  assumes hk2: "k2 \<le> (2::nat) ^ n2"
+  assumes hlt: "top1_dyadic n1 k1 < top1_dyadic n2 k2"
+  shows "closure_on X TX (top1_urysohn_U X TX U0 U1 n1 k1) \<subseteq> top1_urysohn_U X TX U0 U1 n2 k2"
 proof -
-  have hTop: "is_topology_on X TX"
-    using hN unfolding top1_normal_on_def top1_T1_on_def by blast
+  let ?m = "n1 + n2"
+  let ?k1 = "k1 * ((2::nat) ^ n2)"
+  let ?k2 = "k2 * ((2::nat) ^ n1)"
 
-	  have step_odd:
-	    "\<And>n k. k < ((2::nat) ^ Suc n) \<Longrightarrow> odd k \<Longrightarrow>
-	      (top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<subseteq> X)
-	      \<Longrightarrow> (top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<subseteq> X)
-	      \<Longrightarrow> closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-	            \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))
-	      \<Longrightarrow> (top1_urysohn_U X TX U0 U1 (Suc n) k \<in> TX \<and> top1_urysohn_U X TX U0 U1 (Suc n) k \<subseteq> X)
-	          \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-	               \<subseteq> top1_urysohn_U X TX U0 U1 (Suc n) k
-	          \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 (Suc n) k)
-	               \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-	  sorry
+  have hk2m: "?k2 \<le> (2::nat) ^ ?m"
+    using hk2 by (simp add: power_add mult.assoc)
 
-	  (*
-	  proof -
-	    fix n k
-	    assume hk: "k < ((2::nat) ^ Suc n)" and hkodd: "odd k"
-	    assume hL: "top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<subseteq> X"
-	    assume hR: "top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<subseteq> X"
-	    assume hcl: "closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-	            \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-
-	    define PW where
-	      "PW W \<equiv>
-	         W \<in> TX \<and> W \<subseteq> X
-	         \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat))) \<subseteq> W
-	         \<and> closure_on X TX W \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-
-	    have hex: "\<exists>W. PW W"
-	      unfolding PW_def
-	    proof -
-	      have hU_L_open: "top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<in> TX"
-	        by (rule conjunct1[OF hL])
-	      have hU_R_open: "top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<in> TX"
-	        by (rule conjunct1[OF hR])
-	      have hU_R_subX: "top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<subseteq> X"
-	        by (rule conjunct2[OF hR])
-		      have hU_L_subX: "top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<subseteq> X"
-		        by (rule conjunct2[OF hL])
-		      have hW:
-		        "\<exists>W. W \<in> TX \<and> W \<subseteq> X
-		          \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat))) \<subseteq> W
-		          \<and> closure_on X TX W \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-		        apply (rule normal_insert_open_between[
-		                     where U="top1_urysohn_U X TX U0 U1 n (k div (2::nat))"
-		                       and V="top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"])
-		        apply (rule hN)
-		        apply (rule hU_L_open)
-		        apply (rule hU_L_subX)
-		        apply (rule hU_R_open)
-		        apply (rule hU_R_subX)
-		        apply (rule hcl)
-		        done
-		      obtain W where hWprops:
-		        "W \<in> TX \<and> W \<subseteq> X
-		          \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat))) \<subseteq> W
-		          \<and> closure_on X TX W \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-		        using hW by blast
-			      have hW_TX: "W \<in> TX"
-			        by (rule conjunct1[OF hWprops])
-			      have hW_subX: "W \<subseteq> X"
-			        by (rule conjunct1[OF conjunct2[OF hWprops]])
-			      have hW_clL: "closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat))) \<subseteq> W"
-			        by (rule conjunct1[OF conjunct2[OF conjunct2[OF hWprops]]])
-			      have hW_clR: "closure_on X TX W \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-			        by (rule conjunct2[OF conjunct2[OF conjunct2[OF hWprops]]])
-
-			      have hPW: "PW W"
-			        sorry
-		      show ?thesis
-		        apply (rule exI[where x=W])
-		        apply (rule hPW)
-		        done
-		    qed
-
-    have hSome: "PW (SOME W. PW W)"
-      by (rule someI_ex[OF hex])
-
-    have hEq: "top1_urysohn_U X TX U0 U1 (Suc n) k = (SOME W. PW W)"
-      using hkodd unfolding PW_def by simp
-
-    have hW_TX: "top1_urysohn_U X TX U0 U1 (Suc n) k \<in> TX"
-      unfolding hEq using hSome unfolding PW_def by blast
-    have hW_subX: "top1_urysohn_U X TX U0 U1 (Suc n) k \<subseteq> X"
-      unfolding hEq using hSome unfolding PW_def by blast
-    have hclL: "closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-        \<subseteq> top1_urysohn_U X TX U0 U1 (Suc n) k"
-      unfolding hEq using hSome unfolding PW_def by blast
-    have hclW: "closure_on X TX (top1_urysohn_U X TX U0 U1 (Suc n) k)
-        \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-      unfolding hEq using hSome unfolding PW_def by blast
-
-	    show "(top1_urysohn_U X TX U0 U1 (Suc n) k \<in> TX \<and> top1_urysohn_U X TX U0 U1 (Suc n) k \<subseteq> X)
-	          \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-	               \<subseteq> top1_urysohn_U X TX U0 U1 (Suc n) k
-	          \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 (Suc n) k)
-	               \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-	      using hW_TX hW_subX hclL hclW by blast
-	  qed
-	  *)
-
-  define P where
-    "P n \<longleftrightarrow>
-       (\<forall>k\<le>(2::nat) ^ n. top1_urysohn_U X TX U0 U1 n k \<in> TX \<and> top1_urysohn_U X TX U0 U1 n k \<subseteq> X)
-     \<and> (\<forall>k<(2::nat) ^ n. closure_on X TX (top1_urysohn_U X TX U0 U1 n k) \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc k))"
-
-  have hP: "P n" for n
-  proof (induction n)
-    case 0
-    have hRHS0:
-      "(\<forall>k\<le>(2::nat) ^ 0. top1_urysohn_U X TX U0 U1 0 k \<in> TX \<and> top1_urysohn_U X TX U0 U1 0 k \<subseteq> X)
-       \<and> (\<forall>k<(2::nat) ^ 0. closure_on X TX (top1_urysohn_U X TX U0 U1 0 k) \<subseteq> top1_urysohn_U X TX U0 U1 0 (Suc k))"
-    proof (intro conjI)
-      show "\<forall>k\<le>(2::nat) ^ 0. top1_urysohn_U X TX U0 U1 0 k \<in> TX \<and> top1_urysohn_U X TX U0 U1 0 k \<subseteq> X"
-      proof (intro allI impI)
-        fix k assume hk: "k \<le> (2::nat) ^ 0"
-        have hk': "k = 0 \<or> k = Suc 0"
-          using hk by (cases k) simp_all
-        then show "top1_urysohn_U X TX U0 U1 0 k \<in> TX \<and> top1_urysohn_U X TX U0 U1 0 k \<subseteq> X"
-        proof
-          assume h0: "k = 0"
-          show ?thesis
-            using hU0 by (simp add: h0)
-        next
-          assume h1: "k = Suc 0"
-          show ?thesis
-            using hU1 by (simp add: h1)
-        qed
-      qed
-
-      show "\<forall>k<(2::nat) ^ 0. closure_on X TX (top1_urysohn_U X TX U0 U1 0 k) \<subseteq> top1_urysohn_U X TX U0 U1 0 (Suc k)"
-      proof (intro allI impI)
-        fix k assume hk: "k < (2::nat) ^ 0"
-        have h0: "k = 0"
-          using hk by simp
-        show "closure_on X TX (top1_urysohn_U X TX U0 U1 0 k) \<subseteq> top1_urysohn_U X TX U0 U1 0 (Suc k)"
-          using hcl01 by (simp add: h0)
-      qed
-    qed
-    have P0_iff:
-      "P 0 \<longleftrightarrow>
-         ((\<forall>k\<le>(2::nat) ^ 0. top1_urysohn_U X TX U0 U1 0 k \<in> TX \<and> top1_urysohn_U X TX U0 U1 0 k \<subseteq> X)
-          \<and> (\<forall>k<(2::nat) ^ 0. closure_on X TX (top1_urysohn_U X TX U0 U1 0 k) \<subseteq> top1_urysohn_U X TX U0 U1 0 (Suc k)))"
-      by (rule P_def)
-    show ?case
-      apply (rule iffD2[OF P0_iff])
-      apply (rule hRHS0)
-      done
-  next
-    case (Suc n)
-    have good_n:
-      "\<forall>k\<le>(2::nat) ^ n. top1_urysohn_U X TX U0 U1 n k \<in> TX \<and> top1_urysohn_U X TX U0 U1 n k \<subseteq> X"
-      using Suc.IH unfolding P_def by blast
-    have step_n:
-      "\<forall>k<(2::nat) ^ n. closure_on X TX (top1_urysohn_U X TX U0 U1 n k) \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc k)"
-      using Suc.IH unfolding P_def by blast
-
-    have good_Suc:
-      "\<forall>k\<le>(2::nat) ^ Suc n. top1_urysohn_U X TX U0 U1 (Suc n) k \<in> TX \<and> top1_urysohn_U X TX U0 U1 (Suc n) k \<subseteq> X"
-    proof (intro allI impI)
-      fix k assume hk: "k \<le> (2::nat) ^ Suc n"
-      show "top1_urysohn_U X TX U0 U1 (Suc n) k \<in> TX \<and> top1_urysohn_U X TX U0 U1 (Suc n) k \<subseteq> X"
-      proof (cases "even k")
-        case True
-        have hkdiv: "k div (2::nat) \<le> (2::nat) ^ n"
-          using hk by simp
-        have "top1_urysohn_U X TX U0 U1 (Suc n) k = top1_urysohn_U X TX U0 U1 n (k div (2::nat))"
-          using True by simp
-        thus ?thesis
-          using good_n hkdiv by blast
-      next
-        case False
-        have hkodd: "odd k" using False by simp
-        have hkdiv: "k div (2::nat) < (2::nat) ^ n"
-          using hk hkodd by simp
-        have hL: "top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<subseteq> X"
-          using good_n hkdiv by blast
-        have hRidx: "Suc (k div (2::nat)) \<le> (2::nat) ^ n"
-          using hk hkodd by simp
-        have hR: "top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<subseteq> X"
-          using good_n hRidx by blast
-        have hcl: "closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-            \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-          using step_n hkdiv by simp
-        show ?thesis
-          using step_odd[OF _ hkodd hL hR hcl] hk by blast
-      qed
+  have hk1k2: "?k1 < ?k2"
+  proof -
+    have hEq1: "top1_dyadic ?m ?k1 = top1_dyadic n1 k1"
+      by (simp add: top1_dyadic_pow2_scale)
+    have hEq2: "top1_dyadic ?m ?k2 = top1_dyadic n2 k2"
+    proof -
+      have hEq2': "top1_dyadic (n2 + n1) (k2 * ((2::nat) ^ n1)) = top1_dyadic n2 k2"
+        by (simp add: top1_dyadic_pow2_scale)
+      show ?thesis
+        using hEq2' by (simp add: add.commute)
     qed
 
-    have step_Suc:
-      "\<forall>k<(2::nat) ^ Suc n. closure_on X TX (top1_urysohn_U X TX U0 U1 (Suc n) k)
-            \<subseteq> top1_urysohn_U X TX U0 U1 (Suc n) (Suc k)"
-    proof (intro allI impI)
-      fix k assume hk: "k < (2::nat) ^ Suc n"
-      show "closure_on X TX (top1_urysohn_U X TX U0 U1 (Suc n) k)
-            \<subseteq> top1_urysohn_U X TX U0 U1 (Suc n) (Suc k)"
-      proof (cases "even k")
-        case True
-        have hkdiv: "k div (2::nat) < (2::nat) ^ n"
-          using hk True by simp
-        have hk1odd: "odd (Suc k)"
-          using True by simp
-        have hL: "top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<subseteq> X"
-          using good_n hkdiv by blast
-        have hR: "top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<subseteq> X"
-          using good_n by (simp add: hkdiv)
-        have hcl: "closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-            \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-          using step_n hkdiv by simp
-        have hodd_props:
-          closure_on X TX (top1_urysohn_U X TX U0 U1 n ((Suc k) div (2::nat)))
-            \<subseteq> top1_urysohn_U X TX U0 U1 (Suc n) (Suc k)
-          using step_odd[OF _ hk1odd hL hR hcl] hk by blast
-        have hEq0: "(Suc k) div (2::nat) = k div (2::nat)"
-          using True by simp
-        have hEq1: "top1_urysohn_U X TX U0 U1 (Suc n) k = top1_urysohn_U X TX U0 U1 n (k div (2::nat))"
-          using True by simp
-        show ?thesis
-          using hodd_props hEq0 hEq1 by blast
-      next
-        case False
-        have hkodd: "odd k" using False by simp
-        have hkdiv: "k div (2::nat) < (2::nat) ^ n"
-          using hk hkodd by simp
-        have hL: "top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (k div (2::nat)) \<subseteq> X"
-          using good_n hkdiv by blast
-        have hRidx: "Suc (k div (2::nat)) \<le> (2::nat) ^ n"
-          using hk hkodd by simp
-        have hR: "top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<in> TX \<and> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat))) \<subseteq> X"
-          using good_n hRidx by blast
-        have hcl: "closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
-            \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
-          using step_n hkdiv by simp
-        have hodd_props:
-          closure_on X TX (top1_urysohn_U X TX U0 U1 (Suc n) k)
-            \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))
-          using step_odd[OF _ hkodd hL hR hcl] hk by blast
-        have hEq: "top1_urysohn_U X TX U0 U1 (Suc n) (Suc k) =
-            top1_urysohn_U X TX U0 U1 n (Suc k div (2::nat))"
-          by (simp add: hkodd)
-        have hEqdiv: "(Suc k) div (2::nat) = Suc (k div (2::nat))"
-          using hkodd by simp
-        show ?thesis
-          using hodd_props hEq hEqdiv by blast
-      qed
-    qed
+    have hlt_level: "top1_dyadic ?m ?k1 < top1_dyadic ?m ?k2"
+      using hlt unfolding sym[OF hEq1] sym[OF hEq2] .
 
-    show ?case
-      unfolding P_def using good_Suc step_Suc by blast
+    show ?thesis
+      using hlt_level by (simp add: top1_dyadic_lt_same_denom_iff)
+  qed
+
+  have hcl_level:
+    "closure_on X TX (top1_urysohn_U X TX U0 U1 ?m ?k1) \<subseteq> top1_urysohn_U X TX U0 U1 ?m ?k2"
+    by (rule top1_urysohn_U_closure_mono_same_level[OF hN hU0 hU1 hcl01 hk1k2 hk2m])
+
+  have hEq1: "top1_urysohn_U X TX U0 U1 ?m ?k1 = top1_urysohn_U X TX U0 U1 n1 k1"
+    by (simp add: top1_urysohn_U_pow2_scale)
+  have hEq2: "top1_urysohn_U X TX U0 U1 ?m ?k2 = top1_urysohn_U X TX U0 U1 n2 k2"
+  proof -
+    have hEq2': "top1_urysohn_U X TX U0 U1 (n2 + n1) (k2 * ((2::nat) ^ n1)) = top1_urysohn_U X TX U0 U1 n2 k2"
+      by (simp add: top1_urysohn_U_pow2_scale)
+    show ?thesis
+      using hEq2' by (simp add: add.commute)
   qed
 
   show ?thesis
-    using hP unfolding P_def by blast
+    unfolding sym[OF hEq1] sym[OF hEq2]
+    using hcl_level .
 qed
-*)
+
+text \<open>(Obsolete in-progress proof attempt removed; see backups.)\<close>
 
 (** from \S33 Theorem 33.1 (Urysohn lemma) [top1.tex:4382] **)
 theorem Theorem_33_1:
