@@ -7995,6 +7995,123 @@ definition top1_regular_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> boo
      (\<forall>x\<in>X. \<forall>C. closedin_on X T C \<and> x \<notin> C \<longrightarrow>
         (\<exists>U V. neighborhood_of x X T U \<and> V \<in> T \<and> C \<subseteq> V \<and> U \<inter> V = {}))"
 
+(** Regularity yields the standard "point shrinking" lemma:
+    if x lies in an open set U, there exists an open neighborhood V of x whose closure is still inside U. **)
+lemma regular_refine_point_into_open:
+  assumes hR: "top1_regular_on X T"
+  assumes hxX: "x \<in> X"
+  assumes hU: "U \<in> T" and hUX: "U \<subseteq> X"
+  assumes hxU: "x \<in> U"
+  shows "\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U"
+proof -
+  have hT1: "top1_T1_on X T"
+    using hR unfolding top1_regular_on_def by (rule conjunct1)
+  have hTop: "is_topology_on X T"
+    using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+  have hXT: "X \<in> T"
+    by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+
+  have hSep:
+    "\<forall>x\<in>X. \<forall>C. closedin_on X T C \<and> x \<notin> C \<longrightarrow>
+       (\<exists>U0 V0. neighborhood_of x X T U0 \<and> V0 \<in> T \<and> C \<subseteq> V0 \<and> U0 \<inter> V0 = {})"
+    using hR unfolding top1_regular_on_def by (rule conjunct2)
+
+  let ?C = "X - U"
+
+  have hCcl: "closedin_on X T ?C"
+  proof (rule closedin_intro)
+    show "?C \<subseteq> X" by (rule Diff_subset)
+    show "X - ?C \<in> T"
+    proof -
+      have eq: "X - (X - U) = X \<inter> U" by blast
+      have hXU: "X \<inter> U \<in> T"
+        by (rule topology_inter2[OF hTop hXT hU])
+      show ?thesis using eq hXU by simp
+    qed
+  qed
+
+  have hxC: "x \<notin> ?C"
+    using hxU by blast
+
+  have hSepx:
+    "\<forall>C. closedin_on X T C \<and> x \<notin> C
+      \<longrightarrow> (\<exists>U0 V0. neighborhood_of x X T U0 \<and> V0 \<in> T \<and> C \<subseteq> V0 \<and> U0 \<inter> V0 = {})"
+    by (rule bspec[OF hSep hxX])
+  have hSepC:
+    "closedin_on X T ?C \<and> x \<notin> ?C
+      \<longrightarrow> (\<exists>U0 V0. neighborhood_of x X T U0 \<and> V0 \<in> T \<and> ?C \<subseteq> V0 \<and> U0 \<inter> V0 = {})"
+    by (rule spec[where x="?C", OF hSepx])
+
+  have exUV: "\<exists>U0 V0. neighborhood_of x X T U0 \<and> V0 \<in> T \<and> ?C \<subseteq> V0 \<and> U0 \<inter> V0 = {}"
+    apply (rule mp[OF hSepC])
+    apply (intro conjI)
+     apply (rule hCcl)
+    apply (rule hxC)
+    done
+
+  obtain U0 V0 where hnb: "neighborhood_of x X T U0" and hV0: "V0 \<in> T"
+      and hCV0: "?C \<subseteq> V0" and hdisj: "U0 \<inter> V0 = {}"
+    using exUV by blast
+
+  have hU0: "U0 \<in> T" and hxU0: "x \<in> U0"
+    using hnb unfolding neighborhood_of_def by blast+
+
+  let ?V = "X \<inter> U0"
+  let ?W = "X \<inter> V0"
+
+  have hVopen: "?V \<in> T"
+    by (rule topology_inter2[OF hTop hXT hU0])
+  have hWopen: "?W \<in> T"
+    by (rule topology_inter2[OF hTop hXT hV0])
+
+  have hVsubX: "?V \<subseteq> X" by blast
+  have hxV: "x \<in> ?V" using hxX hxU0 by blast
+
+  have hVsubXmW: "?V \<subseteq> X - ?W"
+    using hdisj by blast
+
+  have hXmW_closed: "closedin_on X T (X - ?W)"
+  proof (rule closedin_intro)
+    show "X - ?W \<subseteq> X" by (rule Diff_subset)
+    show "X - (X - ?W) \<in> T"
+    proof -
+      have eq: "X - (X - ?W) = ?W" by blast
+      show ?thesis using eq hWopen by simp
+    qed
+  qed
+
+  have hclV_sub_XmW: "closure_on X T ?V \<subseteq> X - ?W"
+    by (rule closure_on_subset_of_closed[OF hXmW_closed hVsubXmW])
+
+  have hXmW_sub_U: "X - ?W \<subseteq> U"
+  proof (rule subsetI)
+    fix z assume hz: "z \<in> X - ?W"
+    have hzX: "z \<in> X" using hz by blast
+    have hznotW: "z \<notin> ?W" using hz by blast
+    have hznotC: "z \<notin> ?C"
+    proof
+      assume hzC: "z \<in> ?C"
+      have hzV0: "z \<in> V0" using hCV0 hzC by blast
+      have "z \<in> ?W" using hzX hzV0 by blast
+      thus False using hznotW by blast
+    qed
+    have hzU: "z \<in> U" using hzX hznotC by blast
+    show "z \<in> U" by (rule hzU)
+  qed
+
+  have hclV_sub_U: "closure_on X T ?V \<subseteq> U"
+    by (rule subset_trans[OF hclV_sub_XmW hXmW_sub_U])
+
+  show ?thesis
+    apply (rule exI[where x="?V"])
+    apply (intro conjI)
+       apply (rule hVopen)
+      apply (rule hVsubX)
+     apply (rule hxV)
+    apply (rule hclV_sub_U)
+    done
+qed
+
 section \<open>\<S>32 Normal Spaces\<close>
 
 (** from \S32 Definition (Normal space) [top1.tex:~4170] **)
