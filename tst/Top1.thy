@@ -4825,6 +4825,275 @@ theorem Theorem_18_4:
      \<longleftrightarrow>
        (top1_continuous_map_on A TA X TX (pi1 \<circ> f)
         \<and> top1_continuous_map_on A TA Y TY (pi2 \<circ> f))"
-  sorry
+proof (rule iffI)
+  let ?TP = "product_topology_on TX TY"
+
+  assume hf: "top1_continuous_map_on A TA (X \<times> Y) ?TP f"
+  have hf_range: "\<forall>a\<in>A. f a \<in> X \<times> Y"
+    using hf unfolding top1_continuous_map_on_def by blast
+  have hf_pre: "\<forall>W\<in>?TP. {a \<in> A. f a \<in> W} \<in> TA"
+    using hf unfolding top1_continuous_map_on_def by blast
+
+  have hX_open: "X \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF hTX[unfolded is_topology_on_def]]])
+  have hY_open: "Y \<in> TY"
+    by (rule conjunct1[OF conjunct2[OF hTY[unfolded is_topology_on_def]]])
+
+  have basis_mem_open:
+    "\<forall>b\<in>product_basis TX TY. b \<in> ?TP"
+  proof (intro ballI)
+    fix b assume hb: "b \<in> product_basis TX TY"
+    show "b \<in> ?TP"
+      unfolding product_topology_on_def topology_generated_by_basis_def
+    proof (rule CollectI, intro conjI)
+      show "b \<subseteq> (UNIV::('b \<times> 'c) set)" by simp
+      show "\<forall>p\<in>b. \<exists>b'\<in>product_basis TX TY. p \<in> b' \<and> b' \<subseteq> b"
+      proof (intro ballI)
+        fix p assume hp: "p \<in> b"
+        show "\<exists>b'\<in>product_basis TX TY. p \<in> b' \<and> b' \<subseteq> b"
+          apply (rule bexI[where x=b])
+           apply (intro conjI)
+            apply (rule hp)
+           apply (rule subset_refl)
+          apply (rule hb)
+          done
+      qed
+    qed
+  qed
+
+  have hpi1: "top1_continuous_map_on A TA X TX (pi1 \<circ> f)"
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>a\<in>A. (pi1 \<circ> f) a \<in> X"
+    proof (intro ballI)
+      fix a assume haA: "a \<in> A"
+      have hfa: "f a \<in> X \<times> Y" using hf_range haA by blast
+      have hfst: "fst (f a) \<in> X" using hfa by (simp add: mem_Times_iff)
+      show "(pi1 \<circ> f) a \<in> X" using hfst unfolding pi1_def by simp
+    qed
+    show "\<forall>U\<in>TX. {a \<in> A. (pi1 \<circ> f) a \<in> U} \<in> TA"
+    proof (intro ballI)
+      fix U assume hU: "U \<in> TX"
+      have hUY: "U \<times> Y \<in> product_basis TX TY"
+        unfolding product_basis_def using hU hY_open by blast
+      have hUY_open: "U \<times> Y \<in> ?TP"
+        using basis_mem_open hUY by blast
+      have hpre: "{a \<in> A. f a \<in> U \<times> Y} \<in> TA"
+        using hf_pre hUY_open by blast
+      have hEq: "{a \<in> A. (pi1 \<circ> f) a \<in> U} = {a \<in> A. f a \<in> U \<times> Y}"
+      proof (rule set_eqI)
+        fix a
+        show "a \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U} \<longleftrightarrow> a \<in> {a \<in> A. f a \<in> U \<times> Y}"
+        proof
+          assume ha: "a \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U}"
+          have haA: "a \<in> A" and hfst: "pi1 (f a) \<in> U" using ha by simp_all
+          have hfa: "f a \<in> X \<times> Y" using hf_range haA by blast
+          have hfa_xy: "fst (f a) \<in> X \<and> snd (f a) \<in> Y"
+            using hfa by (simp add: mem_Times_iff)
+          have hsnd: "snd (f a) \<in> Y"
+            by (rule conjunct2[OF hfa_xy])
+          have "f a \<in> U \<times> Y"
+            using hfst hsnd unfolding pi1_def by (simp add: mem_Times_iff)
+          thus "a \<in> {a \<in> A. f a \<in> U \<times> Y}" using haA by blast
+        next
+          assume ha: "a \<in> {a \<in> A. f a \<in> U \<times> Y}"
+          have haA: "a \<in> A" and hfa: "f a \<in> U \<times> Y" using ha by blast+
+          have hfa_UY: "fst (f a) \<in> U \<and> snd (f a) \<in> Y"
+            using hfa by (simp add: mem_Times_iff)
+          have hfst: "fst (f a) \<in> U"
+            by (rule conjunct1[OF hfa_UY])
+          show "a \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U}"
+            using haA hfst unfolding pi1_def by simp
+        qed
+      qed
+      show "{a \<in> A. (pi1 \<circ> f) a \<in> U} \<in> TA" using hpre hEq by simp
+    qed
+  qed
+
+  have hpi2: "top1_continuous_map_on A TA Y TY (pi2 \<circ> f)"
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>a\<in>A. (pi2 \<circ> f) a \<in> Y"
+    proof (intro ballI)
+      fix a assume haA: "a \<in> A"
+      have hfa: "f a \<in> X \<times> Y" using hf_range haA by blast
+      have hsnd: "snd (f a) \<in> Y" using hfa by (simp add: mem_Times_iff)
+      show "(pi2 \<circ> f) a \<in> Y" using hsnd unfolding pi2_def by simp
+    qed
+    show "\<forall>V\<in>TY. {a \<in> A. (pi2 \<circ> f) a \<in> V} \<in> TA"
+    proof (intro ballI)
+      fix V assume hV: "V \<in> TY"
+      have hXV: "X \<times> V \<in> product_basis TX TY"
+        unfolding product_basis_def using hX_open hV by blast
+      have hXV_open: "X \<times> V \<in> ?TP"
+        using basis_mem_open hXV by blast
+      have hpre: "{a \<in> A. f a \<in> X \<times> V} \<in> TA"
+        using hf_pre hXV_open by blast
+      have hEq: "{a \<in> A. (pi2 \<circ> f) a \<in> V} = {a \<in> A. f a \<in> X \<times> V}"
+      proof (rule set_eqI)
+        fix a
+        show "a \<in> {a \<in> A. (pi2 \<circ> f) a \<in> V} \<longleftrightarrow> a \<in> {a \<in> A. f a \<in> X \<times> V}"
+        proof
+          assume ha: "a \<in> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+          have haA: "a \<in> A" and hsnd: "pi2 (f a) \<in> V" using ha by simp_all
+          have hfa: "f a \<in> X \<times> Y" using hf_range haA by blast
+          have hfa_xy: "fst (f a) \<in> X \<and> snd (f a) \<in> Y"
+            using hfa by (simp add: mem_Times_iff)
+          have hfst: "fst (f a) \<in> X"
+            by (rule conjunct1[OF hfa_xy])
+          have "f a \<in> X \<times> V"
+            using hfst hsnd unfolding pi2_def by (simp add: mem_Times_iff)
+          thus "a \<in> {a \<in> A. f a \<in> X \<times> V}" using haA by blast
+        next
+          assume ha: "a \<in> {a \<in> A. f a \<in> X \<times> V}"
+          have haA: "a \<in> A" and hfa: "f a \<in> X \<times> V" using ha by blast+
+          have hfa_XV: "fst (f a) \<in> X \<and> snd (f a) \<in> V"
+            using hfa by (simp add: mem_Times_iff)
+          have hsnd: "snd (f a) \<in> V"
+            by (rule conjunct2[OF hfa_XV])
+          show "a \<in> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+            using haA hsnd unfolding pi2_def by simp
+        qed
+      qed
+      show "{a \<in> A. (pi2 \<circ> f) a \<in> V} \<in> TA" using hpre hEq by simp
+    qed
+  qed
+
+  show "top1_continuous_map_on A TA X TX (pi1 \<circ> f) \<and> top1_continuous_map_on A TA Y TY (pi2 \<circ> f)"
+  proof (intro conjI)
+    show "top1_continuous_map_on A TA X TX (pi1 \<circ> f)" using hpi1 .
+    show "top1_continuous_map_on A TA Y TY (pi2 \<circ> f)" using hpi2 .
+  qed
+next
+  let ?TP = "product_topology_on TX TY"
+
+  assume hcomp:
+    "top1_continuous_map_on A TA X TX (pi1 \<circ> f) \<and> top1_continuous_map_on A TA Y TY (pi2 \<circ> f)"
+  have hpi1: "top1_continuous_map_on A TA X TX (pi1 \<circ> f)"
+    by (rule conjunct1[OF hcomp])
+  have hpi2: "top1_continuous_map_on A TA Y TY (pi2 \<circ> f)"
+    by (rule conjunct2[OF hcomp])
+
+  have union_TA: "\<forall>U. U \<subseteq> TA \<longrightarrow> \<Union>U \<in> TA"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTA[unfolded is_topology_on_def]]]])
+
+  have hrect_pre:
+    "\<forall>b\<in>product_basis TX TY. {a \<in> A. f a \<in> b} \<in> TA"
+  proof (intro ballI)
+    fix b assume hb: "b \<in> product_basis TX TY"
+    obtain U V where hU: "U \<in> TX" and hV: "V \<in> TY" and hbEq: "b = U \<times> V"
+      using hb unfolding product_basis_def by blast
+    have hpre1: "{a \<in> A. (pi1 \<circ> f) a \<in> U} \<in> TA"
+      using hpi1 hU unfolding top1_continuous_map_on_def by blast
+    have hpre2: "{a \<in> A. (pi2 \<circ> f) a \<in> V} \<in> TA"
+      using hpi2 hV unfolding top1_continuous_map_on_def by blast
+
+    have hEq: "{a \<in> A. f a \<in> b} = {a \<in> A. (pi1 \<circ> f) a \<in> U} \<inter> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+    proof (rule set_eqI)
+      fix x
+      show "x \<in> {a \<in> A. f a \<in> b} \<longleftrightarrow>
+            x \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U} \<inter> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+        unfolding hbEq
+      proof
+        assume hx: "x \<in> {a \<in> A. f a \<in> U \<times> V}"
+        have hxA: "x \<in> A" and hfx: "f x \<in> U \<times> V"
+          using hx by simp_all
+        have hfx_uv: "fst (f x) \<in> U \<and> snd (f x) \<in> V"
+          using hfx by (simp add: mem_Times_iff)
+        have hpi1: "pi1 (f x) \<in> U"
+          using hfx_uv unfolding pi1_def by simp
+        have hpi2: "pi2 (f x) \<in> V"
+          using hfx_uv unfolding pi2_def by simp
+        have hx1: "x \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U}"
+          using hxA hpi1 by (simp add: o_def)
+        have hx2: "x \<in> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+          using hxA hpi2 by (simp add: o_def)
+        show "x \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U} \<inter> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+          by (rule IntI[OF hx1 hx2])
+      next
+        assume hx: "x \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U} \<inter> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+        have hx1: "x \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U}"
+          by (rule IntD1[OF hx])
+        have hx2: "x \<in> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
+          by (rule IntD2[OF hx])
+        have hx1': "x \<in> A \<and> pi1 (f x) \<in> U"
+          using hx1 by (simp add: o_def)
+        have hxA: "x \<in> A"
+          by (rule conjunct1[OF hx1'])
+        have hpi1: "pi1 (f x) \<in> U"
+          by (rule conjunct2[OF hx1'])
+        have hx2': "x \<in> A \<and> pi2 (f x) \<in> V"
+          using hx2 by (simp add: o_def)
+        have hpi2: "pi2 (f x) \<in> V"
+          by (rule conjunct2[OF hx2'])
+        have hfx: "f x \<in> U \<times> V"
+          using hpi1 hpi2 unfolding pi1_def pi2_def by (simp add: mem_Times_iff)
+        show "x \<in> {a \<in> A. f a \<in> U \<times> V}"
+          using hxA hfx by simp
+      qed
+    qed
+
+    have hinter: "{a \<in> A. (pi1 \<circ> f) a \<in> U} \<inter> {a \<in> A. (pi2 \<circ> f) a \<in> V} \<in> TA"
+      by (rule topology_inter2[OF hTA hpre1 hpre2])
+
+    show "{a \<in> A. f a \<in> b} \<in> TA" using hinter hEq by simp
+  qed
+
+  show "top1_continuous_map_on A TA (X \<times> Y) ?TP f"
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    have hpi1_range: "\<forall>a\<in>A. (pi1 \<circ> f) a \<in> X"
+      using hpi1 unfolding top1_continuous_map_on_def by blast
+    have hpi2_range: "\<forall>a\<in>A. (pi2 \<circ> f) a \<in> Y"
+      using hpi2 unfolding top1_continuous_map_on_def by blast
+    show "\<forall>a\<in>A. f a \<in> X \<times> Y"
+      using hpi1_range hpi2_range unfolding pi1_def pi2_def by (simp add: mem_Times_iff)
+
+    show "\<forall>W\<in>?TP. {a \<in> A. f a \<in> W} \<in> TA"
+      unfolding product_topology_on_def topology_generated_by_basis_def
+    proof (intro ballI)
+      fix W assume hW: "W \<in> {U. U \<subseteq> (UNIV::('b \<times> 'c) set) \<and>
+           (\<forall>x\<in>U. \<exists>b\<in>product_basis TX TY. x \<in> b \<and> b \<subseteq> U)}"
+      have hWcov: "\<forall>x\<in>W. \<exists>b\<in>product_basis TX TY. x \<in> b \<and> b \<subseteq> W"
+        using hW by blast
+
+      define S where "S = {{a \<in> A. f a \<in> b} | b. b \<in> product_basis TX TY \<and> b \<subseteq> W}"
+      have hSsub: "S \<subseteq> TA"
+      proof (rule subsetI)
+        fix P assume hP: "P \<in> S"
+        obtain b where hb: "b \<in> product_basis TX TY" and hbW: "b \<subseteq> W" and hPeq: "P = {a \<in> A. f a \<in> b}"
+          using hP unfolding S_def by blast
+        show "P \<in> TA" using hrect_pre hb hPeq by simp
+      qed
+
+      have hUnion: "\<Union>S = {a \<in> A. f a \<in> W}"
+      proof (rule set_eqI)
+        fix a
+        show "a \<in> \<Union>S \<longleftrightarrow> a \<in> {a \<in> A. f a \<in> W}"
+        proof
+          assume ha: "a \<in> \<Union>S"
+          obtain P where hP: "P \<in> S" and haP: "a \<in> P" using ha by blast
+          obtain b where hb: "b \<in> product_basis TX TY" and hbW: "b \<subseteq> W" and hPeq: "P = {a \<in> A. f a \<in> b}"
+            using hP unfolding S_def by blast
+          have haA: "a \<in> A" and hfb: "f a \<in> b" using haP unfolding hPeq by blast+
+          have "f a \<in> W" using hfb hbW by blast
+          thus "a \<in> {a \<in> A. f a \<in> W}" using haA by blast
+        next
+          assume ha: "a \<in> {a \<in> A. f a \<in> W}"
+          have haA: "a \<in> A" and hfW: "f a \<in> W" using ha by blast+
+          obtain b where hb: "b \<in> product_basis TX TY" and hfb: "f a \<in> b" and hbW: "b \<subseteq> W"
+            using hWcov[rule_format, OF hfW] by blast
+          have "{a \<in> A. f a \<in> b} \<in> S"
+            unfolding S_def using hb hbW by blast
+          moreover have "a \<in> {a \<in> A. f a \<in> b}" using haA hfb by blast
+          ultimately show "a \<in> \<Union>S" by blast
+        qed
+      qed
+
+      have hOpen: "\<Union>S \<in> TA" using union_TA hSsub by blast
+      show "{a \<in> A. f a \<in> W} \<in> TA" using hOpen hUnion by simp
+    qed
+  qed
+qed
 
 end
