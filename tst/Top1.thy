@@ -12556,7 +12556,251 @@ theorem Theorem_33_1:
   assumes hab: "a \<le> b"
   shows "\<exists>f. top1_continuous_map_on X TX (top1_closed_interval a b) (top1_closed_interval_topology a b) f
             \<and> (\<forall>x\<in>A. f x = a) \<and> (\<forall>x\<in>B. f x = b)"
-  sorry
+proof (cases "a = b")
+  case True
+  let ?J = "top1_closed_interval a b"
+  let ?TJ = "top1_closed_interval_topology a b"
+
+  have hTopX': "is_topology_on X TX"
+    using hX unfolding top1_normal_on_def top1_T1_on_def by blast
+  have hTopJ: "is_topology_on ?J ?TJ"
+    unfolding top1_closed_interval_topology_def
+    by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on], simp)
+  have haJ: "a \<in> ?J"
+    unfolding top1_closed_interval_def using hab True by simp
+
+  have hConstAll: "\<forall>y0\<in>?J. top1_continuous_map_on X TX ?J ?TJ (\<lambda>x. y0)"
+    by (rule Theorem_18_2(1)[OF hTopX' hTopJ hTopJ])
+  have hconst: "top1_continuous_map_on X TX ?J ?TJ (\<lambda>x. a)"
+    using hConstAll haJ by blast
+
+  show ?thesis
+  proof (rule exI[where x="\<lambda>x. a"], intro conjI)
+    show "top1_continuous_map_on X TX ?J ?TJ (\<lambda>x. a)"
+      by (rule hconst)
+    show "\<forall>x\<in>A. (\<lambda>x. a) x = a"
+      by simp
+    show "\<forall>x\<in>B. (\<lambda>x. a) x = b"
+      using True by simp
+  qed
+next
+  case False
+  have hab': "a < b"
+    using hab False by linarith
+
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
+  let ?J = "top1_closed_interval a b"
+  let ?TJ = "top1_closed_interval_topology a b"
+
+  have hTopX': "is_topology_on X TX"
+    using hX unfolding top1_normal_on_def top1_T1_on_def by blast
+  have hTopI: "is_topology_on ?I ?TI"
+    unfolding top1_closed_interval_topology_def
+    by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on], simp)
+  have hTopJ: "is_topology_on ?J ?TJ"
+    unfolding top1_closed_interval_topology_def
+    by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on], simp)
+  have hTopUNIV: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+
+  obtain f0 where hf0:
+    "top1_continuous_map_on X TX ?I ?TI f0
+     \<and> (\<forall>x\<in>A. f0 x = 0)
+     \<and> (\<forall>x\<in>B. f0 x = 1)"
+    using top1_urysohn_unit_interval[OF hX hA hB hdisj] by blast
+
+  define g where "g t = a + (b - a) * t" for t
+  have hSlope: "0 < b - a"
+    using hab' by simp
+
+  have I_inter_ray_gt: "\<And>c. ?I \<inter> open_ray_gt c \<in> ?TI"
+  proof -
+    fix c
+    show "?I \<inter> open_ray_gt c \<in> ?TI"
+      unfolding top1_closed_interval_topology_def subspace_topology_def
+      apply (rule CollectI)
+      apply (rule exI[where x="open_ray_gt c"])
+      apply (intro conjI)
+       apply simp
+      apply (rule open_ray_gt_in_order_topology)
+      done
+  qed
+
+  have I_inter_ray_lt: "\<And>c. ?I \<inter> open_ray_lt c \<in> ?TI"
+  proof -
+    fix c
+    show "?I \<inter> open_ray_lt c \<in> ?TI"
+      unfolding top1_closed_interval_topology_def subspace_topology_def
+      apply (rule CollectI)
+      apply (rule exI[where x="open_ray_lt c"])
+      apply (intro conjI)
+       apply simp
+      apply (rule open_ray_lt_in_order_topology)
+      done
+  qed
+
+  have pre_ray_gt_g: "{t \<in> ?I. g t \<in> open_ray_gt c} \<in> ?TI" for c
+  proof -
+    have hEq:
+      "{t \<in> ?I. g t \<in> open_ray_gt c} = ?I \<inter> open_ray_gt ((c - a) / (b - a))"
+      unfolding g_def open_ray_gt_def
+      apply (rule set_eqI)
+      apply (simp add: algebra_simps pos_divide_less_eq[OF hSlope])
+      done
+    show ?thesis
+      unfolding hEq by (rule I_inter_ray_gt)
+  qed
+
+  have pre_ray_lt_g: "{t \<in> ?I. g t \<in> open_ray_lt c} \<in> ?TI" for c
+  proof -
+    have hEq:
+      "{t \<in> ?I. g t \<in> open_ray_lt c} = ?I \<inter> open_ray_lt ((c - a) / (b - a))"
+      unfolding g_def open_ray_lt_def
+      apply (rule set_eqI)
+      apply (simp add: algebra_simps pos_less_divide_eq[OF hSlope])
+      done
+    show ?thesis
+      unfolding hEq by (rule I_inter_ray_lt)
+  qed
+
+  have pre_basis_g: "\<forall>B\<in>(basis_order_topology::real set set). {t \<in> ?I. g t \<in> B} \<in> ?TI"
+  proof (intro ballI)
+    fix B assume hB: "B \<in> (basis_order_topology::real set set)"
+    have hCases:
+      "(\<exists>u v. u < v \<and> B = open_interval u v)
+       \<or> (\<exists>u. B = open_ray_gt u)
+       \<or> (\<exists>u. B = open_ray_lt u)
+       \<or> B = (UNIV::real set)"
+      by (rule basis_order_topology_cases[OF hB])
+    show "{t \<in> ?I. g t \<in> B} \<in> ?TI"
+    proof (rule disjE[OF hCases])
+      assume hInt: "\<exists>u v. u < v \<and> B = open_interval u v"
+      then obtain u v where hBeq: "B = open_interval u v"
+        by blast
+      have hEq:
+        "{t \<in> ?I. g t \<in> B} = {t \<in> ?I. g t \<in> open_ray_gt u} \<inter> {t \<in> ?I. g t \<in> open_ray_lt v}"
+        unfolding hBeq open_interval_def open_ray_gt_def open_ray_lt_def
+        by (rule set_eqI) (simp add: conj_assoc conj_left_commute conj_commute)
+      have hGt: "{t \<in> ?I. g t \<in> open_ray_gt u} \<in> ?TI"
+        by (rule pre_ray_gt_g)
+      have hLt: "{t \<in> ?I. g t \<in> open_ray_lt v} \<in> ?TI"
+        by (rule pre_ray_lt_g)
+      have hInter: "{t \<in> ?I. g t \<in> open_ray_gt u} \<inter> {t \<in> ?I. g t \<in> open_ray_lt v} \<in> ?TI"
+        by (rule topology_inter2[OF hTopI hGt hLt])
+      show ?thesis
+        unfolding hEq using hInter .
+    next
+      assume hRest: "(\<exists>u. B = open_ray_gt u) \<or> (\<exists>u. B = open_ray_lt u) \<or> B = (UNIV::real set)"
+      show ?thesis
+      proof (rule disjE[OF hRest])
+        assume h1: "\<exists>u. B = open_ray_gt u"
+        then obtain u where hBeq: "B = open_ray_gt u"
+          by blast
+        show ?thesis
+          unfolding hBeq by (rule pre_ray_gt_g)
+      next
+        assume h2: "(\<exists>u. B = open_ray_lt u) \<or> B = (UNIV::real set)"
+        show ?thesis
+        proof (rule disjE[OF h2])
+          assume h21: "\<exists>u. B = open_ray_lt u"
+          then obtain u where hBeq: "B = open_ray_lt u"
+            by blast
+          show ?thesis
+            unfolding hBeq by (rule pre_ray_lt_g)
+        next
+          assume hBeq: "B = (UNIV::real set)"
+          have hI_open: "?I \<in> ?TI"
+            using hTopI unfolding is_topology_on_def by blast
+          show ?thesis
+            unfolding hBeq using hI_open by simp
+        qed
+      qed
+    qed
+  qed
+
+  have hBasis: "basis_for (UNIV::real set) (basis_order_topology::real set set) order_topology_on_UNIV"
+    unfolding basis_for_def order_topology_on_UNIV_def
+    by (intro conjI basis_order_topology_is_basis_on_UNIV refl)
+
+  have g_cont_order: "top1_continuous_map_on ?I ?TI (UNIV::real set) order_topology_on_UNIV g"
+  proof (rule top1_continuous_map_on_generated_by_basis)
+    show "is_topology_on ?I ?TI"
+      by (rule hTopI)
+    show "basis_for (UNIV::real set) (basis_order_topology::real set set) order_topology_on_UNIV"
+      by (rule hBasis)
+    show "\<forall>t\<in>?I. g t \<in> (UNIV::real set)"
+      by simp
+    show "\<forall>B\<in>(basis_order_topology::real set set). {t \<in> ?I. g t \<in> B} \<in> ?TI"
+      by (rule pre_basis_g)
+  qed
+
+  have g_img: "g ` ?I \<subseteq> ?J"
+  proof (rule subsetI)
+    fix y assume hy: "y \<in> g ` ?I"
+    then obtain t where htI: "t \<in> ?I" and hyEq: "y = g t"
+      by blast
+    have ht0: "0 \<le> t" and ht1: "t \<le> 1"
+      using htI unfolding top1_closed_interval_def by blast+
+    have hba0: "0 \<le> b - a"
+      using hab by simp
+    have h0: "a \<le> g t"
+      unfolding g_def using ht0 hba0 by (simp add: mult_nonneg_nonneg)
+    have h1: "g t \<le> b"
+    proof -
+      have "(b - a) * t \<le> (b - a) * 1"
+        using ht1 hba0 by (rule mult_left_mono)
+      hence "(b - a) * t \<le> b - a"
+        by simp
+      thus ?thesis
+        unfolding g_def by simp
+    qed
+    show "y \<in> ?J"
+      unfolding hyEq top1_closed_interval_def using h0 h1 by blast
+  qed
+
+  have g_cont_J: "top1_continuous_map_on ?I ?TI ?J ?TJ g"
+  proof -
+    have hRestr:
+      "(\<forall>W h. top1_continuous_map_on ?I ?TI (UNIV::real set) order_topology_on_UNIV h
+	             \<and> W \<subseteq> (UNIV::real set) \<and> h ` ?I \<subseteq> W
+	             \<longrightarrow> top1_continuous_map_on ?I ?TI W (subspace_topology (UNIV::real set) order_topology_on_UNIV W) h)"
+      by (rule Theorem_18_2(5)[OF hTopI hTopUNIV hTopUNIV])
+    have "top1_continuous_map_on ?I ?TI ?J (subspace_topology (UNIV::real set) order_topology_on_UNIV ?J) g"
+    proof -
+      have "top1_continuous_map_on ?I ?TI (UNIV::real set) order_topology_on_UNIV g
+            \<and> ?J \<subseteq> (UNIV::real set)
+            \<and> g ` ?I \<subseteq> ?J"
+        using g_cont_order g_img by simp
+      thus ?thesis
+        using hRestr by blast
+    qed
+    thus ?thesis
+      unfolding top1_closed_interval_topology_def .
+  qed
+
+  have comp_cont: "top1_continuous_map_on X TX ?J ?TJ (g \<circ> f0)"
+  proof -
+    have hComp:
+      "(\<forall>f h. top1_continuous_map_on X TX ?I ?TI f \<and> top1_continuous_map_on ?I ?TI ?J ?TJ h
+             \<longrightarrow> top1_continuous_map_on X TX ?J ?TJ (h \<circ> f))"
+      by (rule Theorem_18_2(3)[OF hTopX' hTopI hTopJ])
+    have hf0_cont: "top1_continuous_map_on X TX ?I ?TI f0"
+      using hf0 by blast
+    show ?thesis
+      using hComp hf0_cont g_cont_J by blast
+  qed
+
+  show ?thesis
+  proof (rule exI[where x="g \<circ> f0"], intro conjI)
+    show "top1_continuous_map_on X TX ?J ?TJ (g \<circ> f0)"
+      by (rule comp_cont)
+    show "\<forall>x\<in>A. (g \<circ> f0) x = a"
+      using hf0 unfolding g_def by simp
+    show "\<forall>x\<in>B. (g \<circ> f0) x = b"
+      using hf0 unfolding g_def by simp
+  qed
+qed
 
 subsection \<open>Completely regular spaces\<close>
 
