@@ -15402,6 +15402,110 @@ text \<open>
   \<open>g : X \<rightarrow> [-r/3,r/3]\<close> that is uniformly small and approximates \<open>f\<close> on \<open>A\<close>.
 \<close>
 
+text \<open>
+  The analytic part of the argument uses standard estimates for the geometric series with ratio
+  \<open>2/3\<close>.  We record a couple of convenient lemmas in the form needed for bounding partial sums and
+  tails of the Tietze approximants.
+\<close>
+
+lemma top1_geometric_partial_sum_2_3:
+  fixes n :: nat
+  shows "(\<Sum>i<n. (1/3::real) * (2/3) ^ i) = 1 - (2/3) ^ n"
+proof -
+  have hgeom:
+    "(\<Sum>i<n. (2/3::real) ^ i) = ((2/3) ^ n - 1) / ((2/3::real) - 1)"
+    by (rule geometric_sum) simp
+  have "(\<Sum>i<n. (1/3::real) * (2/3) ^ i) = (1/3::real) * (\<Sum>i<n. (2/3) ^ i)"
+    by (simp add: sum_distrib_left)
+  also have "... = (1/3::real) * (((2/3) ^ n - 1) / ((2/3::real) - 1))"
+    using hgeom by simp
+  also have "... = 1 - (2/3) ^ n"
+    by (simp add: field_simps)
+  finally show ?thesis .
+qed
+
+lemma top1_geometric_partial_sum_shift_bound:
+  fixes m n :: nat
+  shows "(\<Sum>i<n. (1/3::real) * (2/3) ^ (m + i)) \<le> (2/3) ^ m"
+proof -
+  have hsum: "(\<Sum>i<n. (1/3::real) * (2/3) ^ i) = 1 - (2/3) ^ n"
+    by (rule top1_geometric_partial_sum_2_3)
+
+  have hrewrite:
+    "(\<Sum>i<n. (1/3::real) * (2/3) ^ (m + i))
+     = (2/3) ^ m * (\<Sum>i<n. (1/3::real) * (2/3) ^ i)"
+  proof -
+    have "(\<Sum>i<n. (1/3::real) * (2/3) ^ (m + i))
+        = (\<Sum>i<n. (2/3) ^ m * ((1/3::real) * (2/3) ^ i))"
+      by (simp add: power_add algebra_simps)
+    also have "... = (2/3) ^ m * (\<Sum>i<n. (1/3::real) * (2/3) ^ i)"
+      by (simp add: sum_distrib_left)
+    finally show ?thesis .
+  qed
+
+  have hn: "0 \<le> (2/3::real) ^ n"
+    by simp
+  have "(\<Sum>i<n. (1/3::real) * (2/3) ^ (m + i)) = (2/3) ^ m * (1 - (2/3) ^ n)"
+    unfolding hrewrite hsum by simp
+  also have "... \<le> (2/3::real) ^ m * 1"
+    using hn by (intro mult_left_mono) simp_all
+  finally show ?thesis
+    by simp
+qed
+
+lemma top1_tietze_tail_bound:
+  fixes s :: "nat \<Rightarrow> 'a \<Rightarrow> real" and x :: 'a
+  assumes hsinc: "\<forall>n. \<forall>x\<in>X. abs (s (Suc n) x - s n x) \<le> (1/3) * (2/3) ^ n"
+  assumes hx: "x \<in> X"
+  shows "abs (s (n + k) x - s n x) \<le> (2/3) ^ n"
+proof -
+  have htel:
+    "(\<Sum>i<k. s (n + Suc i) x - s (n + i) x) = s (n + k) x - s n x"
+  proof -
+    have "(\<Sum>i<k. (\<lambda>i. s (n + i) x) (Suc i) - (\<lambda>i. s (n + i) x) i)
+        = (\<lambda>i. s (n + i) x) k - (\<lambda>i. s (n + i) x) 0"
+      by (rule sum_lessThan_telescope)
+    thus ?thesis
+      by simp
+  qed
+
+  have habs_sum:
+    "abs (s (n + k) x - s n x) \<le> (\<Sum>i<k. abs (s (n + Suc i) x - s (n + i) x))"
+  proof -
+    have "abs (s (n + k) x - s n x) = abs (\<Sum>i<k. s (n + Suc i) x - s (n + i) x)"
+      using htel by simp
+    also have "... \<le> (\<Sum>i<k. abs (s (n + Suc i) x - s (n + i) x))"
+      by (rule sum_abs)
+    finally show ?thesis .
+  qed
+
+  have hterm:
+    "\<forall>i<k. abs (s (n + Suc i) x - s (n + i) x) \<le> (1/3) * (2/3) ^ (n + i)"
+  proof (intro allI impI)
+    fix i assume hi: "i < k"
+    have "abs (s (Suc (n + i)) x - s (n + i) x) \<le> (1/3) * (2/3) ^ (n + i)"
+      using hsinc hx by blast
+    thus "abs (s (n + Suc i) x - s (n + i) x) \<le> (1/3) * (2/3) ^ (n + i)"
+      by simp
+  qed
+
+  have hsum:
+    "(\<Sum>i<k. abs (s (n + Suc i) x - s (n + i) x)) \<le> (\<Sum>i<k. (1/3) * (2/3) ^ (n + i))"
+  proof (rule sum_mono)
+    fix i assume hi: "i \<in> {..<k}"
+    have hik: "i < k"
+      using hi by simp
+    show "abs (s (n + Suc i) x - s (n + i) x) \<le> (1/3) * (2/3) ^ (n + i)"
+      using hterm hik by blast
+  qed
+
+  have hgeom: "(\<Sum>i<k. (1/3::real) * (2/3) ^ (n + i)) \<le> (2/3) ^ n"
+    by (rule top1_geometric_partial_sum_shift_bound[where m=n and n=k])
+
+  show ?thesis
+    using order_trans[OF habs_sum order_trans[OF hsum hgeom]] .
+qed
+
 lemma top1_closed_interval_closedin_order_topology:
   fixes a b :: real
   shows "closedin_on (UNIV::real set) order_topology_on_UNIV (top1_closed_interval a b)"
@@ -17468,9 +17572,8 @@ proof -
     "choose_g n sn = (SOME g. Step n sn g)"
     for n :: nat and sn :: "'a \<Rightarrow> real"
 
-  have step_ex: "\<forall>n sn. Inv n sn \<longrightarrow> (\<exists>g. Step n sn g)"
-  proof (intro allI impI)
-    fix n sn
+  have step_ex_one: "Inv n sn \<Longrightarrow> (\<exists>g. Step n sn g)" for n sn
+  proof -
     assume hInv: "Inv n sn"
     have sn_cont: "top1_continuous_map_on X TX ?R ?TR sn"
       using hInv unfolding Inv_def by blast
@@ -17544,74 +17647,78 @@ proof -
          \<and> (\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3)"
       using top1_tietze_step1[of A (\<lambda>a. f a - sn a) (r n)] hX hA fn_contJ hrn_pos
       by blast
-    define g where
-      "g = (SOME g. top1_continuous_map_on X TX (top1_closed_interval (- (r n)/3) ((r n)/3))
-                    (top1_closed_interval_topology (- (r n)/3) ((r n)/3)) g
-                  \<and> (\<forall>x\<in>X. abs (g x) \<le> (r n)/3)
-                  \<and> (\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3))"
-
-    have hg:
-      "top1_continuous_map_on X TX (top1_closed_interval (- (r n)/3) ((r n)/3))
-          (top1_closed_interval_topology (- (r n)/3) ((r n)/3)) g
-       \<and> (\<forall>x\<in>X. abs (g x) \<le> (r n)/3)
-       \<and> (\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3)"
-      unfolding g_def
-      by (rule someI_ex[OF exg])
-
-    have g_cont_int:
-      "top1_continuous_map_on X TX (top1_closed_interval (- (r n)/3) ((r n)/3))
-          (top1_closed_interval_topology (- (r n)/3) ((r n)/3)) g"
-      using hg by blast
-
-    have hTopgI:
-      "is_topology_on (top1_closed_interval (- (r n)/3) ((r n)/3))
-          (top1_closed_interval_topology (- (r n)/3) ((r n)/3))"
-      unfolding top1_closed_interval_topology_def
-      by (rule subspace_topology_is_topology_on[OF hTopR], simp)
-
-    have g_cont: "top1_continuous_map_on X TX ?R ?TR g"
-    proof -
-      have hI_sub': "top1_closed_interval (- (r n)/3) ((r n)/3) \<subseteq> ?R"
-        by simp
-      have hTI_eq':
-        "top1_closed_interval_topology (- (r n)/3) ((r n)/3)
-         = subspace_topology ?R ?TR (top1_closed_interval (- (r n)/3) ((r n)/3))"
-        unfolding top1_closed_interval_topology_def by simp
-      show ?thesis
-        using Theorem_18_2(6)[OF hTopX hTopgI hTopR, rule_format, of ?R g]
-              g_cont_int hI_sub' hTI_eq'
-        by blast
-    qed
-
-    have g_inc: "\<forall>x\<in>X. abs (g x) \<le> (1/3) * r n"
-    proof (intro ballI)
-      fix x assume hxX: "x \<in> X"
-      have habs: "abs (g x) \<le> (r n) / 3"
-        using hg hxX by blast
-      show "abs (g x) \<le> (1/3) * r n"
-        using habs by (simp add: field_simps)
-    qed
-
-    have g_err: "\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> r (Suc n)"
-    proof (intro ballI)
-      fix a assume haA: "a \<in> A"
-      have habs: "abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3"
-        using hg haA by blast
-      have hEq: "2 * (r n) / 3 = r (Suc n)"
-        unfolding r_def by (simp add: field_simps)
-      show "abs (g a - (f a - sn a)) \<le> r (Suc n)"
-        using habs unfolding hEq by simp
-    qed
-
     show "\<exists>g. Step n sn g"
-      unfolding Step_def
-      apply (rule exI[where x=g])
-      apply (intro conjI)
-       apply (rule g_cont)
-      apply (intro conjI)
-       apply (rule g_inc)
-      apply (rule g_err)
-      done
+    proof (rule exE[OF exg])
+      fix g
+      assume hg:
+        "top1_continuous_map_on X TX (top1_closed_interval (- (r n)/3) ((r n)/3))
+            (top1_closed_interval_topology (- (r n)/3) ((r n)/3)) g
+         \<and> (\<forall>x\<in>X. abs (g x) \<le> (r n)/3)
+         \<and> (\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3)"
+
+      have g_cont_int:
+        "top1_continuous_map_on X TX (top1_closed_interval (- (r n)/3) ((r n)/3))
+            (top1_closed_interval_topology (- (r n)/3) ((r n)/3)) g"
+        using hg by blast
+
+      have hTopgI:
+        "is_topology_on (top1_closed_interval (- (r n)/3) ((r n)/3))
+            (top1_closed_interval_topology (- (r n)/3) ((r n)/3))"
+        unfolding top1_closed_interval_topology_def
+        by (rule subspace_topology_is_topology_on[OF hTopR], simp)
+
+      have g_cont: "top1_continuous_map_on X TX ?R ?TR g"
+      proof -
+        have hI_sub': "top1_closed_interval (- (r n)/3) ((r n)/3) \<subseteq> ?R"
+          by simp
+        have hTI_eq':
+          "top1_closed_interval_topology (- (r n)/3) ((r n)/3)
+           = subspace_topology ?R ?TR (top1_closed_interval (- (r n)/3) ((r n)/3))"
+          unfolding top1_closed_interval_topology_def by simp
+        show ?thesis
+          using Theorem_18_2(6)[OF hTopX hTopgI hTopR, rule_format, of ?R g]
+                g_cont_int hI_sub' hTI_eq'
+          by blast
+      qed
+
+      have g_inc: "\<forall>x\<in>X. abs (g x) \<le> (1/3) * r n"
+      proof (intro ballI)
+        fix x assume hxX: "x \<in> X"
+        have habs: "abs (g x) \<le> (r n) / 3"
+          using hg hxX by blast
+        show "abs (g x) \<le> (1/3) * r n"
+          using habs by (simp add: field_simps)
+      qed
+
+      have g_err: "\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> r (Suc n)"
+      proof (intro ballI)
+        fix a assume haA: "a \<in> A"
+        have habs: "abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3"
+          using hg haA by blast
+        have hEq: "2 * (r n) / 3 = r (Suc n)"
+          unfolding r_def by (simp add: field_simps)
+        show "abs (g a - (f a - sn a)) \<le> r (Suc n)"
+          using habs unfolding hEq by simp
+      qed
+
+      show "\<exists>g. Step n sn g"
+        unfolding Step_def
+        apply (rule exI[where x=g])
+        apply (intro conjI)
+         apply (rule g_cont)
+        apply (intro conjI)
+         apply (rule g_inc)
+        apply (rule g_err)
+        done
+    qed
+  qed
+
+  have step_ex: "\<forall>n sn. Inv n sn \<longrightarrow> (\<exists>g. Step n sn g)"
+  proof (intro allI impI)
+    fix n sn
+    assume hInv: "Inv n sn"
+    show "\<exists>g. Step n sn g"
+      by (rule step_ex_one[OF hInv])
   qed
 
   have choose_g_step: "\<forall>n sn. Inv n sn \<longrightarrow> Step n sn (choose_g n sn)"
