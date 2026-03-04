@@ -16264,6 +16264,281 @@ proof -
   qed
 qed
 
+lemma top1_continuous_mul_order_topology:
+  shows "top1_continuous_map_on
+      ((UNIV::real set) \<times> (UNIV::real set))
+      (product_topology_on order_topology_on_UNIV order_topology_on_UNIV)
+      (UNIV::real set) order_topology_on_UNIV
+      (\<lambda>p::real \<times> real. pi1 p * pi2 p)"
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  let ?TP = "product_topology_on ?TR ?TR"
+  let ?X = "?R \<times> ?R"
+  let ?mul = "(\<lambda>p::real \<times> real. pi1 p * pi2 p)"
+
+  have hTopR: "is_topology_on ?R ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopX: "is_topology_on ?X ?TP"
+    by (rule product_topology_on_is_topology_on[OF hTopR hTopR])
+
+  have hBasisR: "basis_for ?R (basis_order_topology::real set set) ?TR"
+    by (rule basis_for_order_topology_on_UNIV)
+
+  show ?thesis
+  proof (rule top1_continuous_map_on_generated_by_basis)
+    show "is_topology_on ?X ?TP"
+      by (rule hTopX)
+    show "basis_for ?R (basis_order_topology::real set set) ?TR"
+      by (rule hBasisR)
+    show "\<forall>p\<in>?X. ?mul p \<in> ?R"
+      by simp
+    show "\<forall>b\<in>(basis_order_topology::real set set). {p \<in> ?X. ?mul p \<in> b} \<in> ?TP"
+    proof (intro ballI)
+      fix b :: "real set"
+      assume hb: "b \<in> (basis_order_topology::real set set)"
+      define P where "P = {p \<in> ?X. ?mul p \<in> b}"
+      have hPsub: "P \<subseteq> ?X"
+        unfolding P_def by simp
+
+      have hlocal: "\<forall>p\<in>P. \<exists>W\<in>?TP. p \<in> W \<and> W \<subseteq> P"
+      proof (intro ballI)
+        fix p assume hpP: "p \<in> P"
+        have hpX: "p \<in> ?X" and hpb: "?mul p \<in> b"
+          using hpP unfolding P_def by simp_all
+
+        obtain e where he: "0 < e"
+          and hI_sub: "open_interval (?mul p - e) (?mul p + e) \<subseteq> b"
+          using basis_order_topology_contains_open_interval[OF hb hpb] by blast
+
+        define K where "K = abs (pi2 p) + abs (pi1 p) + 1"
+        have hKpos: "0 < K"
+          unfolding K_def by linarith
+
+        define d0 where "d0 = e / (2 * K)"
+        define d where "d = min 1 d0"
+
+        have hd0pos: "0 < d0"
+          unfolding d0_def using he hKpos by (simp add: divide_pos_pos)
+        have hdpos: "0 < d"
+          unfolding d_def using hd0pos by simp
+        have hd_le_1: "d \<le> 1"
+          unfolding d_def by simp
+        have hd_le_d0: "d \<le> d0"
+          unfolding d_def by simp
+
+        define U where "U = open_interval (pi1 p - d) (pi1 p + d)"
+        define V where "V = open_interval (pi2 p - d) (pi2 p + d)"
+        define W where "W = U \<times> V"
+
+        have hU_TR: "U \<in> ?TR"
+        proof -
+          have "pi1 p - d < pi1 p + d"
+            using hdpos by linarith
+          thus ?thesis
+            unfolding U_def by (rule open_interval_in_order_topology)
+        qed
+        have hV_TR: "V \<in> ?TR"
+        proof -
+          have "pi2 p - d < pi2 p + d"
+            using hdpos by linarith
+          thus ?thesis
+            unfolding V_def by (rule open_interval_in_order_topology)
+        qed
+        have hW_TP: "W \<in> ?TP"
+          unfolding W_def by (rule product_rect_open[OF hU_TR hV_TR])
+
+        have hpW: "p \<in> W"
+        proof -
+          have h1: "pi1 p - d < pi1 p"
+            using hdpos by linarith
+          have h2: "pi1 p < pi1 p + d"
+            using hdpos by linarith
+          have h3: "pi2 p - d < pi2 p"
+            using hdpos by linarith
+          have h4: "pi2 p < pi2 p + d"
+            using hdpos by linarith
+          have hpU: "pi1 p \<in> U"
+            unfolding U_def open_interval_def using h1 h2 by simp
+          have hpV: "pi2 p \<in> V"
+            unfolding V_def open_interval_def using h3 h4 by simp
+          have "(pi1 p, pi2 p) \<in> W"
+            unfolding W_def using hpU hpV by simp
+          thus ?thesis
+            by (simp add: W_def pi1_def pi2_def)
+        qed
+
+        have hWsub: "W \<subseteq> P"
+        proof (rule subsetI)
+          fix q assume hqW: "q \<in> W"
+          have hqU: "pi1 q \<in> U"
+          proof (cases q)
+            case (Pair u v)
+            have "(u, v) \<in> U \<times> V"
+              using hqW unfolding W_def Pair by simp
+            hence "u \<in> U"
+              by simp
+            thus ?thesis
+              unfolding pi1_def Pair by simp
+          qed
+          have hqV: "pi2 q \<in> V"
+          proof (cases q)
+            case (Pair u v)
+            have "(u, v) \<in> U \<times> V"
+              using hqW unfolding W_def Pair by simp
+            hence "v \<in> V"
+              by simp
+            thus ?thesis
+              unfolding pi2_def Pair by simp
+          qed
+
+          have hq1: "pi1 p - d < pi1 q" and hq2: "pi1 q < pi1 p + d"
+            using hqU unfolding U_def open_interval_def by simp_all
+          have hq3: "pi2 p - d < pi2 q" and hq4: "pi2 q < pi2 p + d"
+            using hqV unfolding V_def open_interval_def by simp_all
+
+          have habs1: "abs (pi1 q - pi1 p) \<le> d"
+          proof -
+            have habs: "abs (pi1 q - pi1 p) < d"
+              using hq1 hq2 by (simp add: abs_less_iff)
+            show ?thesis
+              using habs by (rule less_imp_le)
+          qed
+          have habs2: "abs (pi2 q - pi2 p) \<le> d"
+          proof -
+            have habs: "abs (pi2 q - pi2 p) < d"
+              using hq3 hq4 by (simp add: abs_less_iff)
+            show ?thesis
+              using habs by (rule less_imp_le)
+          qed
+
+          have habs2_1: "abs (pi2 q - pi2 p) \<le> 1"
+            using habs2 hd_le_1 by linarith
+          have hq2_bound: "abs (pi2 q) \<le> abs (pi2 p) + 1"
+          proof -
+            have htri: "abs (pi2 q) \<le> abs (pi2 p) + abs (pi2 q - pi2 p)"
+            proof -
+              have "pi2 q = pi2 p + (pi2 q - pi2 p)"
+                by simp
+              thus ?thesis
+                using abs_triangle_ineq[of "pi2 p" "pi2 q - pi2 p"] by simp
+            qed
+            show ?thesis
+              using htri habs2_1 by linarith
+          qed
+
+          have hdiff_le:
+            "abs (?mul q - ?mul p)
+              \<le> d * (abs (pi2 p) + 1) + abs (pi1 p) * d"
+          proof -
+            have hEq: "?mul q - ?mul p = (pi1 q - pi1 p) * (pi2 q) + (pi1 p) * (pi2 q - pi2 p)"
+              by (simp add: algebra_simps pi1_def pi2_def)
+            have htri: "abs (?mul q - ?mul p)
+                \<le> abs ((pi1 q - pi1 p) * (pi2 q)) + abs ((pi1 p) * (pi2 q - pi2 p))"
+              unfolding hEq by (rule abs_triangle_ineq)
+            have hmul1: "abs ((pi1 q - pi1 p) * (pi2 q)) = abs (pi1 q - pi1 p) * abs (pi2 q)"
+              by (simp add: abs_mult)
+            have hmul2: "abs ((pi1 p) * (pi2 q - pi2 p)) = abs (pi1 p) * abs (pi2 q - pi2 p)"
+              by (simp add: abs_mult)
+            have hle1: "abs ((pi1 q - pi1 p) * (pi2 q)) \<le> d * (abs (pi2 p) + 1)"
+            proof -
+              have hnonneg: "0 \<le> d"
+                using hdpos by linarith
+              have hprod: "abs (pi1 q - pi1 p) * abs (pi2 q) \<le> d * (abs (pi2 p) + 1)"
+              proof (rule mult_mono)
+                show "abs (pi1 q - pi1 p) \<le> d"
+                  by (rule habs1)
+                show "abs (pi2 q) \<le> abs (pi2 p) + 1"
+                  by (rule hq2_bound)
+                show "0 \<le> abs (pi2 q)"
+                  by simp
+                show "0 \<le> d"
+                  by (rule hnonneg)
+              qed
+              show ?thesis
+                using hprod by (simp add: hmul1)
+            qed
+            have hle2: "abs ((pi1 p) * (pi2 q - pi2 p)) \<le> abs (pi1 p) * d"
+            proof -
+              have hle: "abs (pi1 p) * abs (pi2 q - pi2 p) \<le> abs (pi1 p) * d"
+                by (rule mult_left_mono[OF habs2], simp)
+              show ?thesis
+                using hle by (simp add: hmul2)
+            qed
+            have "abs (?mul q - ?mul p)
+                \<le> d * (abs (pi2 p) + 1) + abs (pi1 p) * d"
+              using htri hle1 hle2 by linarith
+            thus ?thesis .
+          qed
+
+          have hK: "d * (abs (pi2 p) + 1) + abs (pi1 p) * d = d * K"
+            unfolding K_def by (simp add: algebra_simps)
+          have hdiff_leK: "abs (?mul q - ?mul p) \<le> d * K"
+            using hdiff_le unfolding hK .
+
+          have hde_le: "d * K \<le> e / 2"
+	          proof -
+	            have hd_le: "d \<le> e / (2 * K)"
+	              using hd_le_d0 unfolding d0_def by simp
+	            have hKnonneg: "0 \<le> K"
+	              by (rule less_imp_le[OF hKpos])
+	            have hmult: "d * K \<le> (e / (2 * K)) * K"
+	              by (rule mult_right_mono[OF hd_le hKnonneg])
+	            have hEq: "(e / (2 * K)) * K = e / 2"
+	              using hKpos by (simp add: field_simps)
+	            show ?thesis
+	              using hmult unfolding hEq .
+	          qed
+          have he2: "e / 2 < e"
+            using he by linarith
+          have hdiff_lt_e: "abs (?mul q - ?mul p) < e"
+          proof -
+            have hdiff_le_e2: "abs (?mul q - ?mul p) \<le> e / 2"
+              by (rule order_trans[OF hdiff_leK hde_le])
+            show ?thesis
+              by (rule le_less_trans[OF hdiff_le_e2 he2])
+          qed
+
+          have hmul1': "?mul p - e < ?mul q"
+          proof -
+            have "-e < ?mul q - ?mul p"
+              using hdiff_lt_e by (simp add: abs_less_iff)
+            thus ?thesis
+              by linarith
+          qed
+          have hmul2': "?mul q < ?mul p + e"
+          proof -
+            have "?mul q - ?mul p < e"
+              using hdiff_lt_e by (simp add: abs_less_iff)
+            thus ?thesis
+              by linarith
+          qed
+
+          have hqI: "?mul q \<in> open_interval (?mul p - e) (?mul p + e)"
+            unfolding open_interval_def using hmul1' hmul2' by simp
+          have hqB: "?mul q \<in> b"
+            using hI_sub hqI by blast
+          show "q \<in> P"
+            unfolding P_def using hqB by simp
+        qed
+
+        show "\<exists>W\<in>?TP. p \<in> W \<and> W \<subseteq> P"
+        proof (rule bexI[where x=W])
+          show "W \<in> ?TP"
+            by (rule hW_TP)
+          show "p \<in> W \<and> W \<subseteq> P"
+            by (intro conjI, rule hpW, rule hWsub)
+        qed
+      qed
+
+      have "P \<in> ?TP"
+        by (rule top1_open_set_from_local_opens[OF hTopX hPsub hlocal])
+      thus "{p \<in> ?X. ?mul p \<in> b} \<in> ?TP"
+        unfolding P_def .
+    qed
+  qed
+qed
+
 (*
 proof -
   let ?R = "(UNIV::real set)"
@@ -17206,6 +17481,279 @@ proof -
           qed
         qed
       qed
+    qed
+  qed
+qed
+
+(** Continuity of multiplicative inversion on the positive reals in the order topology. **)
+lemma top1_continuous_inv_order_topology_pos:
+  shows "top1_continuous_map_on
+      (open_ray_gt (0::real))
+      (subspace_topology (UNIV::real set) order_topology_on_UNIV (open_ray_gt (0::real)))
+      (UNIV::real set) order_topology_on_UNIV
+      (\<lambda>t::real. inverse t)"
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  let ?Pos = "open_ray_gt (0::real)"
+  let ?TPos = "subspace_topology ?R ?TR ?Pos"
+  let ?inv = "(\<lambda>t::real. inverse t)"
+
+  have hTopR: "is_topology_on ?R ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopPos: "is_topology_on ?Pos ?TPos"
+    by (rule subspace_topology_is_topology_on[OF hTopR], simp)
+
+  have hBasisR: "basis_for ?R (basis_order_topology::real set set) ?TR"
+    by (rule basis_for_order_topology_on_UNIV)
+
+  show ?thesis
+  proof (rule top1_continuous_map_on_generated_by_basis)
+    show "is_topology_on ?Pos ?TPos"
+      by (rule hTopPos)
+    show "basis_for ?R (basis_order_topology::real set set) ?TR"
+      by (rule hBasisR)
+    show "\<forall>t\<in>?Pos. ?inv t \<in> ?R"
+      by simp
+    show "\<forall>b\<in>(basis_order_topology::real set set). {t \<in> ?Pos. ?inv t \<in> b} \<in> ?TPos"
+    proof (intro ballI)
+      fix b :: "real set"
+      assume hb: "b \<in> (basis_order_topology::real set set)"
+      define P where "P = {t \<in> ?Pos. ?inv t \<in> b}"
+      have hPsub: "P \<subseteq> ?Pos"
+        unfolding P_def by simp
+
+      have hlocal: "\<forall>p\<in>P. \<exists>U\<in>?TPos. p \<in> U \<and> U \<subseteq> P"
+      proof (intro ballI)
+        fix p assume hpP: "p \<in> P"
+        have hpPos: "p \<in> ?Pos" and hpb: "?inv p \<in> b"
+          using hpP unfolding P_def by simp_all
+        have hpgt: "0 < p"
+          using hpPos unfolding open_ray_gt_def by simp
+
+        obtain e where he: "0 < e"
+          and hI_sub: "open_interval (?inv p - e) (?inv p + e) \<subseteq> b"
+          using basis_order_topology_contains_open_interval[OF hb hpb] by blast
+
+        define d1 where "d1 = p / 2"
+        define d2 where "d2 = e * p\<^sup>2 / 4"
+        define d where "d = min d1 d2"
+
+        have hd1: "0 < d1"
+          unfolding d1_def using hpgt by linarith
+        have hd2: "0 < d2"
+          unfolding d2_def using he hpgt by (simp add: divide_pos_pos)
+        have hd: "0 < d"
+          unfolding d_def using hd1 hd2 by simp
+        have hd_le_d1: "d \<le> d1"
+          unfolding d_def by simp
+        have hd_le_d2: "d \<le> d2"
+          unfolding d_def by simp
+
+        define U where "U = open_interval (p - d) (p + d)"
+        have hU_TR: "U \<in> ?TR"
+        proof -
+          have "p - d < p + d"
+            using hd by linarith
+          thus ?thesis
+            unfolding U_def by (rule open_interval_in_order_topology)
+        qed
+
+        have hUsubPos: "U \<subseteq> ?Pos"
+        proof (rule subsetI)
+          fix t assume htU: "t \<in> U"
+          have hlt: "p - d < t"
+            using htU unfolding U_def open_interval_def by simp
+          have "p / 2 \<le> p - d"
+            using hd_le_d1 unfolding d1_def by linarith
+          hence "p / 2 < t"
+            using hlt by linarith
+          hence "0 < t"
+            using hpgt by linarith
+          thus "t \<in> ?Pos"
+            unfolding open_ray_gt_def by simp
+        qed
+
+        have hU_TPos: "U \<in> ?TPos"
+        proof -
+          have "U = ?Pos \<inter> U"
+            using hUsubPos by blast
+          thus ?thesis
+            unfolding subspace_topology_def using hU_TR by blast
+        qed
+
+        have hpU: "p \<in> U"
+        proof -
+          have "p - d < p"
+            using hd by linarith
+          have "p < p + d"
+            using hd by linarith
+          thus ?thesis
+            unfolding U_def open_interval_def using \<open>p - d < p\<close> by simp
+        qed
+
+        have hUsubP: "U \<subseteq> P"
+        proof (rule subsetI)
+          fix t assume htU: "t \<in> U"
+          have htPos: "t \<in> ?Pos"
+            using hUsubPos htU by blast
+          have htgt: "0 < t"
+            using htPos unfolding open_ray_gt_def by simp
+
+          have ht1: "p - d < t" and ht2: "t < p + d"
+            using htU unfolding U_def open_interval_def by simp_all
+          have habs_lt: "abs (t - p) < d"
+            using ht1 ht2 by (simp add: abs_less_iff)
+          have habs_le: "abs (t - p) \<le> d"
+            using habs_lt by (rule less_imp_le)
+
+          have ht_ge_p2: "p / 2 \<le> t"
+          proof -
+            have "p / 2 \<le> p - d"
+              using hd_le_d1 unfolding d1_def by linarith
+            thus ?thesis
+              using ht1 by linarith
+          qed
+          have ht_lower: "p * (p / 2) \<le> p * t"
+            using ht_ge_p2 by (simp add: mult_left_mono hpgt less_imp_le)
+
+          have hinv_diff:
+            "abs (?inv t - ?inv p) = abs (t - p) / (p * t)"
+          proof -
+            have hp0: "p \<noteq> 0"
+              using hpgt by simp
+            have ht0: "t \<noteq> 0"
+              using htgt by simp
+            have "?inv t - ?inv p = (p - t) / (p * t)"
+              using hp0 ht0 by (simp add: field_simps)
+            hence "abs (?inv t - ?inv p) = abs (p - t) / abs (p * t)"
+              by (simp add: abs_divide)
+            also have "abs (p - t) = abs (t - p)"
+              by simp
+            also have "abs (p * t) = p * t"
+              using hpgt htgt by simp
+            finally show ?thesis
+              by simp
+          qed
+
+          have hden_pos: "0 < p * (p / 2)"
+            using hpgt by (simp add: mult_pos_pos)
+          have hden_le: "p * (p / 2) \<le> p * t"
+            by (rule ht_lower)
+          have hle_inv: "inverse (p * t) \<le> inverse (p * (p / 2))"
+            using hden_le hden_pos by (rule le_imp_inverse_le)
+
+          have hdiff_le:
+            "abs (?inv t - ?inv p) \<le> abs (t - p) / (p * (p / 2))"
+          proof -
+            have hnonneg: "0 \<le> abs (t - p)"
+              by simp
+            have "abs (?inv t - ?inv p) = abs (t - p) * inverse (p * t)"
+              unfolding hinv_diff by (simp only: divide_inverse)
+            also have "... \<le> abs (t - p) * inverse (p * (p / 2))"
+              using hle_inv hnonneg by (rule mult_left_mono)
+            also have "... = abs (t - p) / (p * (p / 2))"
+              by (simp only: divide_inverse)
+            finally show ?thesis .
+          qed
+
+          have hdiff_le2: "abs (?inv t - ?inv p) \<le> 2 * d / p\<^sup>2"
+          proof -
+            have hp0: "p \<noteq> 0"
+              using hpgt by simp
+            have hEq: "abs (t - p) / (p * (p / 2)) = 2 * abs (t - p) / p\<^sup>2"
+              using hp0 by (simp add: field_simps power2_eq_square)
+            have "abs (?inv t - ?inv p) \<le> 2 * abs (t - p) / p\<^sup>2"
+              using hdiff_le unfolding hEq .
+            also have "... \<le> 2 * d / p\<^sup>2"
+	            proof -
+	              have hp2pos: "0 < p\<^sup>2"
+	                using hpgt by simp
+	              have hp2nonneg: "0 \<le> p\<^sup>2"
+	                by (rule less_imp_le[OF hp2pos])
+	              have "2 * abs (t - p) \<le> 2 * d"
+	                using habs_le by (rule mult_left_mono, simp)
+	              have "2 * abs (t - p) / p\<^sup>2 \<le> 2 * d / p\<^sup>2"
+	              proof (rule divide_right_mono)
+	                show "2 * abs (t - p) \<le> 2 * d"
+	                  by (rule \<open>2 * abs (t - p) \<le> 2 * d\<close>)
+	                show "0 \<le> p\<^sup>2"
+	                  by (rule hp2nonneg)
+	              qed
+	              thus ?thesis .
+	            qed
+	            finally show ?thesis .
+	          qed
+
+          have hbound: "2 * d / p\<^sup>2 \<le> e / 2"
+	          proof -
+	            have hp2pos: "0 < p\<^sup>2"
+	              using hpgt by simp
+	            have hp2nonneg: "0 \<le> p\<^sup>2"
+	              by (rule less_imp_le[OF hp2pos])
+	            have hd_le: "d \<le> e * p\<^sup>2 / 4"
+	              using hd_le_d2 unfolding d2_def by simp
+	            have hnum_le: "2 * d \<le> 2 * (e * p\<^sup>2 / 4)"
+	              using hd_le by (rule mult_left_mono, simp)
+	            have "2 * d / p\<^sup>2 \<le> (2 * (e * p\<^sup>2 / 4)) / p\<^sup>2"
+	            proof (rule divide_right_mono)
+	              show "2 * d \<le> 2 * (e * p\<^sup>2 / 4)"
+	                by (rule hnum_le)
+	              show "0 \<le> p\<^sup>2"
+	                by (rule hp2nonneg)
+	            qed
+	            hence "2 * d / p\<^sup>2 \<le> (2 * (e * p\<^sup>2 / 4)) / p\<^sup>2" .
+	            also have "... = e / 2"
+	              using hpgt by (simp add: field_simps)
+	            finally show ?thesis .
+	          qed
+
+          have he2: "e / 2 < e"
+            using he by linarith
+          have hdiff_lt: "abs (?inv t - ?inv p) < e"
+          proof -
+            have hdiff_le_e2: "abs (?inv t - ?inv p) \<le> e / 2"
+              by (rule order_trans[OF hdiff_le2 hbound])
+            show ?thesis
+              by (rule le_less_trans[OF hdiff_le_e2 he2])
+          qed
+
+          have hlt1: "?inv p - e < ?inv t"
+          proof -
+            have "-e < ?inv t - ?inv p"
+              using hdiff_lt by (simp add: abs_less_iff)
+            thus ?thesis
+              by linarith
+          qed
+          have hlt2: "?inv t < ?inv p + e"
+          proof -
+            have "?inv t - ?inv p < e"
+              using hdiff_lt by (simp add: abs_less_iff)
+            thus ?thesis
+              by linarith
+          qed
+          have htI: "?inv t \<in> open_interval (?inv p - e) (?inv p + e)"
+            unfolding open_interval_def using hlt1 hlt2 by simp
+          have htB: "?inv t \<in> b"
+            using hI_sub htI by blast
+
+          show "t \<in> P"
+            unfolding P_def using htPos htB by simp
+        qed
+
+        show "\<exists>U\<in>?TPos. p \<in> U \<and> U \<subseteq> P"
+        proof (rule bexI[where x=U])
+          show "U \<in> ?TPos"
+            by (rule hU_TPos)
+          show "p \<in> U \<and> U \<subseteq> P"
+            by (intro conjI, rule hpU, rule hUsubP)
+        qed
+      qed
+
+      have "P \<in> ?TPos"
+        by (rule top1_open_set_from_local_opens[OF hTopPos hPsub hlocal])
+      thus "{t \<in> ?Pos. ?inv t \<in> b} \<in> ?TPos"
+        unfolding P_def .
     qed
   qed
 qed
