@@ -17902,6 +17902,64 @@ proof -
     using hadd by simp
 qed
 
+(** Continuity of pointwise multiplication of continuous real-valued maps (order topology on \<open>\<real>\<close>). **)
+lemma top1_continuous_mul_real:
+  fixes f g :: "'a \<Rightarrow> real"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hf: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f"
+  assumes hg: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV g"
+  shows "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. f x * g x)"
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  let ?TP = "product_topology_on ?TR ?TR"
+  let ?pair = "(\<lambda>x. (f x, g x))"
+
+  have hTopR: "is_topology_on ?R ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+
+  have hpi1: "top1_continuous_map_on X TX ?R ?TR (pi1 \<circ> ?pair)"
+  proof -
+    have hEq: "(pi1 \<circ> ?pair) = f"
+      by (rule ext, simp add: o_def pi1_def)
+    show ?thesis
+      unfolding hEq by (rule hf)
+  qed
+  have hpi2: "top1_continuous_map_on X TX ?R ?TR (pi2 \<circ> ?pair)"
+  proof -
+    have hEq: "(pi2 \<circ> ?pair) = g"
+      by (rule ext, simp add: o_def pi2_def)
+    show ?thesis
+      unfolding hEq by (rule hg)
+  qed
+
+  have hpair: "top1_continuous_map_on X TX (?R \<times> ?R) ?TP ?pair"
+  proof -
+    have hiff:
+      "top1_continuous_map_on X TX (?R \<times> ?R) ?TP ?pair
+       \<longleftrightarrow>
+         (top1_continuous_map_on X TX ?R ?TR (pi1 \<circ> ?pair)
+          \<and> top1_continuous_map_on X TX ?R ?TR (pi2 \<circ> ?pair))"
+      by (rule Theorem_18_4[OF hTopX hTopR hTopR])
+    show ?thesis
+      apply (rule iffD2[OF hiff])
+      apply (intro conjI)
+       apply (rule hpi1)
+      apply (rule hpi2)
+      done
+  qed
+
+  have hmul: "top1_continuous_map_on (?R \<times> ?R) ?TP ?R ?TR (\<lambda>p::real \<times> real. pi1 p * pi2 p)"
+    by (rule top1_continuous_mul_order_topology)
+
+  have hEq: "(\<lambda>x. f x * g x) = (\<lambda>p::real \<times> real. pi1 p * pi2 p) \<circ> ?pair"
+    by (rule ext, simp add: o_def pi1_def pi2_def)
+
+  show ?thesis
+    unfolding hEq
+    by (rule top1_continuous_map_on_comp[OF hpair hmul])
+qed
+
 (** Finite sums of continuous real-valued maps are continuous (order topology on \<open>\<real>\<close>). **)
 lemma top1_continuous_sum_lessThan_real:
   fixes f :: "nat \<Rightarrow> 'a \<Rightarrow> real"
@@ -18934,6 +18992,51 @@ definition top1_partition_of_unity_dominated_on ::
         \<and> top1_support_on X TX (\<phi> i) \<subseteq> U i)
      \<and> (\<forall>x\<in>X. (\<Sum>i<n. \<phi> i x) = 1)"
 
+lemma top1_support_on_mul_nonzero_factor:
+  fixes f c :: "'a \<Rightarrow> real"
+  assumes hfac: "\<forall>x\<in>X. c x \<noteq> 0"
+  shows "top1_support_on X TX (\<lambda>x. f x * c x) = top1_support_on X TX f"
+proof -
+  have hEq: "{x \<in> X. f x * c x \<noteq> 0} = {x \<in> X. f x \<noteq> 0}"
+  proof (rule set_eqI)
+    fix x
+    show "x \<in> {x \<in> X. f x * c x \<noteq> 0} \<longleftrightarrow> x \<in> {x \<in> X. f x \<noteq> 0}"
+    proof (cases "x \<in> X")
+      case False
+      then show ?thesis
+        by simp
+    next
+      case True
+      have hc: "c x \<noteq> 0"
+        using hfac True by blast
+      have "(f x * c x \<noteq> 0) \<longleftrightarrow> (f x \<noteq> 0)"
+      proof
+        assume h: "f x * c x \<noteq> 0"
+        show "f x \<noteq> 0"
+        proof
+          assume "f x = 0"
+          then have "f x * c x = 0"
+            by simp
+          thus False
+            using h by contradiction
+        qed
+      next
+        assume h: "f x \<noteq> 0"
+        show "f x * c x \<noteq> 0"
+          using h hc by simp
+      qed
+      then show ?thesis
+        using True by simp
+    qed
+  qed
+
+  show ?thesis
+    unfolding top1_support_on_def
+    apply (subst hEq)
+    apply simp
+    done
+qed
+
 (** Step 1 of Theorem 36.1: "shrink" a finite open cover so that each shrunken set has closure
     contained in the corresponding original one. **)
 lemma normal_shrink_finite_open_cover:
@@ -19613,17 +19716,396 @@ proof -
     and hpsi_one: "\<forall>x\<in>X. \<exists>i<n. \<psi> i x = 1"
     using normal_finite_cover_bump_family[OF hN hUopen hUsub hcov] by blast
 
-  text \<open>
-    It remains to normalize the bump family \<open>\<psi>\<close> by setting \<open>\<Psi>(x) = \<Sum>i<n. \<psi> i x\<close> (which is positive
-    everywhere by \<open>hpsi_one\<close>) and defining \<open>\<phi> j x = \<psi> j x / \<Psi> x\<close>.
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
 
-    Completing this proof requires additional real-analytic infrastructure in the
-    \<open>top1_continuous_map_on\<close> framework (continuity of multiplication and inversion in the order topology),
-    plus a continuity lemma for finite sums.
-  \<close>
+  have hT1: "top1_T1_on X TX"
+    using hN unfolding top1_normal_on_def by (rule conjunct1)
+  have hTopX: "is_topology_on X TX"
+    using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+
+  have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopI: "is_topology_on ?I ?TI"
+    unfolding top1_closed_interval_topology_def
+    by (rule subspace_topology_is_topology_on[OF hTopR], simp add: top1_closed_interval_def)
+
+  have hTI_eq: "?TI = subspace_topology (UNIV::real set) order_topology_on_UNIV ?I"
+    unfolding top1_closed_interval_topology_def by simp
+
+  have hpsi_contI: "\<forall>i<n. top1_continuous_map_on X TX ?I ?TI (\<psi> i)"
+    using hpsi_dom by blast
+  have hpsi_suppU: "\<forall>i<n. top1_support_on X TX (\<psi> i) \<subseteq> U i"
+    using hpsi_dom by blast
+
+	  have hpsi_mapI: "\<forall>i<n. \<forall>x\<in>X. \<psi> i x \<in> ?I"
+	  proof (intro allI impI)
+	    fix i assume hi: "i < n"
+	    have hcont: "top1_continuous_map_on X TX ?I ?TI (\<psi> i)"
+	      using hpsi_contI hi by blast
+	    have hmap: "\<forall>x\<in>X. \<psi> i x \<in> ?I"
+	      using hcont unfolding top1_continuous_map_on_def by (rule conjunct1)
+	    show "\<forall>x\<in>X. \<psi> i x \<in> ?I"
+	      by (rule hmap)
+	  qed
+
+  have hpsi_ge0: "\<forall>i<n. \<forall>x\<in>X. 0 \<le> \<psi> i x"
+  proof (intro allI impI ballI)
+    fix i assume hi: "i < n"
+    fix x assume hx: "x \<in> X"
+    have "\<psi> i x \<in> ?I"
+      using hpsi_mapI hi hx by blast
+    thus "0 \<le> \<psi> i x"
+      unfolding top1_closed_interval_def by simp
+  qed
+  have hpsi_le1: "\<forall>i<n. \<forall>x\<in>X. \<psi> i x \<le> 1"
+  proof (intro allI impI ballI)
+    fix i assume hi: "i < n"
+    fix x assume hx: "x \<in> X"
+    have "\<psi> i x \<in> ?I"
+      using hpsi_mapI hi hx by blast
+    thus "\<psi> i x \<le> 1"
+      unfolding top1_closed_interval_def by simp
+  qed
+
+  define \<Psi> where "\<Psi> x = (\<Sum>i<n. \<psi> i x)" for x
+
+  have hpsi_contR: "\<forall>i<n. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<psi> i)"
+  proof (intro allI impI)
+    fix i assume hi: "i < n"
+    have hcontI: "top1_continuous_map_on X TX ?I ?TI (\<psi> i)"
+      using hpsi_contI hi by blast
+    have hexpand:
+      "\<forall>W f.
+        top1_continuous_map_on X TX ?I ?TI f
+        \<and> ?I \<subseteq> W
+        \<and> ?TI = subspace_topology W order_topology_on_UNIV ?I
+        \<longrightarrow> top1_continuous_map_on X TX W order_topology_on_UNIV f"
+      using Theorem_18_2(6)[OF hTopX hTopI hTopR] .
+    have hW: "?I \<subseteq> (UNIV::real set)"
+      by simp
+    have hpre:
+      "top1_continuous_map_on X TX ?I ?TI (\<psi> i)
+       \<and> ?I \<subseteq> (UNIV::real set)
+       \<and> ?TI = subspace_topology (UNIV::real set) order_topology_on_UNIV ?I"
+      by (intro conjI, rule hcontI, rule hW, rule hTI_eq)
+    have "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<psi> i)"
+      using mp[OF spec[OF spec[OF hexpand, where x="(UNIV::real set)"], where x="(\<psi> i)"] hpre] .
+    thus "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<psi> i)" .
+  qed
+
+  have hPsi_contR: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV \<Psi>"
+    unfolding \<Psi>_def
+    by (rule top1_continuous_sum_lessThan_real[OF hTopX hpsi_contR])
+
+	  have hPsi_ge1: "\<forall>x\<in>X. 1 \<le> \<Psi> x"
+	  proof (intro ballI)
+	    fix x assume hxX: "x \<in> X"
+	    obtain i where hi: "i < n" and hpsi1: "\<psi> i x = 1"
+	      using hpsi_one hxX by blast
+
+    have hnonneg: "\<And>j. j \<in> {..<n} \<Longrightarrow> 0 \<le> (\<lambda>j. \<psi> j x) j"
+    proof -
+      fix j assume hj: "j \<in> {..<n}"
+      have hj': "j < n"
+        using hj by simp
+      show "0 \<le> (\<psi> j x)"
+        using hpsi_ge0 hj' hxX by blast
+    qed
+
+	    have hterm_le: "\<psi> i x \<le> (\<Sum>j<n. \<psi> j x)"
+	    proof -
+	      have fin: "finite ({..<n}::nat set)"
+	        by simp
+	      have hi_in: "i \<in> {..<n}"
+	        using hi by simp
+	      have hsplit: "(\<Sum>j\<in>{..<n}. \<psi> j x) = \<psi> i x + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+	        by (rule sum.remove[OF fin hi_in])
+	      have hrest_nonneg: "0 \<le> (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+	      proof -
+	        have "\<And>j. j \<in> {..<n} - {i} \<Longrightarrow> 0 \<le> \<psi> j x"
+	        proof -
+	          fix j assume hj: "j \<in> {..<n} - {i}"
+	          have hj': "j < n"
+	            using hj by simp
+	          have himp: "j < n \<longrightarrow> (\<forall>y\<in>X. 0 \<le> \<psi> j y)"
+	            using hpsi_ge0 by (rule spec)
+	          have hAll: "\<forall>y\<in>X. 0 \<le> \<psi> j y"
+	            by (rule mp[OF himp hj'])
+	          show "0 \<le> \<psi> j x"
+	            by (rule bspec[OF hAll hxX])
+	        qed
+		        show ?thesis
+		        proof (rule sum_nonneg)
+		          fix xa assume hxa: "xa \<in> {..<n} - {i}"
+		          show "0 \<le> \<psi> xa x"
+		            by (rule \<open>\<And>j. j \<in> {..<n} - {i} \<Longrightarrow> 0 \<le> \<psi> j x\<close>[OF hxa])
+		        qed
+		      qed
+
+		      have hle: "\<psi> i x \<le> \<psi> i x + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+		      proof -
+		        have "(\<psi> i x) + 0 \<le> (\<psi> i x) + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+		          using hrest_nonneg by (rule add_left_mono)
+		        thus ?thesis
+		          by simp
+		      qed
+	      have hEq: "\<psi> i x + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x) = (\<Sum>j\<in>{..<n}. \<psi> j x)"
+	        by (rule sym[OF hsplit])
+	      have "\<psi> i x \<le> (\<Sum>j\<in>{..<n}. \<psi> j x)"
+	        using hle by (simp add: hEq)
+	      thus ?thesis
+	        by simp
+	    qed
+	    show "1 \<le> \<Psi> x"
+	      unfolding \<Psi>_def using hterm_le hpsi1 by simp
+	  qed
+
+  have hPsi_pos: "\<forall>x\<in>X. 0 < \<Psi> x"
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    have "1 \<le> \<Psi> x"
+      using hPsi_ge1 hxX by blast
+    thus "0 < \<Psi> x"
+      by linarith
+  qed
+
+  have hPsi_img_pos: "\<Psi> ` X \<subseteq> open_ray_gt (0::real)"
+  proof (rule subsetI)
+    fix y assume hy: "y \<in> \<Psi> ` X"
+    then obtain x where hxX: "x \<in> X" and hyEq: "y = \<Psi> x"
+      by blast
+    have "0 < \<Psi> x"
+      using hPsi_pos hxX by blast
+    thus "y \<in> open_ray_gt (0::real)"
+      unfolding open_ray_gt_def using hyEq by simp
+  qed
+
+  have hPsi_contPos:
+    "top1_continuous_map_on X TX (open_ray_gt (0::real))
+        (subspace_topology (UNIV::real set) order_topology_on_UNIV (open_ray_gt (0::real))) \<Psi>"
+  proof -
+    have hrestrict_all:
+      "\<forall>W f.
+        top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f
+        \<and> W \<subseteq> (UNIV::real set)
+        \<and> f ` X \<subseteq> W
+        \<longrightarrow> top1_continuous_map_on X TX W (subspace_topology (UNIV::real set) order_topology_on_UNIV W) f"
+      using Theorem_18_2(5)[OF hTopX hTopR hTopR] .
+    have hWsub: "open_ray_gt (0::real) \<subseteq> (UNIV::real set)"
+      by simp
+    have hpre:
+      "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV \<Psi>
+       \<and> open_ray_gt (0::real) \<subseteq> (UNIV::real set)
+       \<and> \<Psi> ` X \<subseteq> open_ray_gt (0::real)"
+      by (intro conjI, rule hPsi_contR, rule hWsub, rule hPsi_img_pos)
+    show ?thesis
+      using mp[OF spec[OF spec[OF hrestrict_all, where x="open_ray_gt (0::real)"], where x=\<Psi>] hpre] .
+  qed
+
+  have hInvPsi_contR: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV ((\<lambda>t::real. inverse t) \<circ> \<Psi>)"
+    by (rule top1_continuous_map_on_comp[OF hPsi_contPos top1_continuous_inv_order_topology_pos])
+
+  define \<phi> where "\<phi> i x = \<psi> i x * inverse (\<Psi> x)" for i x
+
+  have hphi_contI_supp: "\<forall>i<n. top1_continuous_map_on X TX ?I ?TI (\<phi> i) \<and> top1_support_on X TX (\<phi> i) \<subseteq> U i"
+  proof (intro allI impI)
+    fix i assume hi: "i < n"
+
+    have hpsi_i_R: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<psi> i)"
+      using hpsi_contR hi by blast
+    have hphi_i_R: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<phi> i)"
+    proof -
+      have hEq: "(\<phi> i) = (\<lambda>x. \<psi> i x * ((\<lambda>t::real. inverse t) \<circ> \<Psi>) x)"
+        unfolding \<phi>_def by (rule ext, simp add: o_def)
+      show ?thesis
+        unfolding hEq
+        by (rule top1_continuous_mul_real[OF hTopX hpsi_i_R hInvPsi_contR])
+    qed
+
+    have hphi_range: "(\<forall>x\<in>X. \<phi> i x \<in> ?I)"
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      have hPsi_posx: "0 < \<Psi> x"
+        using hPsi_pos hxX by blast
+      have hPsi_ne0: "\<Psi> x \<noteq> 0"
+        using hPsi_posx by simp
+      have hInv_pos: "0 < inverse (\<Psi> x)"
+        using hPsi_posx by (rule positive_imp_inverse_positive)
+
+      have hpsix_ge0: "0 \<le> \<psi> i x"
+        using hpsi_ge0 hi hxX by blast
+      have hpsix_le1: "\<psi> i x \<le> 1"
+        using hpsi_le1 hi hxX by blast
+
+	      have hpsix_le_sum: "\<psi> i x \<le> (\<Sum>j<n. \<psi> j x)"
+	      proof -
+	        have fin: "finite ({..<n}::nat set)"
+	          by simp
+	        have hi_in: "i \<in> {..<n}"
+	          using hi by simp
+	        have hsplit: "(\<Sum>j\<in>{..<n}. \<psi> j x) = \<psi> i x + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+	          by (rule sum.remove[OF fin hi_in])
+		        have hrest_nonneg: "0 \<le> (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+		        proof -
+		          have "\<And>j. j \<in> {..<n} - {i} \<Longrightarrow> 0 \<le> \<psi> j x"
+		          proof -
+		            fix j assume hj: "j \<in> {..<n} - {i}"
+		            have hj': "j < n"
+		              using hj by simp
+		            have himp: "j < n \<longrightarrow> (\<forall>y\<in>X. 0 \<le> \<psi> j y)"
+		              using hpsi_ge0 by (rule spec)
+		            have hAll: "\<forall>y\<in>X. 0 \<le> \<psi> j y"
+		              by (rule mp[OF himp hj'])
+		            show "0 \<le> \<psi> j x"
+		              by (rule bspec[OF hAll hxX])
+		          qed
+		          show ?thesis
+		          proof (rule sum_nonneg)
+		            fix xa assume hxa: "xa \<in> {..<n} - {i}"
+		            show "0 \<le> \<psi> xa x"
+		              by (rule \<open>\<And>j. j \<in> {..<n} - {i} \<Longrightarrow> 0 \<le> \<psi> j x\<close>[OF hxa])
+		          qed
+		        qed
+
+		        have hle: "\<psi> i x \<le> \<psi> i x + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+		        proof -
+		          have "(\<psi> i x) + 0 \<le> (\<psi> i x) + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x)"
+		            using hrest_nonneg by (rule add_left_mono)
+		          thus ?thesis
+		            by simp
+		        qed
+	        have hEq: "\<psi> i x + (\<Sum>j\<in>{..<n} - {i}. \<psi> j x) = (\<Sum>j\<in>{..<n}. \<psi> j x)"
+	          by (rule sym[OF hsplit])
+	        have "\<psi> i x \<le> (\<Sum>j\<in>{..<n}. \<psi> j x)"
+	          using hle by (simp add: hEq)
+	        thus ?thesis
+	          by simp
+	      qed
+      have hpsix_le_Psi: "\<psi> i x \<le> \<Psi> x"
+        unfolding \<Psi>_def using hpsix_le_sum by simp
+
+      have hphi_ge0: "0 \<le> \<phi> i x"
+      proof -
+        have "0 \<le> \<psi> i x * inverse (\<Psi> x)"
+          using hpsix_ge0 less_imp_le[OF hInv_pos] by (rule mult_nonneg_nonneg)
+        thus ?thesis
+          unfolding \<phi>_def by simp
+      qed
+
+      have hphi_le1: "\<phi> i x \<le> 1"
+      proof -
+        have hmul_le: "\<psi> i x * inverse (\<Psi> x) \<le> \<Psi> x * inverse (\<Psi> x)"
+          using hpsix_le_Psi less_imp_le[OF hInv_pos] by (rule mult_right_mono)
+        have hPsi_cancel: "\<Psi> x * inverse (\<Psi> x) = 1"
+          using hPsi_ne0 by simp
+        have "\<psi> i x * inverse (\<Psi> x) \<le> 1"
+          using hmul_le unfolding hPsi_cancel .
+        thus ?thesis
+          unfolding \<phi>_def by simp
+      qed
+
+	      have "\<phi> i x \<in> {t. 0 \<le> t \<and> t \<le> 1}"
+	        using hphi_ge0 hphi_le1 unfolding top1_closed_interval_def by simp
+	      thus "\<phi> i x \<in> ?I"
+	        unfolding top1_closed_interval_def by simp
+	    qed
+
+    have hphi_contI: "top1_continuous_map_on X TX ?I ?TI (\<phi> i)"
+    proof -
+      have hrestrict_all:
+        "\<forall>W f.
+          top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f
+          \<and> W \<subseteq> (UNIV::real set)
+          \<and> f ` X \<subseteq> W
+          \<longrightarrow> top1_continuous_map_on X TX W (subspace_topology (UNIV::real set) order_topology_on_UNIV W) f"
+        using Theorem_18_2(5)[OF hTopX hTopR hTopR] .
+      have hWsub: "?I \<subseteq> (UNIV::real set)"
+        by simp
+      have hImg: "(\<phi> i) ` X \<subseteq> ?I"
+      proof (rule subsetI)
+        fix y assume hy: "y \<in> (\<phi> i) ` X"
+        then obtain x where hxX: "x \<in> X" and hyEq: "y = \<phi> i x"
+          by blast
+        have "\<phi> i x \<in> ?I"
+          using hphi_range hxX by blast
+        thus "y \<in> ?I"
+          using hyEq by simp
+      qed
+      have hpre:
+        "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<phi> i)
+         \<and> ?I \<subseteq> (UNIV::real set)
+         \<and> (\<phi> i) ` X \<subseteq> ?I"
+        by (intro conjI, rule hphi_i_R, rule hWsub, rule hImg)
+      have "top1_continuous_map_on X TX ?I (subspace_topology (UNIV::real set) order_topology_on_UNIV ?I) (\<phi> i)"
+        using mp[OF spec[OF spec[OF hrestrict_all, where x="?I"], where x="(\<phi> i)"] hpre] .
+      thus ?thesis
+        unfolding hTI_eq .
+    qed
+
+    have hInvPsi_nonzero: "\<forall>x\<in>X. inverse (\<Psi> x) \<noteq> 0"
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      have "0 < \<Psi> x"
+        using hPsi_pos hxX by blast
+      hence "\<Psi> x \<noteq> 0"
+        by simp
+      thus "inverse (\<Psi> x) \<noteq> 0"
+        by simp
+    qed
+
+    have hsupp_eq: "top1_support_on X TX (\<phi> i) = top1_support_on X TX (\<psi> i)"
+    proof -
+      have hEq: "(\<phi> i) = (\<lambda>x. \<psi> i x * inverse (\<Psi> x))"
+        unfolding \<phi>_def by (rule ext, simp)
+      show ?thesis
+        unfolding hEq
+        by (rule top1_support_on_mul_nonzero_factor[OF hInvPsi_nonzero])
+    qed
+
+    have hsuppU: "top1_support_on X TX (\<phi> i) \<subseteq> U i"
+      unfolding hsupp_eq using hpsi_suppU hi by blast
+
+    show "top1_continuous_map_on X TX ?I ?TI (\<phi> i) \<and> top1_support_on X TX (\<phi> i) \<subseteq> U i"
+      by (intro conjI, rule hphi_contI, rule hsuppU)
+  qed
+
+  have hsum1: "\<forall>x\<in>X. (\<Sum>i<n. \<phi> i x) = 1"
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    have hPsi_ne0: "\<Psi> x \<noteq> 0"
+    proof -
+      have "0 < \<Psi> x"
+        using hPsi_pos hxX by blast
+      thus ?thesis
+        by simp
+    qed
+    have hsum:
+      "(\<Sum>i<n. \<phi> i x) = (\<Sum>i<n. \<psi> i x) * inverse (\<Psi> x)"
+    proof -
+      have hEq1: "(\<Sum>i<n. \<phi> i x) = (\<Sum>i<n. \<psi> i x * inverse (\<Psi> x))"
+        unfolding \<phi>_def by simp
+      have hEq2: "(\<Sum>i<n. \<psi> i x * inverse (\<Psi> x)) = (\<Sum>i<n. \<psi> i x) * inverse (\<Psi> x)"
+        by (simp add: sum_distrib_right[symmetric])
+      show ?thesis
+        using hEq1 hEq2 by simp
+    qed
+    have hPsiEq: "(\<Sum>i<n. \<psi> i x) = \<Psi> x"
+      unfolding \<Psi>_def by simp
+    have "(\<Sum>i<n. \<phi> i x) = \<Psi> x * inverse (\<Psi> x)"
+      using hsum unfolding hPsiEq by simp
+    also have "... = 1"
+      using hPsi_ne0 by simp
+    finally show "(\<Sum>i<n. \<phi> i x) = 1" .
+  qed
 
   show ?thesis
-    sorry
+    apply (rule exI[where x=\<phi>])
+    unfolding top1_partition_of_unity_dominated_on_def
+    apply (intro conjI)
+     apply (rule hphi_contI_supp)
+    apply (rule hsum1)
+    done
 qed
 
 end
