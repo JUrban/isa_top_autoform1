@@ -15141,73 +15141,86 @@ proof -
 			  qed
 		
 		  have hTX_sub_Met: "TX \<subseteq> top1_metric_topology_on X d"
-		    sorry
-		  (* proof (rule subsetI)
+		  proof (rule subsetI)
 		    fix U assume hU: "U \<in> TX"
+		
 		    have hUX: "U \<subseteq> X"
-		      using hTop hU unfolding is_topology_on_def topology_generated_by_basis_def by blast
-	    have href:
-	      "\<forall>x0\<in>U. \<exists>b\<in>top1_metric_basis_on X d. x0 \<in> b \<and> b \<subseteq> U"
-	    proof (intro ballI)
-	      fix x0 assume hx0U: "x0 \<in> U"
-	      have hx0X: "x0 \<in> X"
-	        using hUX hx0U by blast
-	      have hnb: "neighborhood_of x0 X TX U"
-	        unfolding neighborhood_of_def using hU hx0U by blast
-	      obtain n where hnx: "fseq n x0 = 1" and hzero: "\<forall>x\<in>X - U. fseq n x = 0"
-	        using fseq_support hx0X hnb by blast
-	      define r where "r = (1/2::real)^n / 2"
-	      have hrpos: "0 < r"
-	        unfolding r_def by simp
-	      have hx0ball: "x0 \<in> top1_ball_on X d x0 r"
-	        unfolding top1_ball_on_def r_def d_def using hx0X by simp
-	      have hsub: "top1_ball_on X d x0 r \<subseteq> U"
-	      proof (rule subsetI)
-	        fix y assume hy: "y \<in> top1_ball_on X d x0 r"
-	        have hyX: "y \<in> X"
-	          using hy unfolding top1_ball_on_def by simp
-	        show "y \<in> U"
-	        proof (rule ccontr)
-	          assume hny: "y \<notin> U"
-	          have hyout: "y \<in> X - U"
-	            using hyX hny by blast
-	          have hfy: "fseq n y = 0"
-	            using hzero hyout by blast
-	          have hge: "(1/2::real)^n \<le> d x0 y"
-	          proof -
-	            have "(1/2::real)^n * abs (fseq n x0 - fseq n y) \<le> d x0 y"
-	              by (rule d_ge_term[OF hx0X hyX])
-	            thus ?thesis
-	              using hnx hfy by simp
+		    proof -
+		      have "U \<in> topology_generated_by_basis X B"
+		        using hU hTXeq by simp
+		      thus "U \<subseteq> X"
+		        unfolding topology_generated_by_basis_def by blast
+		    qed
+		
+		    have href:
+		      "\<forall>x0\<in>U. \<exists>b\<in>top1_metric_basis_on X d. x0 \<in> b \<and> b \<subseteq> U"
+		    proof (intro ballI)
+		      fix x0 assume hx0U: "x0 \<in> U"
+		      have hx0X: "x0 \<in> X"
+		        using hUX hx0U by blast
+		      have hnb: "neighborhood_of x0 X TX U"
+		        unfolding neighborhood_of_def using hU hx0U by simp
+		      obtain n where hnx: "fseq n x0 = 1" and hzero: "\<forall>x\<in>X - U. fseq n x = 0"
+		        using fseq_support hx0X hnb by blast
+		      define r where "r = (1/2::real)^n / 2"
+		      have hrpos: "0 < r"
+		        unfolding r_def by simp
+		      have hx0ball: "x0 \<in> top1_ball_on X d x0 r"
+		        unfolding top1_ball_on_def r_def d_def using hx0X by simp
+		      have hsub: "top1_ball_on X d x0 r \<subseteq> U"
+		      proof (rule subsetI)
+		        fix y assume hy: "y \<in> top1_ball_on X d x0 r"
+		        have hyX: "y \<in> X"
+		          using hy unfolding top1_ball_on_def by simp
+		        show "y \<in> U"
+		        proof (rule ccontr)
+		          assume hny: "y \<notin> U"
+		          have hyout: "y \<in> X - U"
+		            using hyX hny by blast
+		          have hfy: "fseq n y = 0"
+		            using hzero hyout by blast
+		          have hge: "(1/2::real)^n \<le> d x0 y"
+		          proof -
+		            have "(1/2::real)^n * abs (fseq n x0 - fseq n y) \<le> d x0 y"
+		              by (rule d_ge_term[OF hx0X hyX])
+		            thus ?thesis
+		              using hnx hfy by simp
+			          qed
+			          have "d x0 y < r"
+			            using hy unfolding top1_ball_on_def by simp
+			          have hlt: "d x0 y < (1/2::real)^n / 2"
+			            using \<open>d x0 y < r\<close> unfolding r_def by simp
+			          have hpos: "0 < (1/2::real)^n"
+			            by simp
+			          have hhalf: "(1/2::real)^n / 2 < (1/2::real)^n"
+			            using hpos by linarith
+			          have "d x0 y < (1/2::real)^n"
+			            by (rule less_trans[OF hlt hhalf])
+			          thus False
+			            using hge by linarith
+		        qed
+		      qed
+		      have hbasis: "top1_ball_on X d x0 r \<in> top1_metric_basis_on X d"
+		        unfolding top1_metric_basis_on_def using hx0X hrpos by blast
+		      show "\<exists>b\<in>top1_metric_basis_on X d. x0 \<in> b \<and> b \<subseteq> U"
+		        apply (rule bexI[where x="top1_ball_on X d x0 r"])
+		         apply (intro conjI)
+		          apply (rule hx0ball)
+		         apply (rule hsub)
+		        apply (rule hbasis)
+		        done
+		    qed
+		
+		    have "U \<in> topology_generated_by_basis X (top1_metric_basis_on X d)"
+		      unfolding topology_generated_by_basis_def
+		      apply (rule CollectI)
+		      apply (intro conjI)
+		       apply (rule hUX)
+		      apply (rule href)
+		      done
+		    thus "U \<in> top1_metric_topology_on X d"
+		      unfolding top1_metric_topology_on_def by simp
 		  qed
-	          have "d x0 y < r"
-	            using hy unfolding top1_ball_on_def by simp
-	          hence "d x0 y < (1/2::real)^n"
-	            unfolding r_def by simp
-	          thus False
-	            using hge by linarith
-	        qed
-	      qed
-	      have hbasis: "top1_ball_on X d x0 r \<in> top1_metric_basis_on X d"
-	        unfolding top1_metric_basis_on_def using hx0X hrpos by blast
-	      show "\<exists>b\<in>top1_metric_basis_on X d. x0 \<in> b \<and> b \<subseteq> U"
-	        apply (rule bexI[where x="top1_ball_on X d x0 r"])
-	         apply (intro conjI)
-	          apply (rule hx0ball)
-	         apply (rule hsub)
-	        apply (rule hbasis)
-	        done
-	    qed
-	    have "U \<in> topology_generated_by_basis X (top1_metric_basis_on X d)"
-	      unfolding topology_generated_by_basis_def
-	      apply (rule CollectI)
-	      apply (intro conjI)
-	       apply (rule hUX)
-	      apply (rule href)
-	      done
-	    thus "U \<in> top1_metric_topology_on X d"
-	      unfolding top1_metric_topology_on_def by simp
-	  qed *)
 	
 	  have hTXeq': "TX = top1_metric_topology_on X d"
 	    using hMet_sub_TX hTX_sub_Met by blast
