@@ -15379,6 +15379,331 @@ proof -
 
 section \<open>*\<S>35 The Tietze Extension Theorem\<close>
 
+text \<open>
+  We begin with Step 1 of the proof in \<open>top1.tex\<close>: given a continuous map
+  \<open>f : A \<rightarrow> [-r,r]\<close> on a closed subset \<open>A\<close> of a normal space \<open>X\<close>, we construct a continuous
+  \<open>g : X \<rightarrow> [-r/3,r/3]\<close> that is uniformly small and approximates \<open>f\<close> on \<open>A\<close>.
+\<close>
+
+lemma top1_closed_interval_closedin_order_topology:
+  fixes a b :: real
+  shows "closedin_on (UNIV::real set) order_topology_on_UNIV (top1_closed_interval a b)"
+  sorry
+
+lemma abs_diff_le_of_bounds:
+  fixes L U u v :: real
+  assumes hLu: "L \<le> u" and huU: "u \<le> U"
+  assumes hLv: "L \<le> v" and hvU: "v \<le> U"
+  shows "abs (u - v) \<le> U - L"
+proof -
+  have h1: "u - v \<le> U - L"
+    using huU hLv by linarith
+  have h2: "- (u - v) \<le> U - L"
+    using hvU hLu by linarith
+  show ?thesis
+    by (rule abs_leI[OF h1 h2])
+qed
+
+lemma top1_tietze_step1:
+  fixes A :: "'a set" and f :: "'a \<Rightarrow> real" and r :: real
+  defines "J \<equiv> top1_closed_interval (-r) r"
+  defines "TJ \<equiv> top1_closed_interval_topology (-r) r"
+  defines "I1 \<equiv> top1_closed_interval (-r) (-r/3)"
+  defines "I3 \<equiv> top1_closed_interval (r/3) r"
+  defines "B \<equiv> {a \<in> A. f a \<in> I1}"
+  defines "C \<equiv> {a \<in> A. f a \<in> I3}"
+  assumes hX: "top1_normal_on X TX"
+  assumes hA: "closedin_on X TX A"
+  assumes hf: "top1_continuous_map_on A (subspace_topology X TX A) J TJ f"
+  assumes hr: "0 < r"
+  shows "\<exists>g. top1_continuous_map_on X TX (top1_closed_interval (-r/3) (r/3))
+                  (top1_closed_interval_topology (-r/3) (r/3)) g
+            \<and> (\<forall>x\<in>B. g x = -r/3)
+            \<and> (\<forall>x\<in>C. g x = r/3)
+            \<and> (\<forall>x\<in>X. abs (g x) \<le> r/3)
+            \<and> (\<forall>a\<in>A. abs (g a - f a) \<le> 2*r/3)"
+  sorry
+
+(*
+  Proof attempt (currently too slow for the 60s session timeout):
+  see `tst/Top1.thy.tietze_step1_wip2`.
+proof -
+  have hT1: "top1_T1_on X TX"
+    using hX unfolding top1_normal_on_def by (rule conjunct1)
+  have hTopX: "is_topology_on X TX"
+    using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+  have hAX: "A \<subseteq> X"
+    by (rule closedin_sub[OF hA])
+
+  have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopA: "is_topology_on A (subspace_topology X TX A)"
+    by (rule subspace_topology_is_topology_on[OF hTopX hAX])
+  have hTopJ: "is_topology_on J TJ"
+    unfolding TJ_def top1_closed_interval_topology_def J_def
+    by (rule subspace_topology_is_topology_on[OF hTopR], simp)
+
+  have hI1subJ: "I1 \<subseteq> J"
+  proof (rule subsetI)
+    fix t assume ht: "t \<in> I1"
+    have ht1: "-r \<le> t" and ht2: "t \<le> -r/3"
+      using ht unfolding I1_def top1_closed_interval_def by blast+
+    have hle: "-r/3 \<le> r"
+      using hr by linarith
+    have "t \<le> r"
+      using ht2 hle by linarith
+    thus "t \<in> J"
+      unfolding J_def top1_closed_interval_def using ht1 by blast
+  qed
+  have hI3subJ: "I3 \<subseteq> J"
+  proof (rule subsetI)
+    fix t assume ht: "t \<in> I3"
+    have ht1: "r/3 \<le> t" and ht2: "t \<le> r"
+      using ht unfolding I3_def top1_closed_interval_def by blast+
+    have hle: "-r \<le> r/3"
+      using hr by linarith
+    have "-r \<le> t"
+      using hle ht1 by linarith
+    thus "t \<in> J"
+      unfolding J_def top1_closed_interval_def using ht2 by blast
+  qed
+
+  have hI1_closed_J: "closedin_on J TJ I1"
+  proof -
+    have hI1_closed_UNIV: "closedin_on (UNIV::real set) order_topology_on_UNIV I1"
+      unfolding I1_def by (rule top1_closed_interval_closedin_order_topology)
+    show ?thesis
+      unfolding J_def TJ_def top1_closed_interval_topology_def
+      apply (rule iffD2)
+       apply (rule Theorem_17_2[OF hTopR])
+       apply simp
+      apply (rule exI[where x=I1])
+      apply (intro conjI)
+       apply (rule hI1_closed_UNIV)
+      apply (rule sym)
+      apply (rule Int_absorb2)
+      apply (simp only: J_def[symmetric])
+      apply (rule hI1subJ)
+  done
+qed
+  have hI3_closed_J: "closedin_on J TJ I3"
+  proof -
+    have hI3_closed_UNIV: "closedin_on (UNIV::real set) order_topology_on_UNIV I3"
+      unfolding I3_def by (rule top1_closed_interval_closedin_order_topology)
+    show ?thesis
+      unfolding J_def TJ_def top1_closed_interval_topology_def
+      apply (rule iffD2)
+       apply (rule Theorem_17_2[OF hTopR])
+       apply simp
+      apply (rule exI[where x=I3])
+      apply (intro conjI)
+       apply (rule hI3_closed_UNIV)
+      apply (rule sym)
+      apply (rule Int_absorb2)
+      apply (simp only: J_def[symmetric])
+      apply (rule hI3subJ)
+  done
+qed
+  have cont_closed_f:
+    "top1_continuous_map_on A (subspace_topology X TX A) J TJ f \<longleftrightarrow>
+       ((\<forall>x\<in>A. f x \<in> J) \<and>
+        (\<forall>D. closedin_on J TJ D \<longrightarrow> closedin_on A (subspace_topology X TX A) {x\<in>A. f x \<in> D}))"
+    by (rule Theorem_18_1(2)[OF hTopA hTopJ])
+
+  have preimage_closed_f:
+    "\<forall>D. closedin_on J TJ D \<longrightarrow> closedin_on A (subspace_topology X TX A) {x\<in>A. f x \<in> D}"
+  proof -
+    have hconj:
+      "(\<forall>x\<in>A. f x \<in> J)
+       \<and> (\<forall>D. closedin_on J TJ D \<longrightarrow> closedin_on A (subspace_topology X TX A) {x\<in>A. f x \<in> D})"
+      using iffD1[OF cont_closed_f hf] .
+    show ?thesis
+      by (rule conjunct2[OF hconj])
+  qed
+
+  have hB_closed_A: "closedin_on A (subspace_topology X TX A) B"
+    unfolding B_def by (rule preimage_closed_f[rule_format, OF hI1_closed_J])
+  have hC_closed_A: "closedin_on A (subspace_topology X TX A) C"
+    unfolding C_def by (rule preimage_closed_f[rule_format, OF hI3_closed_J])
+
+  have hB_closed_X: "closedin_on X TX B"
+    by (rule Theorem_17_3[OF hTopX hA hB_closed_A])
+  have hC_closed_X: "closedin_on X TX C"
+    by (rule Theorem_17_3[OF hTopX hA hC_closed_A])
+
+  have hdisj: "B \<inter> C = {}"
+  proof (rule ccontr)
+    assume hne: "B \<inter> C \<noteq> {}"
+    then obtain x where hx: "x \<in> B \<inter> C"
+      by blast
+    have hxB: "x \<in> B" and hxC: "x \<in> C"
+      using hx by blast+
+    have hxA: "x \<in> A"
+      using hxB unfolding B_def by blast
+    have hfxI1: "f x \<in> I1"
+      using hxB unfolding B_def by blast
+    have hfxI3: "f x \<in> I3"
+      using hxC unfolding C_def by blast
+    have hle1: "f x \<le> -r/3"
+      using hfxI1 unfolding I1_def top1_closed_interval_def by blast
+    have hge3: "r/3 \<le> f x"
+      using hfxI3 unfolding I3_def top1_closed_interval_def by blast
+    have "r \<le> 0"
+      using hge3 hle1 by linarith
+    thus False
+      using hr by linarith
+  qed
+
+  have hab: "-r/3 \<le> r/3"
+    using hr by linarith
+
+  obtain g where hg:
+    "top1_continuous_map_on X TX (top1_closed_interval (-r/3) (r/3))
+        (top1_closed_interval_topology (-r/3) (r/3)) g
+     \<and> (\<forall>x\<in>B. g x = -r/3)
+     \<and> (\<forall>x\<in>C. g x = r/3)"
+    using Theorem_33_1[of X TX B C "-r/3" "r/3"] hX hB_closed_X hC_closed_X hdisj hab
+    by blast
+
+  have hgcont:
+    "top1_continuous_map_on X TX (top1_closed_interval (-r/3) (r/3))
+        (top1_closed_interval_topology (-r/3) (r/3)) g"
+    using hg by blast
+  have hgonB: "\<forall>x\<in>B. g x = -r/3"
+    using hg by blast
+  have hgonC: "\<forall>x\<in>C. g x = r/3"
+    using hg by blast
+
+  have hg_range: "\<forall>x\<in>X. g x \<in> top1_closed_interval (-r/3) (r/3)"
+    using hgcont unfolding top1_continuous_map_on_def by blast
+
+  have hg_abs: "\<forall>x\<in>X. abs (g x) \<le> r/3"
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    have hgb: "-r/3 \<le> g x \<and> g x \<le> r/3"
+      using hg_range hxX unfolding top1_closed_interval_def by blast
+    have "g x \<le> r/3"
+      using hgb by blast
+    moreover have "- (g x) \<le> r/3"
+      using hgb by linarith
+    ultimately show "abs (g x) \<le> r/3"
+      by (rule abs_leI)
+  qed
+
+  have hf_range: "\<forall>a\<in>A. f a \<in> J"
+    using hf unfolding top1_continuous_map_on_def by blast
+
+  have hf_approx: "\<forall>a\<in>A. abs (g a - f a) \<le> 2*r/3"
+  proof (intro ballI)
+    fix a assume haA: "a \<in> A"
+    have haX: "a \<in> X"
+      using hAX haA by blast
+    have hfb: "-r \<le> f a \<and> f a \<le> r"
+      using hf_range haA unfolding J_def top1_closed_interval_def by blast
+    have hgb: "-r/3 \<le> g a \<and> g a \<le> r/3"
+      using hg_range haX unfolding top1_closed_interval_def by blast
+
+    show "abs (g a - f a) \<le> 2*r/3"
+    proof (cases "a \<in> B")
+      case True
+      have hga: "g a = -r/3"
+        using hgonB True by blast
+      have hfa: "f a \<in> I1"
+        using True haA unfolding B_def by blast
+      have hfa1: "-r \<le> f a" and hfa2: "f a \<le> -r/3"
+        using hfa unfolding I1_def top1_closed_interval_def by blast+
+      have habs: "abs (-r/3 - f a) \<le> 2*r/3"
+      proof -
+        have hnonneg: "0 \<le> -r/3 - f a"
+          using hfa2 by linarith
+        have hle: "-r/3 - f a \<le> 2*r/3"
+          using hfa1 by linarith
+        have habseq: "abs (-r/3 - f a) = -r/3 - f a"
+          by (simp add: hnonneg)
+        show ?thesis
+          by (simp add: habseq hle)
+      qed
+      show ?thesis
+        by (simp add: hga habs)
+    next
+      case FalseB: False
+      show ?thesis
+      proof (cases "a \<in> C")
+        case True
+        have hga: "g a = r/3"
+          using hgonC True by blast
+        have hfa: "f a \<in> I3"
+          using True haA unfolding C_def by blast
+        have hfa1: "r/3 \<le> f a" and hfa2: "f a \<le> r"
+          using hfa unfolding I3_def top1_closed_interval_def by blast+
+        have habs: "abs (r/3 - f a) \<le> 2*r/3"
+        proof -
+          have hnonneg: "0 \<le> f a - r/3"
+            using hfa1 by linarith
+          have hle: "f a - r/3 \<le> 2*r/3"
+            using hfa2 by linarith
+          have habseq: "abs (r/3 - f a) = f a - r/3"
+            by (simp add: abs_minus_commute hnonneg)
+          show ?thesis
+            by (simp add: habseq hle)
+        qed
+        show ?thesis
+          by (simp add: hga habs)
+      next
+        case FalseC: False
+        have hnotI1: "f a \<notin> I1"
+          using haA FalseB unfolding B_def by blast
+        have hnotI3: "f a \<notin> I3"
+          using haA FalseC unfolding C_def by blast
+        have hfaI2: "-r/3 \<le> f a \<and> f a \<le> r/3"
+        proof -
+          have hfL: "-r \<le> f a"
+            using hfb by blast
+          have hfU: "f a \<le> r"
+            using hfb by blast
+          have hnle: "\<not> f a \<le> -r/3"
+            using hnotI1 unfolding I1_def top1_closed_interval_def by blast
+          have hnge: "\<not> r/3 \<le> f a"
+            using hnotI3 unfolding I3_def top1_closed_interval_def by blast
+          have "-r/3 < f a"
+            using hfL hnle by linarith
+          moreover have "f a < r/3"
+            using hfU hnge by linarith
+          ultimately show ?thesis
+            by linarith
+        qed
+        have hgaI2: "-r/3 \<le> g a \<and> g a \<le> r/3"
+          using hgb by blast
+        have "abs (g a - f a) \<le> r/3 - (-r/3)"
+          by (rule abs_diff_le_of_bounds[OF conjunct1[OF hgaI2] conjunct2[OF hgaI2]
+                                          conjunct1[OF hfaI2] conjunct2[OF hfaI2]])
+        thus ?thesis
+          by simp
+      qed
+    qed
+  qed
+
+  show ?thesis
+    apply (rule exI[where x=g])
+    apply (intro conjI)
+     apply (rule hgcont)
+    apply (intro conjI)
+     apply (rule hgonB)
+    apply (intro conjI)
+     apply (rule hgonC)
+    apply (intro conjI)
+     apply (rule hg_abs)
+    apply (rule hf_approx)
+    done
+qed
+*)
+
+text \<open>
+  Proof development for \<open>top1_tietze_step1\<close> is tracked in the auxiliary file
+  \<open>tst/Top1.thy.tietze_step1_wip2\<close>. The full proof currently makes the session exceed the
+  60s build timeout, so we keep the statement here and continue later.
+\<close>
+
 (** from *\S35 Theorem 35.1 (Tietze extension theorem) [top1.tex:~4771] **)
 theorem Theorem_35_1:
   fixes f :: "'a \<Rightarrow> real"
