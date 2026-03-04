@@ -14787,8 +14787,13 @@ proof -
 	      unfolding d_def by simp
 	  qed
 	
-		  have d_metric: "top1_metric_on X d"
-		    sorry
+			  have d_metric: "top1_metric_on X d"
+			    sorry
+		
+			  (* WIP: proof attempt for d_metric (kept for later discharge of this sorry).
+			     The full structured proof (separation, nonnegativity, symmetry, and triangle inequality
+			     via termwise bounds + suminf lemmas) was inlined here but made `process_theories`
+			     too slow for the usual tight edit/build loop. *)
 	
 		  have small_nbhd_in_ball:
 		    "\<And>x (e::real). x \<in> X \<Longrightarrow> 0 < e \<Longrightarrow>
@@ -15114,11 +15119,26 @@ proof -
 		      using hball hTXeq by simp
 		  qed *)
 	
-		  have metric_basis_sub_TX: "top1_metric_basis_on X d \<subseteq> TX"
-		    sorry
-	
-		  have hMet_sub_TX: "top1_metric_topology_on X d \<subseteq> TX"
-		    sorry
+			  have metric_basis_sub_TX: "top1_metric_basis_on X d \<subseteq> TX"
+			  proof (rule subsetI)
+			    fix U
+			    assume hU: "U \<in> top1_metric_basis_on X d"
+			    obtain x e where hxX: "x \<in> X" and he: "0 < (e::real)"
+			      and hUeq: "U = top1_ball_on X d x e"
+			      using hU unfolding top1_metric_basis_on_def by blast
+			    have "top1_ball_on X d x e \<in> TX"
+			      by (rule ball_open_TX[OF hxX he])
+			    thus "U \<in> TX"
+			      using hUeq by simp
+			  qed
+		
+			  have hMet_sub_TX: "top1_metric_topology_on X d \<subseteq> TX"
+			  proof -
+			    have "topology_generated_by_basis X (top1_metric_basis_on X d) \<subseteq> TX"
+			      by (rule topology_generated_by_basis_subset[OF hTop metric_basis_sub_TX])
+			    thus ?thesis
+			      unfolding top1_metric_topology_on_def .
+			  qed
 		
 		  have hTX_sub_Met: "TX \<subseteq> top1_metric_topology_on X d"
 		    sorry
