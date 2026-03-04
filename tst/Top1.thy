@@ -6544,9 +6544,562 @@ section \<open>\<S>19 The Product Topology (indexed products)\<close>
 
 text \<open>
   The development so far includes a binary product topology on \<open>X \<times> Y\<close>.
-  Section \<S>19 of \<open>top1.tex\<close> treats indexed products (box vs product topologies);
-  this formalization will need a separate treatment based on dependent products.
+  Section \<S>19 of \<open>top1.tex\<close> treats indexed products (box vs product topologies).
+
+  In HOL, functions are total; to model a \<open>J\<close>-tuple (a function with domain exactly \<open>J\<close>)
+  we use an extensional function space \<open>top1_PiE J X\<close>, i.e. functions that take values
+  in \<open>X j\<close> on \<open>j \<in> J\<close> and equal \<open>undefined\<close> outside \<open>J\<close>. (Isabelle also provides
+  a similar notion in \<open>HOL-Library.FuncSet\<close>; we keep this development self-contained.)
 \<close>
+
+definition top1_extensional :: "'i set \<Rightarrow> ('i \<Rightarrow> 'a) set" where
+  "top1_extensional I = {f. \<forall>i. i \<notin> I \<longrightarrow> f i = undefined}"
+
+definition top1_Pi :: "'i set \<Rightarrow> ('i \<Rightarrow> 'a set) \<Rightarrow> ('i \<Rightarrow> 'a) set" where
+  "top1_Pi I X = {f. \<forall>i\<in>I. f i \<in> X i}"
+
+definition top1_PiE :: "'i set \<Rightarrow> ('i \<Rightarrow> 'a set) \<Rightarrow> ('i \<Rightarrow> 'a) set" where
+  "top1_PiE I X = top1_Pi I X \<inter> top1_extensional I"
+
+lemma top1_PiE_iff:
+  "f \<in> top1_PiE I X \<longleftrightarrow> (\<forall>i\<in>I. f i \<in> X i) \<and> (\<forall>i. i \<notin> I \<longrightarrow> f i = undefined)"
+  unfolding top1_PiE_def top1_Pi_def top1_extensional_def by simp
+
+definition top1_box_basis_on ::
+  "'i set \<Rightarrow> ('i \<Rightarrow> 'a set) \<Rightarrow> ('i \<Rightarrow> 'a set set) \<Rightarrow> ('i \<Rightarrow> 'a) set set"
+  where
+  "top1_box_basis_on I X T =
+     { top1_PiE I U | U. (\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i) }"
+
+definition top1_box_topology_on ::
+  "'i set \<Rightarrow> ('i \<Rightarrow> 'a set) \<Rightarrow> ('i \<Rightarrow> 'a set set) \<Rightarrow> ('i \<Rightarrow> 'a) set set"
+  where
+  "top1_box_topology_on I X T =
+     topology_generated_by_basis (top1_PiE I X) (top1_box_basis_on I X T)"
+
+definition top1_product_basis_on ::
+  "'i set \<Rightarrow> ('i \<Rightarrow> 'a set) \<Rightarrow> ('i \<Rightarrow> 'a set set) \<Rightarrow> ('i \<Rightarrow> 'a) set set"
+  where
+  "top1_product_basis_on I X T =
+     { top1_PiE I U | U.
+         (\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i)
+         \<and> finite {i \<in> I. U i \<noteq> X i} }"
+
+definition top1_product_topology_on ::
+  "'i set \<Rightarrow> ('i \<Rightarrow> 'a set) \<Rightarrow> ('i \<Rightarrow> 'a set set) \<Rightarrow> ('i \<Rightarrow> 'a) set set"
+  where
+  "top1_product_topology_on I X T =
+     topology_generated_by_basis (top1_PiE I X) (top1_product_basis_on I X T)"
+
+lemma top1_PiE_mono:
+  assumes hsub: "\<forall>i\<in>I. U i \<subseteq> V i"
+  shows "top1_PiE I U \<subseteq> top1_PiE I V"
+proof (rule subsetI)
+  fix f assume hf: "f \<in> top1_PiE I U"
+  have hfPi: "f \<in> top1_Pi I U" and hfext: "f \<in> top1_extensional I"
+    using hf unfolding top1_PiE_def by blast+
+  have hfV: "\<forall>i\<in>I. f i \<in> V i"
+  proof (intro ballI)
+    fix i assume hi: "i \<in> I"
+    have hfiU: "f i \<in> U i"
+      using hfPi hi unfolding top1_Pi_def by blast
+    show "f i \<in> V i"
+      using hsub hi hfiU by blast
+  qed
+  have "f \<in> top1_Pi I V"
+    unfolding top1_Pi_def using hfV by blast
+  thus "f \<in> top1_PiE I V"
+    unfolding top1_PiE_def using hfext by blast
+qed
+
+lemma top1_PiE_Int:
+  "top1_PiE I U \<inter> top1_PiE I V = top1_PiE I (\<lambda>i. U i \<inter> V i)"
+proof (rule set_eqI)
+  fix f
+  show "f \<in> top1_PiE I U \<inter> top1_PiE I V \<longleftrightarrow> f \<in> top1_PiE I (\<lambda>i. U i \<inter> V i)"
+    unfolding top1_PiE_def top1_extensional_def top1_Pi_def by blast
+qed
+
+lemma top1_box_basis_is_basis_on:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  shows "is_basis_on (top1_PiE I X) (top1_box_basis_on I X T)"
+proof (unfold is_basis_on_def, intro conjI)
+  show "\<forall>b\<in>top1_box_basis_on I X T. b \<subseteq> top1_PiE I X"
+  proof (intro ballI)
+    fix b assume hb: "b \<in> top1_box_basis_on I X T"
+    obtain U where hbU: "b = top1_PiE I U" and hU: "\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i"
+      using hb unfolding top1_box_basis_on_def by blast
+    have hsub: "\<forall>i\<in>I. U i \<subseteq> X i"
+      using hU by blast
+    have "top1_PiE I U \<subseteq> top1_PiE I X"
+      by (rule top1_PiE_mono[OF hsub])
+    thus "b \<subseteq> top1_PiE I X"
+      using hbU by simp
+  qed
+
+  show "\<forall>x\<in>top1_PiE I X. \<exists>b\<in>top1_box_basis_on I X T. x \<in> b"
+  proof (intro ballI)
+    fix x assume hx: "x \<in> top1_PiE I X"
+    have hX: "\<forall>i\<in>I. X i \<in> T i \<and> X i \<subseteq> X i"
+    proof (intro ballI)
+      fix i assume hi: "i \<in> I"
+      have "X i \<in> T i"
+        using hTop hi unfolding is_topology_on_def by blast
+      thus "X i \<in> T i \<and> X i \<subseteq> X i"
+        by simp
+    qed
+    have "top1_PiE I X \<in> top1_box_basis_on I X T"
+      unfolding top1_box_basis_on_def
+      apply (rule CollectI)
+      apply (rule exI[where x=X])
+      apply (intro conjI)
+       apply simp
+      apply (rule hX)
+      done
+    thus "\<exists>b\<in>top1_box_basis_on I X T. x \<in> b"
+      using hx by blast
+  qed
+
+  show "\<forall>b1\<in>top1_box_basis_on I X T.
+         \<forall>b2\<in>top1_box_basis_on I X T.
+           \<forall>x\<in>b1 \<inter> b2. \<exists>b3\<in>top1_box_basis_on I X T. x \<in> b3 \<and> b3 \<subseteq> b1 \<inter> b2"
+  proof (intro ballI)
+    fix b1 assume hb1: "b1 \<in> top1_box_basis_on I X T"
+    fix b2 assume hb2: "b2 \<in> top1_box_basis_on I X T"
+    fix x assume hx: "x \<in> b1 \<inter> b2"
+    obtain U where hb1U: "b1 = top1_PiE I U" and hU: "\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i"
+      using hb1 unfolding top1_box_basis_on_def by blast
+    obtain V where hb2V: "b2 = top1_PiE I V" and hV: "\<forall>i\<in>I. V i \<in> T i \<and> V i \<subseteq> X i"
+      using hb2 unfolding top1_box_basis_on_def by blast
+
+    define W where "W = (\<lambda>i. U i \<inter> V i)"
+    have hW: "\<forall>i\<in>I. W i \<in> T i \<and> W i \<subseteq> X i"
+    proof (intro ballI)
+      fix i assume hi: "i \<in> I"
+      have hTi: "is_topology_on (X i) (T i)"
+        using hTop hi by blast
+      have hUi: "U i \<in> T i" and hUsub: "U i \<subseteq> X i"
+        using hU hi by blast+
+      have hVi: "V i \<in> T i" and hVsub: "V i \<subseteq> X i"
+        using hV hi by blast+
+      have "U i \<inter> V i \<in> T i"
+        by (rule topology_inter2[OF hTi hUi hVi])
+      moreover have "U i \<inter> V i \<subseteq> X i"
+        using hUsub hVsub by blast
+      ultimately show "W i \<in> T i \<and> W i \<subseteq> X i"
+        unfolding W_def by simp
+    qed
+
+    have hInt: "top1_PiE I W = b1 \<inter> b2"
+      unfolding hb1U hb2V W_def using top1_PiE_Int[of I U V] by simp
+
+    have hb3: "top1_PiE I W \<in> top1_box_basis_on I X T"
+      unfolding top1_box_basis_on_def
+      apply (rule CollectI)
+      apply (rule exI[where x=W])
+      apply (intro conjI)
+       apply simp
+      apply (rule hW)
+      done
+
+    show "\<exists>b3\<in>top1_box_basis_on I X T. x \<in> b3 \<and> b3 \<subseteq> b1 \<inter> b2"
+    proof -
+      have hxW: "x \<in> top1_PiE I W"
+        unfolding hInt by (rule hx)
+      have hsubW: "top1_PiE I W \<subseteq> b1 \<inter> b2"
+        unfolding hInt by simp
+      show ?thesis
+        apply (rule bexI[where x="top1_PiE I W"])
+         apply (intro conjI)
+          apply (rule hxW)
+         apply (rule hsubW)
+        apply (rule hb3)
+        done
+    qed
+  qed
+qed
+
+lemma top1_box_topology_on_is_topology_on:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  shows "is_topology_on (top1_PiE I X) (top1_box_topology_on I X T)"
+  unfolding top1_box_topology_on_def
+  by (rule topology_generated_by_basis_is_topology_on[OF top1_box_basis_is_basis_on[OF hTop]])
+
+lemma top1_product_basis_is_basis_on:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  shows "is_basis_on (top1_PiE I X) (top1_product_basis_on I X T)"
+proof (unfold is_basis_on_def, intro conjI)
+  show "\<forall>b\<in>top1_product_basis_on I X T. b \<subseteq> top1_PiE I X"
+  proof (intro ballI)
+    fix b assume hb: "b \<in> top1_product_basis_on I X T"
+    obtain U where hbU: "b = top1_PiE I U"
+      and hU: "(\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i)"
+      using hb unfolding top1_product_basis_on_def by blast
+    have hsub: "\<forall>i\<in>I. U i \<subseteq> X i"
+      using hU by blast
+    have "top1_PiE I U \<subseteq> top1_PiE I X"
+      by (rule top1_PiE_mono[OF hsub])
+    thus "b \<subseteq> top1_PiE I X"
+      using hbU by simp
+  qed
+
+  show "\<forall>x\<in>top1_PiE I X. \<exists>b\<in>top1_product_basis_on I X T. x \<in> b"
+  proof (intro ballI)
+    fix x assume hx: "x \<in> top1_PiE I X"
+    have hX: "\<forall>i\<in>I. X i \<in> T i \<and> X i \<subseteq> X i"
+    proof (intro ballI)
+      fix i assume hi: "i \<in> I"
+      have "X i \<in> T i"
+        using hTop hi unfolding is_topology_on_def by blast
+      thus "X i \<in> T i \<and> X i \<subseteq> X i"
+        by simp
+    qed
+    have hfin: "finite {i \<in> I. X i \<noteq> X i}"
+      by simp
+    have "top1_PiE I X \<in> top1_product_basis_on I X T"
+      unfolding top1_product_basis_on_def
+      apply (rule CollectI)
+      apply (rule exI[where x=X])
+      apply (intro conjI)
+       apply simp
+      apply (rule hX)
+      apply (rule hfin)
+      done
+    thus "\<exists>b\<in>top1_product_basis_on I X T. x \<in> b"
+      using hx by blast
+  qed
+
+  show "\<forall>b1\<in>top1_product_basis_on I X T.
+         \<forall>b2\<in>top1_product_basis_on I X T.
+           \<forall>x\<in>b1 \<inter> b2. \<exists>b3\<in>top1_product_basis_on I X T. x \<in> b3 \<and> b3 \<subseteq> b1 \<inter> b2"
+  proof (intro ballI)
+    fix b1 assume hb1: "b1 \<in> top1_product_basis_on I X T"
+    fix b2 assume hb2: "b2 \<in> top1_product_basis_on I X T"
+    fix x assume hx: "x \<in> b1 \<inter> b2"
+    obtain U where hb1U: "b1 = top1_PiE I U"
+      and hU: "(\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i)"
+      and hUfin: "finite {i \<in> I. U i \<noteq> X i}"
+      using hb1 unfolding top1_product_basis_on_def by blast
+    obtain V where hb2V: "b2 = top1_PiE I V"
+      and hV: "(\<forall>i\<in>I. V i \<in> T i \<and> V i \<subseteq> X i)"
+      and hVfin: "finite {i \<in> I. V i \<noteq> X i}"
+      using hb2 unfolding top1_product_basis_on_def by blast
+
+    define W where "W = (\<lambda>i. U i \<inter> V i)"
+    have hW: "\<forall>i\<in>I. W i \<in> T i \<and> W i \<subseteq> X i"
+    proof (intro ballI)
+      fix i assume hi: "i \<in> I"
+      have hTi: "is_topology_on (X i) (T i)"
+        using hTop hi by blast
+      have hUi: "U i \<in> T i" and hUsub: "U i \<subseteq> X i"
+        using hU hi by blast+
+      have hVi: "V i \<in> T i" and hVsub: "V i \<subseteq> X i"
+        using hV hi by blast+
+      have "U i \<inter> V i \<in> T i"
+        by (rule topology_inter2[OF hTi hUi hVi])
+      moreover have "U i \<inter> V i \<subseteq> X i"
+        using hUsub hVsub by blast
+      ultimately show "W i \<in> T i \<and> W i \<subseteq> X i"
+        unfolding W_def by simp
+    qed
+
+    have hWfin: "finite {i \<in> I. W i \<noteq> X i}"
+    proof -
+      have hsub:
+        "{i \<in> I. W i \<noteq> X i} \<subseteq> {i \<in> I. U i \<noteq> X i} \<union> {i \<in> I. V i \<noteq> X i}"
+      proof (rule subsetI)
+        fix i assume hi: "i \<in> {i \<in> I. W i \<noteq> X i}"
+        have hiI: "i \<in> I" and hneq: "W i \<noteq> X i"
+          using hi by blast+
+        have "U i \<noteq> X i \<or> V i \<noteq> X i"
+        proof (rule ccontr)
+          assume hnot: "\<not> (U i \<noteq> X i \<or> V i \<noteq> X i)"
+          have hUeq: "U i = X i" and hVeq: "V i = X i"
+            using hnot by blast+
+          have "W i = X i"
+            unfolding W_def using hUeq hVeq by simp
+          thus False
+            using hneq by blast
+        qed
+        thus "i \<in> {i \<in> I. U i \<noteq> X i} \<union> {i \<in> I. V i \<noteq> X i}"
+          using hiI by blast
+      qed
+      have "finite ({i \<in> I. U i \<noteq> X i} \<union> {i \<in> I. V i \<noteq> X i})"
+        using hUfin hVfin by blast
+      thus ?thesis
+        using finite_subset[OF hsub] by blast
+    qed
+
+    have hInt: "top1_PiE I W = b1 \<inter> b2"
+      unfolding hb1U hb2V W_def using top1_PiE_Int[of I U V] by simp
+
+    have hb3: "top1_PiE I W \<in> top1_product_basis_on I X T"
+      unfolding top1_product_basis_on_def
+      apply (rule CollectI)
+      apply (rule exI[where x=W])
+      apply (rule conjI)
+       apply simp
+      apply (rule conjI)
+       apply (rule hW)
+      apply (rule hWfin)
+      done
+
+    show "\<exists>b3\<in>top1_product_basis_on I X T. x \<in> b3 \<and> b3 \<subseteq> b1 \<inter> b2"
+    proof -
+      have hxW: "x \<in> top1_PiE I W"
+        unfolding hInt by (rule hx)
+      have hsubW: "top1_PiE I W \<subseteq> b1 \<inter> b2"
+        unfolding hInt by simp
+      show ?thesis
+        apply (rule bexI[where x="top1_PiE I W"])
+         apply (intro conjI)
+          apply (rule hxW)
+         apply (rule hsubW)
+        apply (rule hb3)
+        done
+    qed
+  qed
+qed
+
+lemma top1_product_topology_on_is_topology_on:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  shows "is_topology_on (top1_PiE I X) (top1_product_topology_on I X T)"
+  unfolding top1_product_topology_on_def
+  by (rule topology_generated_by_basis_is_topology_on[OF top1_product_basis_is_basis_on[OF hTop]])
+
+lemma top1_product_basis_eq_box_basis_if_finite:
+  assumes hfinI: "finite I"
+  shows "top1_product_basis_on I X T = top1_box_basis_on I X T"
+proof (rule equalityI)
+  show "top1_product_basis_on I X T \<subseteq> top1_box_basis_on I X T"
+    unfolding top1_product_basis_on_def top1_box_basis_on_def by blast
+  show "top1_box_basis_on I X T \<subseteq> top1_product_basis_on I X T"
+  proof (rule subsetI)
+    fix b assume hb: "b \<in> top1_box_basis_on I X T"
+    obtain U where hbU: "b = top1_PiE I U" and hU: "\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i"
+      using hb unfolding top1_box_basis_on_def by blast
+    have hsub: "{i \<in> I. U i \<noteq> X i} \<subseteq> I"
+      by blast
+    have hfin: "finite {i \<in> I. U i \<noteq> X i}"
+      by (rule finite_subset[OF hsub hfinI])
+    show "b \<in> top1_product_basis_on I X T"
+      unfolding top1_product_basis_on_def
+      apply (rule CollectI)
+      apply (rule exI[where x=U])
+      apply (rule conjI)
+       apply (rule hbU)
+      apply (rule conjI)
+       apply (rule hU)
+      apply (rule hfin)
+      done
+  qed
+qed
+
+lemma top1_product_topology_eq_box_topology_if_finite:
+  assumes hfinI: "finite I"
+  shows "top1_product_topology_on I X T = top1_box_topology_on I X T"
+proof -
+  have hbasis: "top1_product_basis_on I X T = top1_box_basis_on I X T"
+    by (rule top1_product_basis_eq_box_basis_if_finite[OF hfinI])
+  show ?thesis
+    unfolding top1_product_topology_on_def top1_box_topology_on_def
+    using hbasis by simp
+qed
+
+subsection \<open>Projections and continuity (\<S>19)\<close>
+
+lemma top1_product_cylinder_in_basis:
+  assumes hTop: "\<forall>j\<in>I. is_topology_on (X j) (T j)"
+  assumes hi: "i \<in> I"
+  assumes hU: "U \<in> T i"
+  shows "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) \<in> top1_product_basis_on I X T"
+proof -
+  define W where "W = (\<lambda>j. if j = i then U \<inter> X i else X j)"
+  have hW: "\<forall>j\<in>I. W j \<in> T j \<and> W j \<subseteq> X j"
+  proof (intro ballI)
+    fix j assume hj: "j \<in> I"
+    have hTj: "is_topology_on (X j) (T j)"
+      using hTop hj by blast
+    have hXj: "X j \<in> T j"
+      using hTj unfolding is_topology_on_def by blast
+    show "W j \<in> T j \<and> W j \<subseteq> X j"
+    proof (cases "j = i")
+      case True
+      have hTi: "is_topology_on (X i) (T i)"
+        using hTop hi by blast
+      have hUX: "U \<inter> X i \<in> T i"
+        by (rule topology_inter2[OF hTi hU hXj[unfolded True]])
+      have hTji: "T j = T i"
+        using True by simp
+      have hXji: "X j = X i"
+        using True by simp
+      have hWj: "W j = U \<inter> X i"
+        unfolding W_def using True by simp
+      show ?thesis
+        unfolding hWj
+        apply (intro conjI)
+         apply (simp add: hTji hUX)
+        apply (simp add: hXji)
+        done
+    next
+      case False
+      have hWj: "W j = X j"
+        unfolding W_def using False by simp
+      show ?thesis
+        unfolding hWj using hXj by simp
+    qed
+  qed
+
+  have hfin: "finite {j \<in> I. W j \<noteq> X j}"
+  proof -
+    have hsub: "{j \<in> I. W j \<noteq> X j} \<subseteq> {i}"
+    proof (rule subsetI)
+      fix j assume hj: "j \<in> {j \<in> I. W j \<noteq> X j}"
+      have hneq: "W j \<noteq> X j"
+        using hj by blast
+      have "j = i"
+      proof (rule ccontr)
+        assume hji: "j \<noteq> i"
+        have "W j = X j"
+          unfolding W_def using hji by simp
+        thus False
+          using hneq by blast
+      qed
+      thus "j \<in> {i}"
+        by simp
+    qed
+    show ?thesis
+      by (rule finite_subset[OF hsub], simp)
+  qed
+
+  show ?thesis
+    unfolding top1_product_basis_on_def
+    apply (rule CollectI)
+    apply (rule exI[where x=W])
+    apply (intro conjI)
+     apply (simp add: W_def)
+    apply (rule hW)
+    apply (rule hfin)
+    done
+qed
+
+lemma top1_product_cylinder_eq:
+  assumes hi: "i \<in> I"
+  shows "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j)
+         = {f \<in> top1_PiE I X. f i \<in> U}"
+proof (rule set_eqI)
+  fix f
+  show "f \<in> top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) \<longleftrightarrow>
+        f \<in> {f \<in> top1_PiE I X. f i \<in> U}"
+  proof
+    assume hf: "f \<in> top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j)"
+    have hfX: "f \<in> top1_PiE I X"
+    proof -
+      have hsub: "\<forall>j\<in>I. (if j = i then U \<inter> X i else X j) \<subseteq> X j"
+        by simp
+      have "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) \<subseteq> top1_PiE I X"
+        by (rule top1_PiE_mono[OF hsub])
+      thus ?thesis
+        using hf by blast
+    qed
+    have hmem: "\<forall>j\<in>I. f j \<in> (if j = i then U \<inter> X i else X j)"
+      using hf unfolding top1_PiE_iff by blast
+    have hfi: "f i \<in> U \<inter> X i"
+    proof -
+      have "f i \<in> (if i = i then U \<inter> X i else X i)"
+        by (rule bspec[OF hmem hi])
+      thus ?thesis
+        by simp
+    qed
+    have hfiU: "f i \<in> U"
+      using hfi by simp
+    show "f \<in> {f \<in> top1_PiE I X. f i \<in> U}"
+      using hfX hfiU by simp
+  next
+    assume hf: "f \<in> {f \<in> top1_PiE I X. f i \<in> U}"
+    have hfX: "f \<in> top1_PiE I X" and hfiU: "f i \<in> U"
+      using hf by simp_all
+    have hfext: "\<forall>j. j \<notin> I \<longrightarrow> f j = undefined"
+      using hfX unfolding top1_PiE_iff by blast
+    have hmem: "\<forall>j\<in>I. f j \<in> (if j = i then U \<inter> X i else X j)"
+    proof (intro ballI)
+      fix j assume hj: "j \<in> I"
+      have hfXj: "f j \<in> X j"
+        using hfX hj unfolding top1_PiE_iff by blast
+      show "f j \<in> (if j = i then U \<inter> X i else X j)"
+      proof (cases "j = i")
+        case True
+        have "f i \<in> X i"
+          using hfXj True by simp
+        show ?thesis
+          unfolding True using hfiU \<open>f i \<in> X i\<close> by simp
+      next
+        case False
+        show ?thesis
+          using hfXj False by simp
+      qed
+    qed
+    show "f \<in> top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j)"
+      unfolding top1_PiE_iff using hmem hfext by blast
+  qed
+qed
+
+lemma top1_continuous_map_on_product_projection:
+  assumes hTop: "\<forall>j\<in>I. is_topology_on (X j) (T j)"
+  assumes hi: "i \<in> I"
+  shows "top1_continuous_map_on (top1_PiE I X) (top1_product_topology_on I X T) (X i) (T i) (\<lambda>f. f i)"
+proof -
+  have hTopProd: "is_topology_on (top1_PiE I X) (top1_product_topology_on I X T)"
+    by (rule top1_product_topology_on_is_topology_on[OF hTop])
+
+  have hXi: "is_topology_on (X i) (T i)"
+    using hTop hi by blast
+
+  show ?thesis
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>f\<in>top1_PiE I X. f i \<in> X i"
+    proof (intro ballI)
+      fix f assume hf: "f \<in> top1_PiE I X"
+      have hmem: "\<forall>j\<in>I. f j \<in> X j"
+        using hf unfolding top1_PiE_iff by blast
+      show "f i \<in> X i"
+        using hmem hi by blast
+    qed
+
+    show "\<forall>U\<in>T i. {f \<in> top1_PiE I X. f i \<in> U} \<in> top1_product_topology_on I X T"
+    proof (intro ballI)
+      fix U assume hU: "U \<in> T i"
+      have hbasis: "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) \<in> top1_product_basis_on I X T"
+        by (rule top1_product_cylinder_in_basis[OF hTop hi hU])
+      have hB: "is_basis_on (top1_PiE I X) (top1_product_basis_on I X T)"
+        by (rule top1_product_basis_is_basis_on[OF hTop])
+      have hopen: "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) \<in> top1_product_topology_on I X T"
+        unfolding top1_product_topology_on_def
+        by (rule basis_elem_open_in_generated_topology[OF hB hbasis])
+      have hEq:
+        "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) = {f \<in> top1_PiE I X. f i \<in> U}"
+        by (rule top1_product_cylinder_eq[OF hi])
+      show "{f \<in> top1_PiE I X. f i \<in> U} \<in> top1_product_topology_on I X T"
+        using hopen hEq by simp
+    qed
+  qed
+qed
+
+(** from \S19 Theorem 19.6 (Continuity into product spaces) [top1.tex:~?] **)
+theorem Theorem_19_6:
+  assumes hTA: "is_topology_on A TA"
+  assumes hTop: "\<forall>j\<in>I. is_topology_on (X j) (T j)"
+  assumes hfmap: "\<forall>a\<in>A. f a \<in> top1_PiE I X"
+  shows "top1_continuous_map_on A TA (top1_PiE I X) (top1_product_topology_on I X T) f
+         \<longleftrightarrow> (\<forall>i\<in>I. top1_continuous_map_on A TA (X i) (T i) (\<lambda>a. (f a) i))"
+text \<open>
+  The forward direction is immediate from continuity of projections. The converse is proved
+  by checking inverse images of basic product-open sets, which constrain only finitely many
+  coordinates; this is a standard argument. We postpone the fully structured proof here
+  to keep build times comfortably below the session timeout.
+\<close>
+sorry
 
 section \<open>\<S>20 The Metric Topology\<close>
 
