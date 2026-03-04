@@ -17716,9 +17716,6 @@ lemma top1_tietze_step2_approximants:
       \<and> (\<forall>n. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (s n))
       \<and> (\<forall>n. \<forall>x\<in>X. abs (s (Suc n) x - s n x) \<le> (1/3) * (2/3) ^ n)
       \<and> (\<forall>n. \<forall>a\<in>A. abs (f a - s n a) \<le> (2/3) ^ n)"
-  sorry
-
-(*
 proof -
   let ?R = "(UNIV::real set)"
   let ?TR = "order_topology_on_UNIV"
@@ -17741,12 +17738,12 @@ proof -
     unfolding TI_def top1_closed_interval_topology_def I_def
     by (rule subspace_topology_is_topology_on[OF hTopR], simp)
   have hTI_eq: "TI = subspace_topology ?R ?TR I"
-    unfolding TI_def top1_closed_interval_topology_def by simp
+    unfolding TI_def top1_closed_interval_topology_def I_def by simp
   have hI_sub: "I \<subseteq> ?R"
     by simp
 
   have f_cont_UNIV: "top1_continuous_map_on A ?TA ?R ?TR f"
-    using Theorem_18_2(6)[OF hTopA hTopI hTopR, rule_format, of ?R f]
+    using Theorem_18_2(6)[OF hTopA hTopI hTopR]
           hf hI_sub hTI_eq
     by blast
 
@@ -17766,137 +17763,6 @@ proof -
   define choose_g where
     "choose_g n sn = (SOME g. Step n sn g)"
     for n :: nat and sn :: "'a \<Rightarrow> real"
-
-  have choose_g_step: "\<forall>n sn. Inv n sn \<longrightarrow> Step n sn (choose_g n sn)"
-  proof (intro allI impI)
-    fix n sn
-    assume hInv: "Inv n sn"
-
-    have hex: "\<exists>g. Step n sn g"
-    proof -
-      have sn_cont: "top1_continuous_map_on X TX ?R ?TR sn"
-        using hInv unfolding Inv_def by blast
-      have herr: "\<forall>a\<in>A. abs (f a - sn a) \<le> r n"
-        using hInv unfolding Inv_def by blast
-      have hrn_pos: "0 < r n"
-        unfolding r_def by simp
-
-      have sn_contA: "top1_continuous_map_on A ?TA ?R ?TR sn"
-        using Theorem_18_2(4)[OF hTopX hTopR hTopR, rule_format, of A sn]
-              sn_cont hAX
-        by blast
-
-      have fn_cont: "top1_continuous_map_on A ?TA ?R ?TR (\<lambda>a. f a - sn a)"
-        by (rule top1_continuous_diff_real[OF hTopA f_cont_UNIV sn_contA])
-
-      define J where "J = top1_closed_interval (- r n) (r n)"
-      define TJ where "TJ = top1_closed_interval_topology (- r n) (r n)"
-
-      have fn_range: "(\<lambda>a. f a - sn a) ` A \<subseteq> J"
-      proof (rule subsetI)
-        fix y
-        assume hy: "y \<in> (\<lambda>a. f a - sn a) ` A"
-        then obtain a where haA: "a \<in> A" and hyEq: "y = f a - sn a"
-          by blast
-        have habs: "abs (f a - sn a) \<le> r n"
-          using herr haA by blast
-        have hy_le: "y \<le> r n"
-        proof -
-          have "y \<le> abs y"
-            by (rule le_abs_self)
-          also have "... \<le> r n"
-            unfolding hyEq using habs by simp
-          finally show ?thesis .
-        qed
-        have hy_ge: "- r n \<le> y"
-        proof -
-          have hy_abs: "abs y \<le> r n"
-            unfolding hyEq using habs by simp
-          have hneg: "- y \<le> abs y"
-            by (rule neg_le_abs_self)
-          have "- y \<le> r n"
-            by (rule order_trans[OF hneg hy_abs])
-          thus ?thesis
-            by linarith
-        qed
-        show "y \<in> J"
-          unfolding J_def top1_closed_interval_def using hy_ge hy_le by blast
-      qed
-
-      have fn_contJ: "top1_continuous_map_on A ?TA J TJ (\<lambda>a. f a - sn a)"
-        unfolding TJ_def top1_closed_interval_topology_def J_def
-        using Theorem_18_2(5)[OF hTopA hTopR hTopR, rule_format, of J (\<lambda>a. f a - sn a)]
-              fn_cont fn_range
-        by blast
-
-      obtain g where
-        g_cont_int:
-          "top1_continuous_map_on X TX (top1_closed_interval (- (r n)/3) ((r n)/3))
-              (top1_closed_interval_topology (- (r n)/3) ((r n)/3)) g"
-        and g_abs: "\<forall>x\<in>X. abs (g x) \<le> (r n)/3"
-        and g_err_int: "\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3"
-        using top1_tietze_step1[of A "\<lambda>a. f a - sn a" "r n"] hX hA fn_contJ hrn_pos
-        by blast
-
-      have hTopgI:
-        "is_topology_on (top1_closed_interval (- (r n)/3) ((r n)/3))
-            (top1_closed_interval_topology (- (r n)/3) ((r n)/3))"
-        unfolding top1_closed_interval_topology_def
-        by (rule subspace_topology_is_topology_on[OF hTopR], simp)
-
-      have g_cont: "top1_continuous_map_on X TX ?R ?TR g"
-      proof -
-        have hI_sub': "top1_closed_interval (- (r n)/3) ((r n)/3) \<subseteq> ?R"
-          by simp
-        have hTI_eq':
-          "top1_closed_interval_topology (- (r n)/3) ((r n)/3)
-           = subspace_topology ?R ?TR (top1_closed_interval (- (r n)/3) ((r n)/3))"
-          unfolding top1_closed_interval_topology_def by simp
-        show ?thesis
-          using Theorem_18_2(6)[OF hTopX hTopgI hTopR, rule_format, of ?R g]
-                g_cont_int hI_sub' hTI_eq'
-          by blast
-      qed
-
-      have g_inc: "\<forall>x\<in>X. abs (g x) \<le> (1/3) * r n"
-      proof (intro ballI)
-        fix x assume hxX: "x \<in> X"
-        have habs: "abs (g x) \<le> (r n) / 3"
-          using g_abs hxX by blast
-        show "abs (g x) \<le> (1/3) * r n"
-          using habs by (simp add: field_simps)
-      qed
-
-      have g_err: "\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> r (Suc n)"
-      proof (intro ballI)
-        fix a assume haA: "a \<in> A"
-        have habs: "abs (g a - (f a - sn a)) \<le> 2 * (r n) / 3"
-          using g_err_int haA by blast
-        have hEq: "2 * (r n) / 3 = r (Suc n)"
-          unfolding r_def by (simp add: field_simps)
-        show "abs (g a - (f a - sn a)) \<le> r (Suc n)"
-          using habs unfolding hEq by simp
-      qed
-
-      show "\<exists>g. Step n sn g"
-      proof (rule exI[where x=g])
-        show "Step n sn g"
-          unfolding Step_def
-        proof (intro conjI)
-          show "top1_continuous_map_on X TX ?R ?TR g"
-            by (rule g_cont)
-          show "\<forall>x\<in>X. abs (g x) \<le> (1 / 3) * r n"
-            by (rule g_inc)
-          show "\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> r (Suc n)"
-            by (rule g_err)
-        qed
-      qed
-    qed
-
-    show "Step n sn (choose_g n sn)"
-      unfolding choose_g_def
-      by (rule someI_ex[OF hex])
-  qed
   
   define s where
     "s = rec_nat (\<lambda>_. 0) (\<lambda>n sn. (\<lambda>x. sn x + choose_g n sn x))"
@@ -17906,93 +17772,218 @@ proof -
   have sSuc: "\<forall>n. s (Suc n) = (\<lambda>x. s n x + choose_g n (s n) x)"
     unfolding s_def by simp
 
-  have Inv_all: "\<forall>n. Inv n (s n)"
-  proof (induction)
-    case 0
-    have hconst: "top1_continuous_map_on X TX ?R ?TR (\<lambda>x. (0::real))"
-      using Theorem_18_2(1)[OF hTopX hTopR hTopR, rule_format, of 0] by simp
-    have herr0: "\<forall>a\<in>A. abs (f a - (s 0) a) \<le> r 0"
-    proof (intro ballI)
-      fix a assume haA: "a \<in> A"
-      have hfaI: "f a \<in> I"
-        using hf haA unfolding top1_continuous_map_on_def by blast
-      have hbounds: "-1 \<le> f a \<and> f a \<le> 1"
-        using hfaI unfolding I_def top1_closed_interval_def by blast
-      have habs: "abs (f a) \<le> 1"
-        by (rule abs_leI, use hbounds in linarith)
-      show "abs (f a - s 0 a) \<le> r 0"
-        unfolding s0 r_def using habs by simp
+  have Step_ex: "Inv n sn \<Longrightarrow> \<exists>g. Step n sn g" for n :: nat and sn :: "'a \<Rightarrow> real"
+  proof -
+    fix n :: nat
+    fix sn :: "'a \<Rightarrow> real"
+    assume hInv: "Inv n sn"
+
+    have sn_cont: "top1_continuous_map_on X TX ?R ?TR sn"
+      using hInv unfolding Inv_def by blast
+    have herr: "\<forall>a\<in>A. abs (f a - sn a) \<le> r n"
+      using hInv unfolding Inv_def by blast
+
+    have sn_cont_A: "top1_continuous_map_on A ?TA ?R ?TR sn"
+      using Theorem_18_2(4)[OF hTopX hTopR hTopR] sn_cont hAX by blast
+
+    have h_cont_UNIV: "top1_continuous_map_on A ?TA ?R ?TR (\<lambda>a. f a - sn a)"
+      by (rule top1_continuous_diff_real[OF hTopA f_cont_UNIV sn_cont_A])
+
+    have h_img: "(\<lambda>a. f a - sn a) ` A \<subseteq> top1_closed_interval (- r n) (r n)"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> (\<lambda>a. f a - sn a) ` A"
+      obtain a where haA: "a \<in> A" and hyEq: "y = f a - sn a"
+        using hy by blast
+      have habs: "abs (f a - sn a) \<le> r n"
+        using herr haA by blast
+      show "y \<in> top1_closed_interval (- r n) (r n)"
+        unfolding hyEq top1_closed_interval_def
+        using habs by (simp add: abs_le_iff)
     qed
-    show ?case
-      unfolding Inv_def s0
-      apply (intro conjI)
-       apply (rule hconst)
-      apply (rule herr0)
-      done
-  next
-    case (Suc n)
-    have hInvn: "Inv n (s n)"
-      using Suc by simp
-    have hStep: "Step n (s n) (choose_g n (s n))"
-      using choose_g_step hInvn by blast
-    have sn_cont: "top1_continuous_map_on X TX ?R ?TR (s n)"
-      using hInvn unfolding Inv_def by blast
-    have gn_cont: "top1_continuous_map_on X TX ?R ?TR (choose_g n (s n))"
-      using hStep unfolding Step_def by blast
-    have sn1_cont: "top1_continuous_map_on X TX ?R ?TR (\<lambda>x. s n x + choose_g n (s n) x)"
-      by (rule top1_continuous_add_real[OF hTopX sn_cont gn_cont])
-    have herr1: "\<forall>a\<in>A. abs (f a - (\<lambda>x. s n x + choose_g n (s n) x) a) \<le> r (Suc n)"
-    proof (intro ballI)
-      fix a assume haA: "a \<in> A"
-      have habs: "abs (choose_g n (s n) a - (f a - s n a)) \<le> r (Suc n)"
-        using hStep haA unfolding Step_def by blast
-      have hEq:
-        "f a - (s n a + choose_g n (s n) a) = (f a - s n a) - choose_g n (s n) a"
+
+    have h_cont_J: "top1_continuous_map_on A ?TA (top1_closed_interval (- r n) (r n))
+        (top1_closed_interval_topology (- r n) (r n)) (\<lambda>a. f a - sn a)"
+    proof -
+      have hJsub: "top1_closed_interval (- r n) (r n) \<subseteq> ?R"
         by simp
-      have "abs (f a - (s n a + choose_g n (s n) a)) = abs (choose_g n (s n) a - (f a - s n a))"
-        unfolding hEq by (simp add: abs_minus_commute)
-      thus "abs (f a - (\<lambda>x. s n x + choose_g n (s n) x) a) \<le> r (Suc n)"
-        using habs by simp
+      have hTJ_eq: "top1_closed_interval_topology (- r n) (r n) =
+          subspace_topology ?R ?TR (top1_closed_interval (- r n) (r n))"
+        unfolding top1_closed_interval_topology_def by simp
+      have h_cont_J': "top1_continuous_map_on A ?TA (top1_closed_interval (- r n) (r n))
+          (subspace_topology ?R ?TR (top1_closed_interval (- r n) (r n))) (\<lambda>a. f a - sn a)"
+        using Theorem_18_2(5)[OF hTopA hTopR hTopR] h_cont_UNIV hJsub h_img by blast
+      show ?thesis
+        unfolding hTJ_eq using h_cont_J' .
     qed
-    show ?case
-      unfolding Inv_def
-      apply (intro conjI)
-       apply (subst sSuc)
-       apply (rule sn1_cont)
-      apply (subst sSuc)
-      apply (rule herr1)
-      done
+
+    have hrpos: "0 < r n"
+      unfolding r_def by simp
+
+    obtain g where
+      g_contI: "top1_continuous_map_on X TX (top1_closed_interval (- r n / 3) (r n / 3))
+          (top1_closed_interval_topology (- r n / 3) (r n / 3)) g" and
+      g_bound: "\<forall>x\<in>X. abs (g x) \<le> r n / 3" and
+      g_appr: "\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> 2 * r n / 3"
+      using top1_tietze_step1[where A=A and f="(\<lambda>a. f a - sn a)" and r="r n", OF hX hA h_cont_J hrpos]
+      by blast
+
+    have hTopI_n: "is_topology_on (top1_closed_interval (- r n / 3) (r n / 3))
+        (top1_closed_interval_topology (- r n / 3) (r n / 3))"
+      unfolding top1_closed_interval_topology_def
+      by (rule subspace_topology_is_topology_on[OF hTopR], simp)
+
+    have g_cont: "top1_continuous_map_on X TX ?R ?TR g"
+    proof -
+      have hI_sub: "top1_closed_interval (- r n / 3) (r n / 3) \<subseteq> ?R"
+        by simp
+      have hTI_eq: "top1_closed_interval_topology (- r n / 3) (r n / 3) =
+          subspace_topology ?R ?TR (top1_closed_interval (- r n / 3) (r n / 3))"
+        unfolding top1_closed_interval_topology_def by simp
+      show ?thesis
+        using Theorem_18_2(6)[OF hTopX hTopI_n hTopR] g_contI hI_sub hTI_eq
+        by blast
+    qed
+
+    have g_bound': "\<forall>x\<in>X. abs (g x) \<le> (1/3) * r n"
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      have habs: "abs (g x) \<le> r n / 3"
+        using g_bound hxX by blast
+      show "abs (g x) \<le> (1/3) * r n"
+        using habs by (simp add: field_simps)
+    qed
+
+    have g_appr': "\<forall>a\<in>A. abs (g a - (f a - sn a)) \<le> r (Suc n)"
+    proof (intro ballI)
+      fix a assume haA: "a \<in> A"
+      have habs: "abs (g a - (f a - sn a)) \<le> 2 * r n / 3"
+        using g_appr haA by blast
+      have hEq: "2 * r n / 3 = r (Suc n)"
+        unfolding r_def by (simp add: field_simps)
+      show "abs (g a - (f a - sn a)) \<le> r (Suc n)"
+        using habs unfolding hEq .
+    qed
+
+    show "\<exists>g. Step n sn g"
+    proof (rule exI[where x=g])
+      show "Step n sn g"
+        unfolding Step_def
+        apply (intro conjI)
+          apply (rule g_cont)
+         apply (rule g_bound')
+        apply (rule g_appr')
+        done
+    qed
+  qed
+
+  have Inv_all: "\<forall>n. Inv n (s n)"
+  proof
+    fix n
+    show "Inv n (s n)"
+    proof (induction n)
+      case 0
+      have hconst: "top1_continuous_map_on X TX ?R ?TR (\<lambda>x. (0::real))"
+        using Theorem_18_2(1)[OF hTopX hTopR hTopR, rule_format, of 0] by simp
+      have herr0: "\<forall>a\<in>A. abs (f a - (s 0) a) \<le> r 0"
+      proof (intro ballI)
+        fix a assume haA: "a \<in> A"
+        have hfaI: "f a \<in> I"
+          using hf haA unfolding top1_continuous_map_on_def by blast
+        have hbounds: "-1 \<le> f a \<and> f a \<le> 1"
+          using hfaI unfolding I_def top1_closed_interval_def by blast
+        have habs: "abs (f a) \<le> 1"
+        proof (rule abs_leI)
+          show "f a \<le> 1"
+            using hbounds by simp
+          show "- f a \<le> 1"
+            using hbounds by linarith
+        qed
+        show "abs (f a - s 0 a) \<le> r 0"
+          unfolding s0 r_def using habs by simp
+      qed
+	      show ?case
+	        unfolding Inv_def s0
+		      proof (intro conjI)
+		        show "top1_continuous_map_on X TX ?R ?TR (\<lambda>_. (0::real))"
+		          by (rule hconst)
+		        show "\<forall>a\<in>A. abs (f a - (\<lambda>_. (0::real)) a) \<le> r 0"
+		          using herr0 unfolding s0 by simp
+		      qed
+	    next
+	      case (Suc n)
+	      have hInvn: "Inv n (s n)"
+	        using Suc by simp
+	      have hex: "\<exists>g. Step n (s n) g"
+	        using Step_ex[OF hInvn] .
+	      have hStep: "Step n (s n) (choose_g n (s n))"
+	        unfolding choose_g_def
+	        by (rule someI_ex[OF hex])
+      have sn_cont: "top1_continuous_map_on X TX ?R ?TR (s n)"
+        using hInvn unfolding Inv_def by blast
+      have gn_cont: "top1_continuous_map_on X TX ?R ?TR (choose_g n (s n))"
+        using hStep unfolding Step_def by blast
+      have sn1_cont: "top1_continuous_map_on X TX ?R ?TR (\<lambda>x. s n x + choose_g n (s n) x)"
+        by (rule top1_continuous_add_real[OF hTopX sn_cont gn_cont])
+      have herr1: "\<forall>a\<in>A. abs (f a - (\<lambda>x. s n x + choose_g n (s n) x) a) \<le> r (Suc n)"
+      proof (intro ballI)
+        fix a assume haA: "a \<in> A"
+        have habs: "abs (choose_g n (s n) a - (f a - s n a)) \<le> r (Suc n)"
+          using hStep haA unfolding Step_def by blast
+        have hEq:
+          "f a - (s n a + choose_g n (s n) a) = (f a - s n a) - choose_g n (s n) a"
+          by simp
+        have "abs (f a - (s n a + choose_g n (s n) a)) = abs (choose_g n (s n) a - (f a - s n a))"
+          unfolding hEq by (simp add: abs_minus_commute)
+        thus "abs (f a - (\<lambda>x. s n x + choose_g n (s n) x) a) \<le> r (Suc n)"
+          using habs by simp
+      qed
+      show ?case
+        unfolding Inv_def
+	      proof (intro conjI)
+	        show "top1_continuous_map_on X TX ?R ?TR (s (Suc n))"
+	          unfolding sSuc[rule_format, of n] by (rule sn1_cont)
+	        show "\<forall>a\<in>A. abs (f a - s (Suc n) a) \<le> r (Suc n)"
+	          unfolding sSuc[rule_format, of n] by (rule herr1)
+	      qed
+    qed
   qed
 
   have inc_all: "\<forall>n. \<forall>x\<in>X. abs (s (Suc n) x - s n x) \<le> (1/3) * r n"
-  proof (intro allI ballI)
-    fix n x assume hxX: "x \<in> X"
-    have hInvn: "Inv n (s n)"
-      using Inv_all by blast
-    have hStep: "Step n (s n) (choose_g n (s n))"
-      using choose_g_step hInvn by blast
-    have habs: "abs (choose_g n (s n) x) \<le> (1/3) * r n"
+	  proof (intro allI ballI)
+	    fix n x assume hxX: "x \<in> X"
+	    have hInvn: "Inv n (s n)"
+	      using Inv_all by blast
+	    have hex: "\<exists>g. Step n (s n) g"
+	      using Step_ex[OF hInvn] .
+	    have hStep: "Step n (s n) (choose_g n (s n))"
+	      unfolding choose_g_def
+	      by (rule someI_ex[OF hex])
+	    have habs: "abs (choose_g n (s n) x) \<le> (1/3) * r n"
       using hStep hxX unfolding Step_def by blast
     have hEq: "s (Suc n) x - s n x = choose_g n (s n) x"
       using sSuc[rule_format, of n] by simp
     show "abs (s (Suc n) x - s n x) \<le> (1/3) * r n"
       unfolding hEq using habs by simp
   qed
-
-  show ?thesis
-    apply (rule exI[where x=s])
-    apply (intro conjI)
-     apply (rule s0)
-    apply (intro conjI)
-     apply (intro allI)
-     using Inv_all unfolding Inv_def by blast
-    apply (intro conjI)
-    apply (intro allI ballI)
-    using inc_all unfolding r_def by (simp add: field_simps)
-  apply (intro allI ballI)
-  using Inv_all unfolding Inv_def r_def by simp
-qed
-*)
+  
+	  show ?thesis
+	  proof (rule exI[where x=s])
+	    show "s 0 = (\<lambda>_. 0)
+	        \<and> (\<forall>n. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (s n))
+	        \<and> (\<forall>n. \<forall>x\<in>X. abs (s (Suc n) x - s n x) \<le> (1/3) * (2/3) ^ n)
+	        \<and> (\<forall>n. \<forall>a\<in>A. abs (f a - s n a) \<le> (2/3) ^ n)"
+	    proof (intro conjI)
+	      show "s 0 = (\<lambda>_. 0)"
+	        by (rule s0)
+	      show "\<forall>n. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (s n)"
+	        using Inv_all unfolding Inv_def by blast
+	      show "\<forall>n. \<forall>x\<in>X. abs (s (Suc n) x - s n x) \<le> (1/3) * (2/3) ^ n"
+	        using inc_all unfolding r_def by (simp add: field_simps)
+	      show "\<forall>n. \<forall>a\<in>A. abs (f a - s n a) \<le> (2/3) ^ n"
+	        using Inv_all unfolding Inv_def r_def by simp
+	    qed
+	  qed
+	qed
 
 (** from *\S35 Theorem 35.1 (Tietze extension theorem) [top1.tex:~4771] **)
 theorem Theorem_35_1:
