@@ -14787,22 +14787,153 @@ proof -
 	      unfolding d_def by simp
 	  qed
 	
-			  have d_metric: "top1_metric_on X d"
-			    sorry
-		
-			  (* WIP: proof attempt for d_metric (kept for later discharge of this sorry).
-			     The full structured proof (separation, nonnegativity, symmetry, and triangle inequality
-			     via termwise bounds + suminf lemmas) was inlined here but made `process_theories`
-			     too slow for the usual tight edit/build loop. *)
+	  have d_refl0: "\<And>x. x \<in> X \<Longrightarrow> d x x = 0"
+	  proof -
+	    fix x assume hxX: "x \<in> X"
+	    show "d x x = 0"
+	      unfolding d_def by simp
+	  qed
 	
-		  have small_nbhd_in_ball:
-		    "\<And>x (e::real). x \<in> X \<Longrightarrow> 0 < e \<Longrightarrow>
-		      \<exists>V\<in>TX. x \<in> V \<and> V \<subseteq> top1_ball_on X d x e"
-		  sorry
-		  (* proof -
-		    fix x
-		    fix e :: real
-		    assume hxX: "x \<in> X" and he: "0 < e"
+	  have d_nonneg: "\<And>x y. x \<in> X \<Longrightarrow> y \<in> X \<Longrightarrow> 0 \<le> d x y"
+	  proof -
+	    fix x y
+	    assume hxX: "x \<in> X" and hyX: "y \<in> X"
+	    have hsumm: "summable (\<lambda>n. (1/2::real)^n * abs (fseq n x - fseq n y))"
+	      by (rule d_summable[OF hxX hyX])
+	    have hpos: "\<And>n. 0 \<le> (1/2::real)^n * abs (fseq n x - fseq n y)"
+	      by simp
+	    show "0 \<le> d x y"
+	      unfolding d_def
+	      by (rule suminf_nonneg[OF hsumm hpos])
+	  qed
+	
+	  have d_sym: "\<And>x y. d x y = d y x"
+	    unfolding d_def by (simp add: abs_minus_commute)
+	
+	  have d_eq0_iff: "\<And>x y. x \<in> X \<Longrightarrow> y \<in> X \<Longrightarrow> (d x y = 0 \<longleftrightarrow> x = y)"
+	  proof -
+	    fix x y
+	    assume hxX: "x \<in> X" and hyX: "y \<in> X"
+	    show "d x y = 0 \<longleftrightarrow> x = y"
+	    proof (intro iffI)
+	      assume h0: "d x y = 0"
+	      show "x = y"
+	      proof (rule ccontr)
+	        assume hne: "x \<noteq> y"
+	        have hsing: "\<forall>t\<in>X. closedin_on X TX {t}"
+	          using hT1 unfolding top1_T1_on_def
+	          apply (rule conjunct2)
+	          done
+	        have hycl: "closedin_on X TX {y}"
+	          by (rule bspec[OF hsing hyX])
+	        have hU: "X - {y} \<in> TX"
+	          using hycl unfolding closedin_on_def
+	          apply (rule conjunct2)
+	          done
+	        have hxU: "x \<in> X - {y}"
+	          using hxX hne by blast
+	        have hnb: "neighborhood_of x X TX (X - {y})"
+	          unfolding neighborhood_of_def using hU hxU by blast
+	        obtain n where hn1: "fseq n x = 1" and hn0: "\<forall>u\<in>X - (X - {y}). fseq n u = 0"
+	          using fseq_support[rule_format, OF hxX, of "X - {y}"] hnb by blast
+	        have hy0: "fseq n y = 0"
+	          apply (rule bspec[OF hn0])
+	          using hyX
+	          apply simp
+	          done
+	        have habs1: "abs (fseq n x - fseq n y) = 1"
+	          using hn1 hy0 by simp
+	        have hterm_le: "(1/2::real)^n * abs (fseq n x - fseq n y) \<le> d x y"
+	          by (rule d_ge_term[OF hxX hyX])
+	        have hpos: "0 < (1/2::real)^n * abs (fseq n x - fseq n y)"
+	          using habs1 by simp
+	        have "0 < d x y"
+	          by (rule less_le_trans[OF hpos hterm_le])
+	        thus False
+	          using h0 by simp
+	      qed
+	    next
+	      assume "x = y"
+	      thus "d x y = 0"
+	        unfolding d_def by simp
+	    qed
+	  qed
+	
+	  have d_triangle:
+	    "\<And>x y z. x \<in> X \<Longrightarrow> y \<in> X \<Longrightarrow> z \<in> X \<Longrightarrow> d x z \<le> d x y + d y z"
+	  proof -
+	    fix x y z
+	    assume hxX: "x \<in> X" and hyX: "y \<in> X" and hzX: "z \<in> X"
+	    let ?f = "\<lambda>n. (1/2::real)^n * abs (fseq n x - fseq n z)"
+	    let ?g = "\<lambda>n. (1/2::real)^n * abs (fseq n x - fseq n y)"
+	    let ?h = "\<lambda>n. (1/2::real)^n * abs (fseq n y - fseq n z)"
+	
+	    have hsumm_f: "summable ?f"
+	      by (rule d_summable[OF hxX hzX])
+	    have hsumm_g: "summable ?g"
+	      by (rule d_summable[OF hxX hyX])
+	    have hsumm_h: "summable ?h"
+	      by (rule d_summable[OF hyX hzX])
+	    have hsumm_gh: "summable (\<lambda>n. ?g n + ?h n)"
+	      by (rule summable_add[OF hsumm_g hsumm_h])
+	
+	    have hpt: "\<And>n. ?f n \<le> ?g n + ?h n"
+	    proof -
+	      fix n
+	      have habs:
+	        "abs (fseq n x - fseq n z)
+	           \<le> abs (fseq n x - fseq n y) + abs (fseq n y - fseq n z)"
+	      proof -
+	        have "fseq n x - fseq n z = (fseq n x - fseq n y) + (fseq n y - fseq n z)"
+	          by simp
+	        thus ?thesis
+	          by (simp add: abs_triangle_ineq)
+	      qed
+	      have hnonneg: "0 \<le> (1/2::real)^n"
+	        by simp
+	      have "(1/2::real)^n * abs (fseq n x - fseq n z)
+	            \<le> (1/2::real)^n * (abs (fseq n x - fseq n y) + abs (fseq n y - fseq n z))"
+	        by (rule mult_left_mono[OF habs hnonneg])
+	      also have "\<dots> =
+	          (1/2::real)^n * abs (fseq n x - fseq n y) + (1/2::real)^n * abs (fseq n y - fseq n z)"
+	        by (simp add: algebra_simps)
+	      finally show "?f n \<le> ?g n + ?h n"
+	        by simp
+	    qed
+	
+	    have hsuminf_add: "suminf ?g + suminf ?h = (\<Sum>n. ?g n + ?h n)"
+	      by (rule suminf_add[OF hsumm_g hsumm_h])
+	
+	    have "(\<Sum>n. ?f n) \<le> (\<Sum>n. ?g n + ?h n)"
+	      by (rule suminf_le[OF hpt hsumm_f hsumm_gh])
+	    also have "\<dots> = suminf ?g + suminf ?h"
+	      by (simp add: hsuminf_add)
+	    finally show "d x z \<le> d x y + d y z"
+	      unfolding d_def by simp
+	  qed
+	
+	  have d_metric: "top1_metric_on X d"
+	    unfolding top1_metric_on_def
+	    apply (intro conjI ballI)
+	    subgoal for x
+	      using d_refl0 by simp
+	    subgoal for x y
+	      by (rule d_nonneg)
+	    subgoal for x y
+	      by (rule d_eq0_iff)
+	    subgoal for x y
+	      by (rule d_sym)
+	    subgoal for x y z
+	      by (rule d_triangle)
+	    done
+	
+			  have small_nbhd_in_ball:
+			    "\<And>x (e::real). x \<in> X \<Longrightarrow> 0 < e \<Longrightarrow>
+			      \<exists>V\<in>TX. x \<in> V \<and> V \<subseteq> top1_ball_on X d x e"
+			  proof -
+			    fix x
+			    fix e :: real
+			    assume hxX: "x \<in> X" and he: "0 < e"
 	    define eps where "eps = e / 4"
 	    have heps: "0 < eps"
 	      unfolding eps_def using he by simp
@@ -14999,42 +15130,53 @@ proof -
 	
 		      have hsum_le: "(\<Sum>n<Suc N. (1/2::real)^n * abs (fseq n x - fseq n y))
 		          \<le> (\<Sum>n<Suc N. (1/2::real)^n * eps)"
-		      proof (rule sum_mono)
-		        fix n assume hn: "n < Suc N"
-		        have hnle: "n \<le> N"
-		          using hn by simp
-		        have habslt: "abs (fseq n x - fseq n y) < eps"
-		          by (rule hfirst[OF hnle])
-		        have habsle: "abs (fseq n x - fseq n y) \<le> eps"
-		          using habslt by (rule less_imp_le)
-		        have hnonneg: "0 \<le> (1/2::real)^n"
-		          by simp
-			        show "(1/2::real)^n * abs (fseq n x - fseq n y) \<le> (1/2::real)^n * eps"
-			          apply (rule mult_left_mono)
-			           apply (rule habsle)
-			          by simp
-			      qed
+			      proof (rule sum_mono)
+			        fix n assume hn: "n \<in> {..<Suc N}"
+			        have hnle: "n \<le> N"
+			          using hn by simp
+			        have habslt: "abs (fseq n x - fseq n y) < eps"
+			          by (rule hfirst[OF hnle])
+				        have habsle: "abs (fseq n x - fseq n y) \<le> eps"
+				          using habslt by (rule less_imp_le)
+				        have hnonneg: "0 \<le> (1/2::real)^n"
+				          by simp
+				        show "(1/2::real)^n * abs (fseq n x - fseq n y) \<le> (1/2::real)^n * eps"
+				          by (rule mult_left_mono[OF habsle hnonneg])
+					      qed
 	      have hsum_le2: "(\<Sum>n<Suc N. (1/2::real)^n * eps) = eps * (\<Sum>n<Suc N. (1/2::real)^n)"
-	        by (simp add: sum_distrib_left)
-	      have hgeom_le: "(\<Sum>n<Suc N. (1/2::real)^n) \<le> 2"
-	        apply (rule order_trans)
-	         apply (rule sum_le_suminf)
-	           apply simp
-	          apply simp
-	         apply (rule summable_geom)
-	        apply (simp add: suminf_geom)
-	        done
-	      have hsum_bound: "(\<Sum>n<Suc N. (1/2::real)^n * abs (fseq n x - fseq n y)) \<le> e / 2"
 	      proof -
-	        have "(\<Sum>n<Suc N. (1/2::real)^n * abs (fseq n x - fseq n y))
-	            \<le> eps * (\<Sum>n<Suc N. (1/2::real)^n)"
-	          using hsum_le hsum_le2 by simp
-	        also have "\<dots> \<le> eps * 2"
-	          by (rule mult_left_mono[OF hgeom_le]) (simp add: eps_def)
-	        also have "\<dots> = e / 2"
-	          unfolding eps_def by simp
+	        have "(\<Sum>n<Suc N. (1/2::real)^n * eps) = (\<Sum>n<Suc N. (1/2::real)^n) * eps"
+	          by (simp add: sum_distrib_right[symmetric])
+	        also have "\<dots> = eps * (\<Sum>n<Suc N. (1/2::real)^n)"
+	          by (simp add: mult.commute)
 	        finally show ?thesis .
 	      qed
+	      have hgeom_le: "(\<Sum>n<Suc N. (1/2::real)^n) \<le> 2"
+	      proof -
+	        have hsumm: "summable (\<lambda>n. (1/2::real)^n)"
+	          by (rule summable_geom)
+	        have "(\<Sum>n<Suc N. (1/2::real)^n) \<le> (\<Sum>n. (1/2::real)^n)"
+	          apply (rule sum_le_suminf)
+	            apply (rule hsumm)
+	           apply simp
+	          apply simp
+	          done
+	        also have "\<dots> = 2"
+	          by (simp add: suminf_geom)
+	        finally show ?thesis
+	          by simp
+	      qed
+	      have hsum_bound: "(\<Sum>n<Suc N. (1/2::real)^n * abs (fseq n x - fseq n y)) \<le> e / 2"
+	      proof -
+		        have "(\<Sum>n<Suc N. (1/2::real)^n * abs (fseq n x - fseq n y))
+		            \<le> eps * (\<Sum>n<Suc N. (1/2::real)^n)"
+		          using hsum_le hsum_le2 by simp
+		        also have "\<dots> \<le> eps * 2"
+		          by (rule mult_left_mono[OF hgeom_le]) (rule less_imp_le[OF heps])
+		        also have "\<dots> = e / 2"
+		          unfolding eps_def by simp
+		        finally show ?thesis .
+		      qed
 	
 	      have "d x y \<le> (1/2::real)^N + e/2"
 	        using hsplit htail hsum_bound by linarith
@@ -15052,7 +15194,7 @@ proof -
 	       apply (rule hInter_sub_ball)
 	      apply (rule hInterF)
 	      done
-		  qed *)
+		  qed
 		
 			  have ball_open_TX:
 			    "\<And>x (e::real). x \<in> X \<Longrightarrow> 0 < e \<Longrightarrow> top1_ball_on X d x e \<in> TX"
