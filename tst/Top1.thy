@@ -15054,13 +15054,12 @@ proof -
 	      done
 		  qed *)
 		
-		  have ball_open_TX:
-		    "\<And>x (e::real). x \<in> X \<Longrightarrow> 0 < e \<Longrightarrow> top1_ball_on X d x e \<in> TX"
-		  sorry
-		  (* proof -
-		    fix x
-		    fix e :: real
-		    assume hxX: "x \<in> X" and he: "0 < e"
+			  have ball_open_TX:
+			    "\<And>x (e::real). x \<in> X \<Longrightarrow> 0 < e \<Longrightarrow> top1_ball_on X d x e \<in> TX"
+			  proof -
+			    fix x
+			    fix e :: real
+			    assume hxX: "x \<in> X" and he: "0 < e"
 	    (* Characterize openness via the fixed basis B for TX. *)
 	    have hBallSub: "top1_ball_on X d x e \<subseteq> X"
 	      unfolding top1_ball_on_def by blast
@@ -15085,8 +15084,10 @@ proof -
 		          using hzV hVsub by blast
 		        have hdz: "d y z < (e - d x y) / 2"
 		          using hzBall unfolding top1_ball_on_def by simp
+		        have htri_all: "\<forall>x\<in>X. \<forall>y\<in>X. \<forall>z\<in>X. d x z \<le> d x y + d y z"
+		          using d_metric unfolding top1_metric_on_def by blast
 		        have htri: "d x z \<le> d x y + d y z"
-		          using d_metric hxX hyX hzX unfolding top1_metric_on_def by blast
+		          using htri_all hxX hyX hzX by blast
 		        have hhalf_lt: "(e - d x y) / 2 < e - d x y"
 		          using hyr by simp
 		        have hdz': "d y z < e - d x y"
@@ -15117,7 +15118,7 @@ proof -
 	      done
 		    show "top1_ball_on X d x e \<in> TX"
 		      using hball hTXeq by simp
-		  qed *)
+		  qed
 	
 			  have metric_basis_sub_TX: "top1_metric_basis_on X d \<subseteq> TX"
 			  proof (rule subsetI)
