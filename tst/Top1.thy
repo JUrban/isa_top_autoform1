@@ -16375,6 +16375,375 @@ proof -
 qed
 *)
 
+(** Uniform convergence on a set, specialized to real-valued maps. **)
+definition top1_uniformly_convergent_on ::
+  "'a set \<Rightarrow> (nat \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> real) \<Rightarrow> bool" where
+  "top1_uniformly_convergent_on X s g \<longleftrightarrow>
+     (\<forall>e>0. \<exists>N. \<forall>n\<ge>N. \<forall>x\<in>X. abs (s n x - g x) < e)"
+
+lemma basis_order_topology_contains_open_interval:
+  fixes b :: "real set" and x :: real
+  assumes hb: "b \<in> (basis_order_topology::real set set)"
+  assumes hx: "x \<in> b"
+  shows "\<exists>e>0. open_interval (x - e) (x + e) \<subseteq> b"
+  sorry
+
+(*
+proof -
+  have hcases:
+    "(\<exists>a c. a < c \<and> b = open_interval a c)
+     \<or> (\<exists>a. b = open_ray_gt a)
+     \<or> (\<exists>a. b = open_ray_lt a)
+     \<or> b = (UNIV::real set)"
+    by (rule basis_order_topology_cases[OF hb])
+
+  show ?thesis
+  proof (rule disjE[OF hcases])
+    assume hbint: "\<exists>a c. a < c \<and> b = open_interval a c"
+    then obtain a c where hac: "a < c" and hbeq: "b = open_interval a c"
+      by blast
+    have ha: "a < x" and hx': "x < c"
+      using hx unfolding hbeq open_interval_def by simp_all
+    define e where "e = min (x - a) (c - x) / 2"
+    have he: "0 < e"
+    proof -
+      have "0 < x - a"
+        using ha by linarith
+      moreover have "0 < c - x"
+        using hx' by linarith
+      ultimately have "0 < min (x - a) (c - x)"
+        by simp
+      thus ?thesis
+        unfolding e_def by (simp add: divide_pos_pos)
+    qed
+    have he_lt1: "e < x - a"
+    proof -
+      have "e \<le> (x - a) / 2"
+        unfolding e_def by simp
+      also have "... < x - a"
+      proof -
+        have hxapos: "0 < x - a"
+          using ha by linarith
+        have hhalf: "(x - a) * (1 / 2 :: real) < (x - a) * 1"
+          apply (rule mult_strict_left_mono)
+           apply simp
+          apply (rule hxapos)
+          done
+        show ?thesis
+          using hhalf by simp
+      qed
+      finally show ?thesis
+        by linarith
+    qed
+    have he_lt2: "e < c - x"
+    proof -
+      have "e \<le> (c - x) / 2"
+        unfolding e_def by simp
+      also have "... < c - x"
+      proof -
+        have hxpos: "0 < c - x"
+          using hx' by linarith
+        have hhalf: "(c - x) * (1 / 2 :: real) < (c - x) * 1"
+          apply (rule mult_strict_left_mono)
+           apply simp
+          apply (rule hxpos)
+          done
+        show ?thesis
+          using hhalf by simp
+      qed
+      finally show ?thesis
+        by linarith
+    qed
+
+    have hsub: "open_interval (x - e) (x + e) \<subseteq> open_interval a c"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> open_interval (x - e) (x + e)"
+      have hy1: "x - e < y" and hy2: "y < x + e"
+        using hy unfolding open_interval_def by simp_all
+      have "a < x - e"
+        using he_lt1 by linarith
+      hence "a < y"
+        using hy1 by linarith
+      moreover have "x + e < c"
+        using he_lt2 by linarith
+      hence "y < c"
+        using hy2 by linarith
+      ultimately show "y \<in> open_interval a c"
+        unfolding open_interval_def by simp
+    qed
+    show ?thesis
+      unfolding hbeq
+      apply (rule exI[where x=e])
+      apply (intro conjI)
+       apply (rule he)
+      apply (rule hsub)
+      done
+  next
+    assume hbr: "\<exists>a. b = open_ray_gt a"
+    then obtain a where hbeq: "b = open_ray_gt a"
+      by blast
+    have ha: "a < x"
+      using hx unfolding hbeq open_ray_gt_def by simp
+    define e where "e = (x - a) / 2"
+    have he: "0 < e"
+    proof -
+      have "0 < x - a"
+        using ha by linarith
+      thus ?thesis
+        unfolding e_def by (simp add: divide_pos_pos)
+    qed
+    have hsub: "open_interval (x - e) (x + e) \<subseteq> open_ray_gt a"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> open_interval (x - e) (x + e)"
+      have hy1: "x - e < y"
+        using hy unfolding open_interval_def by simp
+      have "a < x - e"
+      proof -
+        have hEq: "x - e = (x + a) / 2"
+          unfolding e_def by (simp add: field_simps)
+        have "a < (x + a) / 2"
+        proof -
+          have "a < (x + a) / 2 \<longleftrightarrow> a * (2::real) < x + a"
+            by (simp add: divide_less_eq)
+          moreover have "a * (2::real) < x + a"
+            using ha by linarith
+          ultimately show ?thesis
+            by simp
+        qed
+        thus ?thesis
+          unfolding hEq by simp
+      qed
+      hence "a < y"
+        using hy1 by linarith
+      thus "y \<in> open_ray_gt a"
+        unfolding open_ray_gt_def by simp
+    qed
+    show ?thesis
+      unfolding hbeq
+    proof (rule exI[where x=e])
+      show "0 < e \<and> open_interval (x - e) (x + e) \<subseteq> open_ray_gt a"
+      proof (intro conjI)
+        show "0 < e"
+          by (rule he)
+        show "open_interval (x - e) (x + e) \<subseteq> open_ray_gt a"
+          by (rule hsub)
+      qed
+    qed
+  next
+    assume hbl: "\<exists>a. b = open_ray_lt a"
+    then obtain a where hbeq: "b = open_ray_lt a"
+      by blast
+    have ha: "x < a"
+      using hx unfolding hbeq open_ray_lt_def by simp
+    define e where "e = (a - x) / 2"
+    have he: "0 < e"
+    proof -
+      have "0 < a - x"
+        using ha by linarith
+      thus ?thesis
+        unfolding e_def by (simp add: divide_pos_pos)
+    qed
+    have hsub: "open_interval (x - e) (x + e) \<subseteq> open_ray_lt a"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> open_interval (x - e) (x + e)"
+      have hy2: "y < x + e"
+        using hy unfolding open_interval_def by simp
+      have "x + e < a"
+        unfolding e_def using ha by linarith
+      hence "y < a"
+        using hy2 by linarith
+      thus "y \<in> open_ray_lt a"
+        unfolding open_ray_lt_def by simp
+    qed
+    show ?thesis
+      unfolding hbeq
+    proof (rule exI[where x=e])
+      show "0 < e \<and> open_interval (x - e) (x + e) \<subseteq> open_ray_lt a"
+      proof (intro conjI)
+        show "0 < e"
+          by (rule he)
+        show "open_interval (x - e) (x + e) \<subseteq> open_ray_lt a"
+          by (rule hsub)
+      qed
+    qed
+  next
+    assume hU: "b = (UNIV::real set)"
+    show ?thesis
+      unfolding hU
+    proof (rule exI[where x="1::real"])
+      show "0 < (1::real) \<and> open_interval (x - (1::real)) (x + (1::real)) \<subseteq> (UNIV::real set)"
+        by simp
+    qed
+  qed
+qed
+*)
+
+lemma top1_uniform_limit_continuous_real:
+  fixes s :: "nat \<Rightarrow> 'a \<Rightarrow> real" and g :: "'a \<Rightarrow> real"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hscont: "\<forall>n. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (s n)"
+  assumes hunif: "top1_uniformly_convergent_on X s g"
+  shows "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV g"
+  sorry
+
+(*
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+
+  have hTopR: "is_topology_on ?R ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+
+  have hnbhd_g:
+    "\<forall>x\<in>X. \<forall>V. neighborhood_of (g x) ?R ?TR V \<longrightarrow>
+      (\<exists>U. neighborhood_of x X TX U \<and> g ` U \<subseteq> V)"
+  proof (intro ballI allI impI)
+    fix x V
+    assume hxX: "x \<in> X"
+    assume hV: "neighborhood_of (g x) ?R ?TR V"
+    have hVT: "V \<in> ?TR" and hgxV: "g x \<in> V"
+      using hV unfolding neighborhood_of_def by blast+
+
+    obtain b where hbB: "b \<in> (basis_order_topology::real set set)"
+        and hgb: "g x \<in> b" and hbV: "b \<subseteq> V"
+      using hVT hgxV unfolding order_topology_on_UNIV_def topology_generated_by_basis_def
+      by blast
+
+    obtain e where he: "0 < e" and hI_sub: "open_interval (g x - e) (g x + e) \<subseteq> b"
+      using basis_order_topology_contains_open_interval[OF hbB hgb] by blast
+
+    have he2: "0 < e/2"
+      using he by linarith
+
+    obtain N where hN:
+      "\<forall>n\<ge>N. \<forall>y\<in>X. abs (s n y - g y) < e/2"
+      using hunif unfolding top1_uniformly_convergent_on_def using he2 by blast
+
+    have hNx: "abs (s N x - g x) < e/2"
+      using hN hxX by simp
+
+    have hW_open: "open_interval (g x - e/2) (g x + e/2) \<in> ?TR"
+    proof -
+      have "g x - e/2 < g x + e/2"
+        using he2 by linarith
+      thus ?thesis
+        by (rule open_interval_in_order_topology)
+    qed
+
+    have hsN_cont: "top1_continuous_map_on X TX ?R ?TR (s N)"
+      using hscont by simp
+
+    have hsN_nbhd:
+      "\<forall>y\<in>X. \<forall>W. neighborhood_of ((s N) y) ?R ?TR W \<longrightarrow>
+        (\<exists>U. neighborhood_of y X TX U \<and> (s N) ` U \<subseteq> W)"
+    proof -
+      have hiff:
+        "top1_continuous_map_on X TX ?R ?TR (s N) \<longleftrightarrow>
+         ((\<forall>y\<in>X. (s N) y \<in> ?R) \<and>
+          (\<forall>y\<in>X. \<forall>W. neighborhood_of ((s N) y) ?R ?TR W \<longrightarrow>
+              (\<exists>U. neighborhood_of y X TX U \<and> (s N) ` U \<subseteq> W)))"
+        by (rule Theorem_18_1(3)[OF hTopX hTopR])
+      show ?thesis
+        using hsN_cont hiff by blast
+    qed
+
+    have hsNxW: "neighborhood_of ((s N) x) ?R ?TR (open_interval (g x - e/2) (g x + e/2))"
+    proof -
+      have hboth: "s N x - g x < e/2 \<and> - (s N x - g x) < e/2"
+        using hNx by (rule iffD1[OF abs_less_iff])
+      have hupper: "s N x - g x < e/2"
+        by (rule conjunct1[OF hboth])
+      have hneg: "- (s N x - g x) < e/2"
+        by (rule conjunct2[OF hboth])
+      have hlower: "-e/2 < (s N x - g x)"
+        using hneg by linarith
+      have hdiff: "-e/2 < (s N x - g x) \<and> (s N x - g x) < e/2"
+        using hlower hupper by blast
+      have h1: "g x - e/2 < (s N x)"
+        using hdiff by linarith
+      have h2: "(s N x) < g x + e/2"
+        using hdiff by linarith
+      have hmem: "(s N) x \<in> open_interval (g x - e/2) (g x + e/2)"
+        unfolding open_interval_def using h1 h2 by simp
+      show ?thesis
+        unfolding neighborhood_of_def
+        using hW_open hmem by blast
+    qed
+
+    obtain U where hUx: "neighborhood_of x X TX U" and hUmap:
+      "(s N) ` U \<subseteq> open_interval (g x - e/2) (g x + e/2)"
+      using hsN_nbhd hxX hsNxW by blast
+
+    have hUsubX: "U \<subseteq> X"
+    proof -
+      have hUT: "U \<in> TX"
+        using hUx unfolding neighborhood_of_def by blast
+      have hallsub: "\<forall>W\<in>TX. W \<subseteq> X"
+        using hTopX unfolding is_topology_on_def by blast
+      show ?thesis
+        by (rule ballE[OF hallsub hUT], simp)
+    qed
+
+    have hgmapped: "g ` U \<subseteq> V"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> g ` U"
+      then obtain u where huU: "u \<in> U" and hyEq: "y = g u"
+        by blast
+      have huX: "u \<in> X"
+        using hUsubX huU by blast
+      have hNu: "abs (s N u - g u) < e/2"
+        using hN huX by simp
+      have hsNu: "s N u \<in> open_interval (g x - e/2) (g x + e/2)"
+        using hUmap huU by blast
+      have hsNu1: "g x - e/2 < s N u" and hsNu2: "s N u < g x + e/2"
+        using hsNu unfolding open_interval_def by simp_all
+
+      have hboth: "s N u - g u < e/2 \<and> - (s N u - g u) < e/2"
+        using hNu by (rule iffD1[OF abs_less_iff])
+      have hupper: "s N u - g u < e/2"
+        by (rule conjunct1[OF hboth])
+      have hneg: "- (s N u - g u) < e/2"
+        by (rule conjunct2[OF hboth])
+      have hlower: "-e/2 < (s N u - g u)"
+        using hneg by linarith
+      have hdiff: "-e/2 < (s N u - g u) \<and> (s N u - g u) < e/2"
+        using hlower hupper by blast
+
+      have hgu1: "g x - e < g u"
+        using hsNu1 hdiff by linarith
+      have hgu2: "g u < g x + e"
+        using hsNu2 hdiff by linarith
+      have hguI: "g u \<in> open_interval (g x - e) (g x + e)"
+        unfolding open_interval_def using hgu1 hgu2 by simp
+
+      have "g u \<in> b"
+        using hI_sub hguI by blast
+      hence "g u \<in> V"
+        using hbV by blast
+      thus "y \<in> V"
+        unfolding hyEq by simp
+    qed
+
+    show "\<exists>U. neighborhood_of x X TX U \<and> g ` U \<subseteq> V"
+      by (rule exI[where x=U], intro conjI, rule hUx, rule hgmapped)
+  qed
+
+  have hiff:
+    "top1_continuous_map_on X TX ?R ?TR g \<longleftrightarrow>
+     ((\<forall>x\<in>X. g x \<in> ?R) \<and>
+      (\<forall>x\<in>X. \<forall>V. neighborhood_of (g x) ?R ?TR V \<longrightarrow>
+          (\<exists>U. neighborhood_of x X TX U \<and> g ` U \<subseteq> V)))"
+    by (rule Theorem_18_1(3)[OF hTopX hTopR])
+
+  show ?thesis
+    apply (rule iffD2[OF hiff])
+    apply (intro conjI)
+     apply simp
+    apply (rule hnbhd_g)
+    done
+qed
+*)
+
 (** from *\S35 Theorem 35.1 (Tietze extension theorem) [top1.tex:~4771] **)
 theorem Theorem_35_1:
   fixes f :: "'a \<Rightarrow> real"
