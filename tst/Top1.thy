@@ -18304,6 +18304,424 @@ definition top1_partition_of_unity_dominated_on ::
         \<and> top1_support_on X TX (\<phi> i) \<subseteq> U i)
      \<and> (\<forall>x\<in>X. (\<Sum>i<n. \<phi> i x) = 1)"
 
+(** Step 1 of Theorem 36.1: "shrink" a finite open cover so that each shrunken set has closure
+    contained in the corresponding original one. **)
+lemma normal_shrink_finite_open_cover:
+  fixes U :: "nat \<Rightarrow> 'a set"
+  assumes hN: "top1_normal_on X TX"
+  assumes hUopen: "\<forall>i<n. U i \<in> TX"
+  assumes hUsub: "\<forall>i<n. U i \<subseteq> X"
+  assumes hcov: "X \<subseteq> (\<Union>i<n. U i)"
+  shows "\<exists>V. (\<forall>i<n. V i \<in> TX \<and> V i \<subseteq> X \<and> closure_on X TX (V i) \<subseteq> U i)
+        \<and> X \<subseteq> (\<Union>i<n. V i)"
+proof -
+  have hT1: "top1_T1_on X TX"
+    using hN unfolding top1_normal_on_def by (rule conjunct1)
+  have hTopX: "is_topology_on X TX"
+    using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+
+  have union_TX: "\<forall>K. K \<subseteq> TX \<longrightarrow> (\<Union>K) \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTopX[unfolded is_topology_on_def]]]])
+
+  define P where
+    "P k V \<longleftrightarrow>
+       (\<forall>i<k. V i \<in> TX \<and> V i \<subseteq> X \<and> closure_on X TX (V i) \<subseteq> U i)
+       \<and> X \<subseteq> (\<Union>i<k. V i) \<union> (\<Union>i\<in>{k..<n}. U i)"
+    for k :: nat and V :: "nat \<Rightarrow> 'a set"
+
+  have P_ex: "\<forall>k\<le>n. \<exists>V. P k V"
+  proof (intro allI impI)
+    fix k assume hk: "k \<le> n"
+    show "\<exists>V. P k V"
+      using hk
+    proof (induction k)
+      case 0
+      let ?V = "\<lambda>i. {}"
+      show "\<exists>V. P 0 V"
+      proof -
+        have hcov': "X \<subseteq> (\<Union>(U ` {0..<n}))"
+          using hcov by (simp add: atLeast0LessThan)
+        show ?thesis
+          unfolding P_def
+          apply (rule exI[where x = ?V])
+          apply (intro conjI)
+           apply simp
+          apply simp
+          apply (rule hcov')
+          done
+      qed
+    next
+      case (Suc k)
+      have hklt: "k < n"
+        using Suc.prems by simp
+      have hk_le_n: "k \<le> n"
+        using Suc.prems by simp
+      obtain V where hP: "P k V"
+        using Suc.IH[OF hk_le_n] by blast
+
+      define Prev where "Prev = (\<Union>i<k. V i)"
+      define Rest where "Rest = (\<Union>i\<in>{Suc k..<n}. U i)"
+      define A where "A = X - Prev - Rest"
+
+      have hPrev_subX: "Prev \<subseteq> X"
+      proof (rule subsetI)
+        fix x assume hx: "x \<in> Prev"
+        then obtain i where hi: "i < k" and hxVi: "x \<in> V i"
+          unfolding Prev_def by blast
+        have hVi_subX: "V i \<subseteq> X"
+          using hP unfolding P_def using hi by blast
+        show "x \<in> X"
+          using hVi_subX hxVi by blast
+      qed
+
+      have hRest_subX: "Rest \<subseteq> X"
+      proof (rule subsetI)
+        fix x assume hx: "x \<in> Rest"
+        then obtain i where hi: "i \<in> {Suc k..<n}" and hxUi: "x \<in> U i"
+          unfolding Rest_def by blast
+        have hUi_subX: "U i \<subseteq> X"
+          using hUsub[rule_format, of i] hi by simp
+        show "x \<in> X"
+          using hUi_subX hxUi by blast
+      qed
+
+      have hPrev_open: "Prev \<in> TX"
+      proof -
+        have hPrev_img: "V ` {..<k} \<subseteq> TX"
+        proof (rule subsetI)
+          fix W assume hW: "W \<in> V ` {..<k}"
+          then obtain i where hi: "i < k" and hWeq: "W = V i"
+            by blast
+          show "W \<in> TX"
+            using hP unfolding P_def using hi hWeq by blast
+        qed
+        have "(\<Union>(V ` {..<k})) \<in> TX"
+          using union_TX hPrev_img by blast
+        moreover have "(\<Union>(V ` {..<k})) = Prev"
+          unfolding Prev_def by blast
+        ultimately show ?thesis
+          by simp
+      qed
+
+      have hRest_open: "Rest \<in> TX"
+      proof -
+        have hRest_img: "U ` {Suc k..<n} \<subseteq> TX"
+        proof (rule subsetI)
+          fix W assume hW: "W \<in> U ` {Suc k..<n}"
+          then obtain i where hi: "i \<in> {Suc k..<n}" and hWeq: "W = U i"
+            by blast
+          show "W \<in> TX"
+            using hUopen[rule_format, of i] hi hWeq by simp
+        qed
+        have "(\<Union>(U ` {Suc k..<n})) \<in> TX"
+          using union_TX hRest_img by blast
+        moreover have "(\<Union>(U ` {Suc k..<n})) = Rest"
+          unfolding Rest_def by blast
+        ultimately show ?thesis
+          by simp
+      qed
+
+      have hPrevRest_open: "Prev \<union> Rest \<in> TX"
+        by (rule topology_union2[OF hTopX hPrev_open hRest_open])
+
+      have hA_subX: "A \<subseteq> X"
+        unfolding A_def by blast
+
+      have hXdiffA: "X - A = Prev \<union> Rest"
+      proof -
+        have hSub: "Prev \<union> Rest \<subseteq> X"
+          using hPrev_subX hRest_subX by blast
+        have "X - A = X \<inter> (Prev \<union> Rest)"
+          unfolding A_def by blast
+        also have "... = Prev \<union> Rest"
+          using hSub by blast
+        finally show ?thesis .
+      qed
+
+      have hA_closed: "closedin_on X TX A"
+        by (rule closedin_intro[OF hA_subX], simp add: hXdiffA hPrevRest_open)
+
+      have hU_k_open: "U k \<in> TX"
+        using hUopen hklt by blast
+      have hU_k_subX: "U k \<subseteq> X"
+        using hUsub hklt by blast
+
+      have hA_sub_Uk: "A \<subseteq> U k"
+      proof (rule subsetI)
+        fix x assume hxA: "x \<in> A"
+        have hxX: "x \<in> X"
+          using hxA unfolding A_def by blast
+        have hxnotPrev: "x \<notin> Prev"
+          using hxA unfolding A_def by blast
+        have hxnotRest: "x \<notin> Rest"
+          using hxA unfolding A_def by blast
+        have hxCov: "x \<in> Prev \<union> (\<Union>i\<in>{k..<n}. U i)"
+          using hP hxX unfolding P_def Prev_def by blast
+        have hxCov2: "x \<in> Prev \<or> x \<in> (\<Union>i\<in>{k..<n}. U i)"
+          using hxCov by blast
+        have hxInUset: "x \<in> (\<Union>i\<in>{k..<n}. U i)"
+          using hxCov2 hxnotPrev by blast
+        have hSplit: "(\<Union>i\<in>{k..<n}. U i) = U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+        proof (rule set_eqI)
+          fix y
+          show "y \<in> (\<Union>i\<in>{k..<n}. U i) \<longleftrightarrow> y \<in> U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+          proof
+            assume hy: "y \<in> (\<Union>i\<in>{k..<n}. U i)"
+            then obtain i where hi: "i \<in> {k..<n}" and hyUi: "y \<in> U i"
+              by blast
+            show "y \<in> U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+            proof (cases "i = k")
+              case True
+              show ?thesis
+                using hyUi unfolding True by blast
+            next
+              case False
+              have hi2: "i \<in> {Suc k..<n}"
+                using hi False by auto
+              have "y \<in> (\<Union>j\<in>{Suc k..<n}. U j)"
+                using hi2 hyUi by blast
+              thus ?thesis
+                by blast
+            qed
+          next
+            assume hy: "y \<in> U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+            show "y \<in> (\<Union>i\<in>{k..<n}. U i)"
+            proof -
+              have hy': "y \<in> U k \<or> y \<in> (\<Union>i\<in>{Suc k..<n}. U i)"
+                using hy by simp
+              show ?thesis
+              proof (rule disjE[OF hy'])
+              assume hyk: "y \<in> U k"
+              have hk': "k \<in> {k..<n}"
+                using hklt by simp
+              show ?thesis
+                using hk' hyk by blast
+            next
+              assume hyL: "y \<in> (\<Union>i\<in>{Suc k..<n}. U i)"
+              then obtain i where hi: "i \<in> {Suc k..<n}" and hyUi: "y \<in> U i"
+                by blast
+              have hi': "i \<in> {k..<n}"
+                using hi by auto
+              show ?thesis
+                using hi' hyUi by blast
+              qed
+            qed
+          qed
+        qed
+        have hxInSplit: "x \<in> U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+          using hxInUset unfolding hSplit by simp
+        have hxRest2: "x \<in> (\<Union>i\<in>{Suc k..<n}. U i) \<Longrightarrow> x \<in> Rest"
+          unfolding Rest_def by blast
+        show "x \<in> U k"
+        proof -
+          have hxInSplit': "x \<in> U k \<or> x \<in> (\<Union>i\<in>{Suc k..<n}. U i)"
+            using hxInSplit by simp
+          show ?thesis
+          proof (rule disjE[OF hxInSplit'])
+          assume "x \<in> U k"
+          thus ?thesis .
+        next
+          assume hxInLater: "x \<in> (\<Union>i\<in>{Suc k..<n}. U i)"
+          have "x \<in> Rest"
+            using hxRest2 hxInLater .
+          thus ?thesis
+            using hxnotRest by contradiction
+          qed
+        qed
+      qed
+
+      obtain Vk where hVk: "Vk \<in> TX \<and> Vk \<subseteq> X \<and> A \<subseteq> Vk \<and> closure_on X TX Vk \<subseteq> U k"
+        using normal_refine_closed_into_open[OF hN hA_closed hU_k_open hU_k_subX hA_sub_Uk] by blast
+
+      define V' where "V' = (\<lambda>i. if i = k then Vk else V i)"
+
+      have hP': "P (Suc k) V'"
+        unfolding P_def
+      proof (intro conjI)
+        show "\<forall>i<Suc k. V' i \<in> TX \<and> V' i \<subseteq> X \<and> closure_on X TX (V' i) \<subseteq> U i"
+        proof (intro allI impI)
+          fix i assume hi: "i < Suc k"
+          show "V' i \<in> TX \<and> V' i \<subseteq> X \<and> closure_on X TX (V' i) \<subseteq> U i"
+          proof (cases "i = k")
+            case True
+            show ?thesis
+              unfolding V'_def True using hVk by simp
+          next
+            case False
+	            have hi': "i < k"
+	              using hi False by simp
+	            show ?thesis
+	              unfolding V'_def using hP hi' False unfolding P_def by simp
+	          qed
+	        qed
+
+        have hCover_k: "X \<subseteq> Prev \<union> (\<Union>i\<in>{k..<n}. U i)"
+          using hP unfolding P_def Prev_def by blast
+
+        have hCover_k': "X \<subseteq> (Prev \<union> Vk) \<union> Rest"
+        proof (rule subsetI)
+          fix x assume hxX: "x \<in> X"
+          have hx: "x \<in> Prev \<union> (\<Union>i\<in>{k..<n}. U i)"
+            using hCover_k hxX by blast
+          have hSplit: "(\<Union>i\<in>{k..<n}. U i) = U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+          proof (rule set_eqI)
+            fix y
+            show "y \<in> (\<Union>i\<in>{k..<n}. U i) \<longleftrightarrow> y \<in> U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+            proof
+              assume hy: "y \<in> (\<Union>i\<in>{k..<n}. U i)"
+              then obtain i where hi: "i \<in> {k..<n}" and hyUi: "y \<in> U i"
+                by blast
+              show "y \<in> U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+              proof (cases "i = k")
+                case True
+                show ?thesis
+                  using hyUi unfolding True by blast
+              next
+                case False
+                have hi2: "i \<in> {Suc k..<n}"
+                  using hi False by auto
+                have "y \<in> (\<Union>j\<in>{Suc k..<n}. U j)"
+                  using hi2 hyUi by blast
+                thus ?thesis
+                  by blast
+              qed
+            next
+              assume hy: "y \<in> U k \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+              show "y \<in> (\<Union>i\<in>{k..<n}. U i)"
+              proof -
+                have hy': "y \<in> U k \<or> y \<in> (\<Union>i\<in>{Suc k..<n}. U i)"
+                  using hy by simp
+                show ?thesis
+                proof (rule disjE[OF hy'])
+                assume hyk: "y \<in> U k"
+                have hk': "k \<in> {k..<n}"
+                  using hklt by simp
+                show ?thesis
+                  using hk' hyk by blast
+              next
+                assume hyL: "y \<in> (\<Union>i\<in>{Suc k..<n}. U i)"
+                then obtain i where hi: "i \<in> {Suc k..<n}" and hyUi: "y \<in> U i"
+                  by blast
+                have hi': "i \<in> {k..<n}"
+                  using hi by auto
+                show ?thesis
+                  using hi' hyUi by blast
+                qed
+              qed
+            qed
+          qed
+          have hx2: "x \<in> Prev \<or> x \<in> U k \<or> x \<in> (\<Union>i\<in>{Suc k..<n}. U i)"
+            using hx unfolding hSplit by blast
+          show "x \<in> (Prev \<union> Vk) \<union> Rest"
+          proof (cases "x \<in> Prev \<union> Rest")
+            case True
+            thus ?thesis
+              by blast
+          next
+            case False
+            have hxnotPrev: "x \<notin> Prev" and hxnotRest: "x \<notin> Rest"
+              using False by blast+
+            have hxA: "x \<in> A"
+              unfolding A_def using hxX hxnotPrev hxnotRest by blast
+            have "x \<in> Vk"
+              using hVk hxA by blast
+            thus ?thesis
+              by blast
+          qed
+        qed
+
+        have hEq1: "(\<Union>i<Suc k. V' i) = Prev \<union> Vk"
+        proof (rule set_eqI)
+          fix x
+          show "x \<in> (\<Union>i<Suc k. V' i) \<longleftrightarrow> x \<in> Prev \<union> Vk"
+          proof
+            assume hx: "x \<in> (\<Union>i<Suc k. V' i)"
+            then obtain i where hi: "i < Suc k" and hxVi: "x \<in> V' i"
+              by blast
+            show "x \<in> Prev \<union> Vk"
+            proof (cases "i = k")
+              case True
+              show ?thesis
+                using hxVi unfolding V'_def True by simp
+            next
+              case False
+              have hi': "i < k"
+                using hi False by simp
+              have "x \<in> V i"
+                using hxVi unfolding V'_def using False by simp
+              hence "x \<in> Prev"
+                unfolding Prev_def using hi' by blast
+              thus ?thesis
+                by blast
+            qed
+          next
+            assume hx: "x \<in> Prev \<union> Vk"
+            show "x \<in> (\<Union>i<Suc k. V' i)"
+            proof -
+              have hx': "x \<in> Prev \<or> x \<in> Vk"
+                using hx by simp
+              show ?thesis
+              proof (rule disjE[OF hx'])
+                assume hxPrev: "x \<in> Prev"
+                then obtain i where hi: "i < k" and hxVi: "x \<in> V i"
+                  unfolding Prev_def by blast
+                have hi2: "i < Suc k"
+                  using hi by simp
+                have hik: "i \<noteq> k"
+                  using hi by simp
+                have hxV'i: "x \<in> V' i"
+                  unfolding V'_def using hik hxVi by simp
+                show ?thesis
+                  apply simp
+                  apply (rule bexI[where x=i])
+                   apply (rule hxV'i)
+                  apply (simp add: hi2)
+                  done
+              next
+                assume hxVk: "x \<in> Vk"
+                have hk2: "k < Suc k"
+                  by simp
+                have hxV'k: "x \<in> V' k"
+                  unfolding V'_def by simp (rule hxVk)
+                show ?thesis
+                  apply simp
+                  apply (rule bexI[where x=k])
+                   apply (rule hxV'k)
+                  apply (simp add: hk2)
+                  done
+              qed
+            qed
+          qed
+        qed
+
+        have hEq2: "(\<Union>i\<in>{Suc k..<n}. U i) = Rest"
+          unfolding Rest_def by blast
+
+        show "X \<subseteq> (\<Union>i<Suc k. V' i) \<union> (\<Union>i\<in>{Suc k..<n}. U i)"
+          unfolding hEq1 hEq2 using hCover_k' by blast
+      qed
+
+      show "\<exists>V0. P (Suc k) V0"
+        by (rule exI[where x=V'], rule hP')
+    qed
+  qed
+
+  obtain V where hPn: "P n V"
+    using P_ex by blast
+
+  have hVprops: "\<forall>i<n. V i \<in> TX \<and> V i \<subseteq> X \<and> closure_on X TX (V i) \<subseteq> U i"
+    using hPn unfolding P_def by blast
+  have hVcov: "X \<subseteq> (\<Union>i<n. V i)"
+    using hPn unfolding P_def by simp
+
+  show ?thesis
+    apply (rule exI[where x=V])
+    apply (intro conjI)
+     apply (rule hVprops)
+    apply (rule hVcov)
+    done
+qed
+
 (** from *\S36 Theorem 36.1 (Existence of finite partitions of unity) [top1.tex:~5009] **)
 theorem Theorem_36_1:
   assumes hN: "top1_normal_on X TX"
