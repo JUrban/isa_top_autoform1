@@ -17836,7 +17836,293 @@ theorem Theorem_35_1:
   assumes hA: "closedin_on X TX A"
   assumes hf: "top1_continuous_map_on A (subspace_topology X TX A) I TI f"
   shows "\<exists>F. top1_continuous_map_on X TX I TI F \<and> (\<forall>x\<in>A. F x = f x)"
-  sorry
+proof -
+  have hTopX: "is_topology_on X TX"
+    using hX unfolding top1_normal_on_def top1_T1_on_def by blast
+  have hAX: "A \<subseteq> X"
+    by (rule closedin_sub[OF hA])
+
+  have hf': "top1_continuous_map_on A (subspace_topology X TX A)
+      (top1_closed_interval (-1) 1) (top1_closed_interval_topology (-1) 1) f"
+    using hf unfolding I_def TI_def .
+
+  obtain s :: "nat \<Rightarrow> 'a \<Rightarrow> real" where
+    hs0: "s 0 = (\<lambda>_. 0)"
+    and hscont: "\<forall>n. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (s n)"
+    and hsinc: "\<forall>n. \<forall>x\<in>X. abs (s (Suc n) x - s n x) \<le> (1/3) * (2/3) ^ n"
+    and hserr: "\<forall>n. \<forall>a\<in>A. abs (f a - s n a) \<le> (2/3) ^ n"
+    using top1_tietze_step2_approximants[OF hX hA hf'] by blast
+
+  define F where "F = (\<lambda>x. lim (\<lambda>n. s n x))"
+
+  have cauchy_sx: "\<forall>x\<in>X. Cauchy (\<lambda>n. s n x)"
+  proof (intro ballI)
+    fix x assume hx: "x \<in> X"
+    show "Cauchy (\<lambda>n. s n x)"
+    proof (rule metric_CauchyI)
+      fix e :: real
+      assume he: "0 < e"
+      have h23: "(2/3::real) < 1"
+        by simp
+      obtain N where hN: "(2/3::real) ^ N < e"
+        using real_arch_pow_inv[OF he h23] by blast
+      show "\<exists>M. \<forall>m\<ge>M. \<forall>n\<ge>M. dist (s m x) (s n x) < e"
+      proof (rule exI[where x=N], intro allI impI)
+        fix m assume hm: "N \<le> m"
+        fix n assume hn: "N \<le> n"
+        have hdist: "dist (s m x) (s n x) = abs (s m x - s n x)"
+          by (simp add: dist_real_def)
+        show "dist (s m x) (s n x) < e"
+        proof (cases "n \<le> m")
+          case True
+          define k where "k = m - n"
+          have hmk: "m = n + k"
+            unfolding k_def using True by simp
+          have htail: "abs (s (n + k) x - s n x) \<le> (2/3::real) ^ n"
+            by (rule top1_tietze_tail_bound[OF hsinc hx])
+          have hpow: "(2/3::real) ^ n \<le> (2/3::real) ^ N"
+          proof -
+            have "N \<le> n"
+              using hn by simp
+            thus ?thesis
+              by (rule power_decreasing, simp_all)
+          qed
+          have habs: "abs (s m x - s n x) \<le> (2/3::real) ^ N"
+            unfolding hmk using order_trans[OF htail hpow] by simp
+          show ?thesis
+            unfolding hdist using le_less_trans[OF habs hN] by simp
+        next
+          case False
+          define k where "k = n - m"
+          have hnk: "n = m + k"
+            unfolding k_def using False by simp
+          have htail: "abs (s (m + k) x - s m x) \<le> (2/3::real) ^ m"
+            by (rule top1_tietze_tail_bound[OF hsinc hx])
+          have hpow: "(2/3::real) ^ m \<le> (2/3::real) ^ N"
+          proof -
+            have "N \<le> m"
+              using hm by simp
+            thus ?thesis
+              by (rule power_decreasing, simp_all)
+          qed
+          have habs: "abs (s n x - s m x) \<le> (2/3::real) ^ N"
+            unfolding hnk using order_trans[OF htail hpow] by simp
+          have habs': "abs (s m x - s n x) \<le> (2/3::real) ^ N"
+            using habs by (simp add: abs_minus_commute)
+          show ?thesis
+            unfolding hdist using le_less_trans[OF habs' hN] by simp
+        qed
+      qed
+    qed
+  qed
+
+  have conv_sx: "\<forall>x\<in>X. convergent (\<lambda>n. s n x)"
+  proof (intro ballI)
+    fix x assume hx: "x \<in> X"
+    have "Cauchy (\<lambda>n. s n x)"
+      using cauchy_sx hx by blast
+    thus "convergent (\<lambda>n. s n x)"
+      by (rule real_Cauchy_convergent)
+  qed
+
+  have lim_sx: "\<forall>x\<in>X. (\<lambda>n. s n x) \<longlonglongrightarrow> F x"
+  proof (intro ballI)
+    fix x assume hx: "x \<in> X"
+    have hconv: "convergent (\<lambda>n. s n x)"
+      using conv_sx hx by blast
+    show "(\<lambda>n. s n x) \<longlonglongrightarrow> F x"
+      unfolding F_def using hconv by (simp add: convergent_LIMSEQ_iff)
+  qed
+
+  have F_minus_sn_bound: "\<forall>n. \<forall>x\<in>X. abs (F x - s n x) \<le> (2/3) ^ n"
+  proof (intro allI ballI)
+    fix n x assume hx: "x \<in> X"
+    have hLIM: "(\<lambda>m. s m x) \<longlonglongrightarrow> F x"
+      using lim_sx hx by blast
+    have hshift: "(\<lambda>k. s (k + n) x) \<longlonglongrightarrow> F x"
+      by (rule LIMSEQ_ignore_initial_segment[OF hLIM])
+    have hdiff: "(\<lambda>k. s (k + n) x - s n x) \<longlonglongrightarrow> F x - s n x"
+      using hshift by (intro tendsto_diff tendsto_const)
+    have hnorm_lim: "(\<lambda>k. norm (s (k + n) x - s n x)) \<longlonglongrightarrow> norm (F x - s n x)"
+      by (rule tendsto_norm[OF hdiff])
+    have habs_lim: "(\<lambda>k. abs (s (k + n) x - s n x)) \<longlonglongrightarrow> abs (F x - s n x)"
+      using hnorm_lim by simp
+    have hbound: "\<exists>N. \<forall>k\<ge>N. abs (s (k + n) x - s n x) \<le> (2/3) ^ n"
+    proof (rule exI[where x=0], intro allI impI)
+      fix k :: nat
+      assume hk: "0 \<le> k"
+      have "abs (s (n + k) x - s n x) \<le> (2/3) ^ n"
+        by (rule top1_tietze_tail_bound[OF hsinc hx])
+      thus "abs (s (k + n) x - s n x) \<le> (2/3) ^ n"
+        by (simp add: add.commute)
+    qed
+    show "abs (F x - s n x) \<le> (2/3) ^ n"
+      using LIMSEQ_le_const2[OF habs_lim hbound] by simp
+  qed
+
+  have hunif: "top1_uniformly_convergent_on X s F"
+  proof (unfold top1_uniformly_convergent_on_def, intro allI impI)
+    fix e :: real
+    assume he: "0 < e"
+    have h23: "(2/3::real) < 1"
+      by simp
+    obtain N where hN: "(2/3::real) ^ N < e"
+      using real_arch_pow_inv[OF he h23] by blast
+    show "\<exists>N. \<forall>n\<ge>N. \<forall>x\<in>X. abs (s n x - F x) < e"
+    proof (rule exI[where x=N], intro allI impI ballI)
+      fix n assume hn: "N \<le> n"
+      fix x assume hx: "x \<in> X"
+      have hbound: "abs (F x - s n x) \<le> (2/3::real) ^ n"
+        using F_minus_sn_bound hx by blast
+      have hpow: "(2/3::real) ^ n \<le> (2/3::real) ^ N"
+        using hn by (rule power_decreasing, simp_all)
+      have habs1: "abs (s n x - F x) \<le> (2/3::real) ^ n"
+        using hbound by (simp add: abs_minus_commute)
+      have habs: "abs (s n x - F x) \<le> (2/3::real) ^ N"
+        by (rule order_trans[OF habs1 hpow])
+      show "abs (s n x - F x) < e"
+        using le_less_trans[OF habs hN] by simp
+    qed
+  qed
+
+  have F_cont_UNIV: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV F"
+    by (rule top1_uniform_limit_continuous_real[OF hTopX hscont hunif])
+
+  have F_in_I: "\<forall>x\<in>X. F x \<in> I"
+  proof (intro ballI)
+    fix x assume hx: "x \<in> X"
+    have hLIM: "(\<lambda>n. s n x) \<longlonglongrightarrow> F x"
+      using lim_sx hx by blast
+
+    have abs_sn: "\<forall>n. abs (s n x) \<le> 1"
+    proof (intro allI)
+      fix n
+      have htail: "abs (s (0 + n) x - s 0 x) \<le> (2/3::real) ^ 0"
+        by (rule top1_tietze_tail_bound[OF hsinc hx])
+      have hs0x: "s 0 x = 0"
+        using hs0 by simp
+      show "abs (s n x) \<le> 1"
+        using htail unfolding hs0x by simp
+    qed
+
+    have sn_le1: "\<exists>N. \<forall>n\<ge>N. s n x \<le> 1"
+    proof (rule exI[where x=0], intro allI impI)
+      fix n :: nat
+      assume hn: "0 \<le> n"
+      have "abs (s n x) \<le> 1"
+        using abs_sn by blast
+      thus "s n x \<le> 1"
+        by (simp add: abs_le_iff)
+    qed
+    have sn_ge_m1: "\<exists>N. \<forall>n\<ge>N. (-1::real) \<le> s n x"
+    proof (rule exI[where x=0], intro allI impI)
+      fix n :: nat
+      assume hn: "0 \<le> n"
+      have "abs (s n x) \<le> 1"
+        using abs_sn by blast
+      thus "(-1::real) \<le> s n x"
+        by (simp add: abs_le_iff)
+    qed
+
+    have hFx_le1: "F x \<le> 1"
+      using LIMSEQ_le_const2[OF hLIM sn_le1] by simp
+    have hFx_ge: "(-1::real) \<le> F x"
+      using LIMSEQ_le_const[OF hLIM sn_ge_m1] by simp
+
+    show "F x \<in> I"
+      unfolding I_def top1_closed_interval_def
+      using hFx_ge hFx_le1 by blast
+  qed
+
+  have F_range: "F ` X \<subseteq> I"
+  proof (rule image_subsetI)
+    fix x assume hx: "x \<in> X"
+    show "F x \<in> I"
+      using F_in_I hx by blast
+  qed
+
+  have F_cont_I: "top1_continuous_map_on X TX I TI F"
+  proof -
+    have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+      by (rule order_topology_on_UNIV_is_topology_on)
+    have hTI_eq: "TI = subspace_topology UNIV order_topology_on_UNIV I"
+      unfolding TI_def top1_closed_interval_topology_def I_def by simp
+    have hsub: "I \<subseteq> (UNIV::real set)"
+      by simp
+    have hcont_sub:
+      "top1_continuous_map_on X TX I (subspace_topology UNIV order_topology_on_UNIV I) F"
+    proof -
+      have hrestrict_all:
+        "\<forall>W f.
+          top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f
+          \<and> W \<subseteq> (UNIV::real set)
+          \<and> f ` X \<subseteq> W
+          \<longrightarrow> top1_continuous_map_on X TX W (subspace_topology UNIV order_topology_on_UNIV W) f"
+        using Theorem_18_2(5)[OF hTopX hTopR hTopR] .
+      have hrestrict_I:
+        "\<forall>f.
+          top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f
+          \<and> I \<subseteq> (UNIV::real set)
+          \<and> f ` X \<subseteq> I
+          \<longrightarrow> top1_continuous_map_on X TX I (subspace_topology UNIV order_topology_on_UNIV I) f"
+        using hrestrict_all by (rule spec[where x=I])
+      have hrestrict_IF:
+        "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV F
+         \<and> I \<subseteq> (UNIV::real set)
+         \<and> F ` X \<subseteq> I
+         \<longrightarrow> top1_continuous_map_on X TX I (subspace_topology UNIV order_topology_on_UNIV I) F"
+        using hrestrict_I by (rule spec[where x=F])
+      have hpre: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV F
+          \<and> I \<subseteq> (UNIV::real set) \<and> F ` X \<subseteq> I"
+        by (intro conjI, rule F_cont_UNIV, rule hsub, rule F_range)
+      show ?thesis
+        by (rule mp[OF hrestrict_IF hpre])
+    qed
+    show ?thesis
+      unfolding hTI_eq using hcont_sub .
+  qed
+
+  have F_eq_f_on_A: "\<forall>a\<in>A. F a = f a"
+  proof (intro ballI)
+    fix a assume ha: "a \<in> A"
+    have haX: "a \<in> X"
+      using hAX ha by blast
+    have hLIM_F: "(\<lambda>n. s n a) \<longlonglongrightarrow> F a"
+      using lim_sx haX by blast
+    have hLIM_f: "(\<lambda>n. s n a) \<longlonglongrightarrow> f a"
+    proof (subst lim_sequentially, intro allI impI)
+      fix e :: real
+      assume he: "0 < e"
+      have h23: "(2/3::real) < 1"
+        by simp
+      obtain N where hN: "(2/3::real) ^ N < e"
+        using real_arch_pow_inv[OF he h23] by blast
+      show "\<exists>N. \<forall>n\<ge>N. dist (s n a) (f a) < e"
+      proof (rule exI[where x=N], intro allI impI)
+        fix n assume hn: "N \<le> n"
+        have herr: "abs (f a - s n a) \<le> (2/3::real) ^ n"
+          using hserr ha by blast
+        have hpow: "(2/3::real) ^ n \<le> (2/3::real) ^ N"
+          using hn by (rule power_decreasing, simp_all)
+        have hdist: "dist (s n a) (f a) = abs (f a - s n a)"
+          by (simp add: dist_real_def abs_minus_commute)
+        have habs: "dist (s n a) (f a) \<le> (2/3::real) ^ N"
+          unfolding hdist using order_trans[OF herr hpow] by simp
+        show "dist (s n a) (f a) < e"
+          using le_less_trans[OF habs hN] by simp
+      qed
+    qed
+    show "F a = f a"
+      using LIMSEQ_unique[OF hLIM_F hLIM_f] by simp
+  qed
+
+  show ?thesis
+    apply (rule exI[where x=F])
+    apply (intro conjI)
+     apply (rule F_cont_I)
+    apply (rule F_eq_f_on_A)
+    done
+qed
 
 section \<open>*\<S>36 Imbeddings of Manifolds\<close>
 
