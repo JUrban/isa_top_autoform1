@@ -16582,7 +16582,170 @@ lemma top1_uniform_limit_continuous_real:
   assumes hscont: "\<forall>n. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (s n)"
   assumes hunif: "top1_uniformly_convergent_on X s g"
   shows "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV g"
-  sorry
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+
+  have union_TX: "\<forall>U. U \<subseteq> TX \<longrightarrow> (\<Union>U) \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTopX[unfolded is_topology_on_def]]]])
+
+  have hBasisR: "basis_for ?R (basis_order_topology::real set set) ?TR"
+    by (rule basis_for_order_topology_on_UNIV)
+
+  show ?thesis
+  proof (rule top1_continuous_map_on_generated_by_basis)
+    show "is_topology_on X TX"
+      by (rule hTopX)
+    show "basis_for ?R (basis_order_topology::real set set) ?TR"
+      by (rule hBasisR)
+    show "\<forall>x\<in>X. g x \<in> ?R"
+      by simp
+    show "\<forall>b\<in>(basis_order_topology::real set set). {x \<in> X. g x \<in> b} \<in> TX"
+    proof (intro ballI)
+      fix b :: "real set"
+      assume hb: "b \<in> (basis_order_topology::real set set)"
+      define P where "P = {x\<in>X. g x \<in> b}"
+
+      have hlocal: "\<forall>x\<in>P. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> P"
+      proof (intro ballI)
+        fix x assume hxP: "x \<in> P"
+        have hxX: "x \<in> X" and hgxb: "g x \<in> b"
+          using hxP unfolding P_def by simp_all
+
+        obtain e where he: "0 < e" and hI_sub: "open_interval (g x - e) (g x + e) \<subseteq> b"
+          using basis_order_topology_contains_open_interval[OF hb hgxb] by blast
+        have he2: "0 < e/2"
+          using he by linarith
+
+        obtain N where hN: "\<forall>n\<ge>N. \<forall>y\<in>X. abs (s n y - g y) < e/2"
+          using hunif unfolding top1_uniformly_convergent_on_def using he2 by blast
+        have hNx: "abs (s N x - g x) < e/2"
+          using hN hxX by simp
+
+        have hW_open: "open_interval (g x - e/2) (g x + e/2) \<in> ?TR"
+        proof -
+          have "g x - e/2 < g x + e/2"
+            using he2 by linarith
+          thus ?thesis
+            by (rule open_interval_in_order_topology)
+        qed
+
+        define W where "W = open_interval (g x - e/2) (g x + e/2)"
+        define U where "U = {y\<in>X. s N y \<in> W}"
+
+        have hsN_cont: "top1_continuous_map_on X TX ?R ?TR (s N)"
+          using hscont by simp
+
+        have hU_TX: "U \<in> TX"
+        proof -
+          have hpre: "\<forall>V\<in>?TR. {y\<in>X. s N y \<in> V} \<in> TX"
+            using hsN_cont unfolding top1_continuous_map_on_def by blast
+          show ?thesis
+            unfolding U_def using hpre hW_open unfolding W_def by blast
+        qed
+
+        have hsNxW: "s N x \<in> W"
+        proof -
+          have hboth: "s N x - g x < e/2 \<and> - (s N x - g x) < e/2"
+            using hNx by (rule iffD1[OF abs_less_iff])
+          have hupper: "s N x - g x < e/2"
+            by (rule conjunct1[OF hboth])
+          have hneg: "- (s N x - g x) < e/2"
+            by (rule conjunct2[OF hboth])
+          have hlower: "-e/2 < (s N x - g x)"
+            using hneg by linarith
+          have h1: "g x - e/2 < s N x"
+            using hlower by linarith
+          have h2: "s N x < g x + e/2"
+            using hupper by linarith
+          show ?thesis
+            unfolding W_def open_interval_def using h1 h2 by simp
+        qed
+
+        have hxU: "x \<in> U"
+          unfolding U_def using hxX hsNxW by simp
+
+        have hUsubP: "U \<subseteq> P"
+        proof (rule subsetI)
+          fix u assume huU: "u \<in> U"
+          have huX: "u \<in> X" and hsNuW: "s N u \<in> W"
+            using huU unfolding U_def by simp_all
+          have hNu: "abs (s N u - g u) < e/2"
+            using hN huX by simp
+
+          have hsNu1: "g x - e/2 < s N u" and hsNu2: "s N u < g x + e/2"
+            using hsNuW unfolding W_def open_interval_def by simp_all
+
+          have hboth: "s N u - g u < e/2 \<and> - (s N u - g u) < e/2"
+            using hNu by (rule iffD1[OF abs_less_iff])
+          have hupper: "s N u - g u < e/2"
+            by (rule conjunct1[OF hboth])
+          have hneg: "- (s N u - g u) < e/2"
+            by (rule conjunct2[OF hboth])
+          have hlower: "-e/2 < (s N u - g u)"
+            using hneg by linarith
+
+          have hgu1: "g x - e < g u"
+            using hsNu1 hupper by linarith
+          have hgu2: "g u < g x + e"
+            using hsNu2 hlower by linarith
+
+          have hguI: "g u \<in> open_interval (g x - e) (g x + e)"
+            unfolding open_interval_def using hgu1 hgu2 by simp
+          have "g u \<in> b"
+            using hI_sub hguI by blast
+          thus "u \<in> P"
+            unfolding P_def using huX by simp
+        qed
+
+        show "\<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> P"
+        proof (rule bexI[where x=U])
+          show "U \<in> TX"
+            by (rule hU_TX)
+          show "x \<in> U \<and> U \<subseteq> P"
+            by (intro conjI, rule hxU, rule hUsubP)
+        qed
+      qed
+
+      define UP where "UP = {U. U \<in> TX \<and> U \<subseteq> P}"
+      have hUP_sub: "UP \<subseteq> TX"
+      proof (rule subsetI)
+        fix U assume hU: "U \<in> UP"
+        thus "U \<in> TX"
+          unfolding UP_def by simp
+      qed
+      have hUnion_UP: "\<Union>UP \<in> TX"
+        using union_TX hUP_sub by blast
+
+      have hEq: "P = \<Union>UP"
+      proof (rule set_eqI)
+        fix x
+        show "x \<in> P \<longleftrightarrow> x \<in> \<Union>UP"
+        proof (rule iffI)
+          assume hxP: "x \<in> P"
+          obtain U where hU_TX: "U \<in> TX" and hxU: "x \<in> U" and hUsub: "U \<subseteq> P"
+            using hlocal hxP by blast
+          have hU_UP: "U \<in> UP"
+            unfolding UP_def using hU_TX hUsub by blast
+          show "x \<in> \<Union>UP"
+            by (rule UnionI[OF hU_UP hxU])
+        next
+          assume hx: "x \<in> \<Union>UP"
+          then obtain U where hU_UP: "U \<in> UP" and hxU: "x \<in> U"
+            by blast
+          have hUsub: "U \<subseteq> P"
+            using hU_UP unfolding UP_def by blast
+          show "x \<in> P"
+            using hUsub hxU by blast
+        qed
+      qed
+
+      show "{x \<in> X. g x \<in> b} \<in> TX"
+        unfolding P_def[symmetric] hEq
+        using hUnion_UP .
+    qed
+  qed
+qed
 
 (*
 proof -
