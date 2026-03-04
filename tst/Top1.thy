@@ -15765,6 +15765,616 @@ qed
     done
 qed
 
+(** Continuity of addition on \<open>\<real>\<close> in the order topology (needed for the partial sums in Tietze). **)
+lemma top1_continuous_add_order_topology:
+  shows "top1_continuous_map_on
+      ((UNIV::real set) \<times> (UNIV::real set))
+      (product_topology_on order_topology_on_UNIV order_topology_on_UNIV)
+      (UNIV::real set) order_topology_on_UNIV
+      (\<lambda>p::real \<times> real. pi1 p + pi2 p)"
+  sorry
+
+(*
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  let ?TP = "product_topology_on ?TR ?TR"
+  let ?plus = "(\<lambda>p::real \<times> real. pi1 p + pi2 p)"
+
+  have hTopR: "is_topology_on ?R ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopRR: "is_topology_on (?R \<times> ?R) ?TP"
+    by (rule product_topology_on_is_topology_on[OF hTopR hTopR])
+
+  have hBasisR: "basis_for ?R (basis_order_topology::real set set) ?TR"
+    by (rule basis_for_order_topology_on_UNIV)
+
+  show ?thesis
+  proof (rule top1_continuous_map_on_generated_by_basis)
+    show "is_topology_on (?R \<times> ?R) ?TP"
+      by (rule hTopRR)
+    show "basis_for ?R (basis_order_topology::real set set) ?TR"
+      by (rule hBasisR)
+    show "\<forall>p\<in>(?R \<times> ?R). ?plus p \<in> ?R"
+      by simp
+    show "\<forall>b\<in>(basis_order_topology::real set set). {p \<in> ?R \<times> ?R. ?plus p \<in> b} \<in> ?TP"
+    proof (intro ballI)
+      fix b :: "real set"
+      assume hb: "b \<in> (basis_order_topology::real set set)"
+      have hcases:
+        "(\<exists>a c. a < c \<and> b = open_interval a c)
+         \<or> (\<exists>a. b = open_ray_gt a)
+         \<or> (\<exists>a. b = open_ray_lt a)
+         \<or> b = (UNIV::real set)"
+        by (rule basis_order_topology_cases[OF hb])
+
+      show "{p \<in> ?R \<times> ?R. ?plus p \<in> b} \<in> ?TP"
+      proof (rule disjE[OF hcases])
+        assume hbint: "\<exists>a c. a < c \<and> b = open_interval a c"
+        then obtain a c where hac: "a < c" and hbeq: "b = open_interval a c"
+          by blast
+        define P where "P = {p \<in> ?R \<times> ?R. ?plus p \<in> b}"
+
+        have hP_open: "P \<in> ?TP"
+          unfolding P_def hbeq product_topology_on_def topology_generated_by_basis_def
+        proof (intro CollectI conjI ballI)
+          show "{p \<in> ?R \<times> ?R. ?plus p \<in> open_interval a c} \<subseteq> (UNIV::(real \<times> real) set)"
+            by simp
+          fix p assume hp: "p \<in> {p \<in> ?R \<times> ?R. ?plus p \<in> open_interval a c}"
+          have hps: "a < ?plus p" and hsp: "?plus p < c"
+            using hp unfolding open_interval_def by simp_all
+          define s where "s = ?plus p"
+          have hs: "a < s" and hs': "s < c"
+            unfolding s_def using hps hsp by simp_all
+
+          define e where "e = min (s - a) (c - s) / 4"
+          have he_pos: "0 < e"
+          proof -
+            have "0 < s - a"
+              using hs by linarith
+            moreover have "0 < c - s"
+              using hs' by linarith
+            ultimately have "0 < min (s - a) (c - s)"
+              by simp
+            thus ?thesis
+              unfolding e_def by (simp add: divide_pos_pos)
+          qed
+
+          define U where "U = open_interval (pi1 p - e) (pi1 p + e)"
+          define V where "V = open_interval (pi2 p - e) (pi2 p + e)"
+
+          have hU_open: "U \<in> ?TR"
+            unfolding U_def
+            apply (rule open_interval_in_order_topology)
+            using he_pos by linarith
+          have hV_open: "V \<in> ?TR"
+            unfolding V_def
+            apply (rule open_interval_in_order_topology)
+            using he_pos by linarith
+
+          have hpUV: "p \<in> U \<times> V"
+            unfolding U_def V_def open_interval_def
+            using he_pos by (cases p, simp add: pi1_def pi2_def)
+
+          have hUV_basis: "U \<times> V \<in> product_basis ?TR ?TR"
+            unfolding product_basis_def using hU_open hV_open by blast
+
+          have hUV_sub: "U \<times> V \<subseteq> {p \<in> ?R \<times> ?R. ?plus p \<in> open_interval a c}"
+          proof (rule subsetI)
+            fix q assume hq: "q \<in> U \<times> V"
+            have hqU: "pi1 q \<in> U"
+              using hq by (cases q, simp add: pi1_def)
+            have hqV: "pi2 q \<in> V"
+              using hq by (cases q, simp add: pi2_def)
+            have hqU': "pi1 p - e < pi1 q" and hqU'': "pi1 q < pi1 p + e"
+              using hqU unfolding U_def open_interval_def by simp_all
+            have hqV': "pi2 p - e < pi2 q" and hqV'': "pi2 q < pi2 p + e"
+              using hqV unfolding V_def open_interval_def by simp_all
+
+            have hsum_gt: "s - 2*e < ?plus q"
+            proof -
+              have "(pi1 p - e) + (pi2 p - e) < (pi1 q) + (pi2 q)"
+                using hqU' hqV' by linarith
+              thus ?thesis
+                unfolding s_def by simp
+            qed
+            have hsum_lt: "?plus q < s + 2*e"
+            proof -
+              have "(pi1 q) + (pi2 q) < (pi1 p + e) + (pi2 p + e)"
+                using hqU'' hqV'' by linarith
+              thus ?thesis
+                unfolding s_def by simp
+            qed
+
+            have h2e_le1: "2*e \<le> (s - a) / 2"
+              unfolding e_def by (simp add: min_def)
+            have h2e_le2: "2*e \<le> (c - s) / 2"
+              unfolding e_def by (simp add: min_def)
+
+            have hs_a: "0 < s - a"
+              using hs by linarith
+            have hc_s: "0 < c - s"
+              using hs' by linarith
+            have hhalf1: "(s - a) / 2 < s - a"
+            proof -
+              have "((s - a) / 2 < s - a) \<longleftrightarrow> (s - a < (s - a) * (2::real))"
+                by (simp add: divide_less_eq)
+              also have "... "
+              proof -
+                have "(s - a) * (1::real) < (s - a) * (2::real)"
+                  apply (rule mult_strict_left_mono)
+                   apply simp
+                  apply (rule hs_a)
+                  done
+                thus ?thesis
+                  by simp
+              qed
+              finally show ?thesis .
+            qed
+            have hhalf2: "(c - s) / 2 < c - s"
+            proof -
+              have "((c - s) / 2 < c - s) \<longleftrightarrow> (c - s < (c - s) * (2::real))"
+                by (simp add: divide_less_eq)
+              also have "... "
+              proof -
+                have "(c - s) * (1::real) < (c - s) * (2::real)"
+                  apply (rule mult_strict_left_mono)
+                   apply simp
+                  apply (rule hc_s)
+                  done
+                thus ?thesis
+                  by simp
+              qed
+              finally show ?thesis .
+            qed
+            have h2e_lt1: "2*e < s - a"
+              using h2e_le1 hhalf1 by linarith
+            have h2e_lt2: "2*e < c - s"
+              using h2e_le2 hhalf2 by linarith
+            have ha_lt: "a < s - 2*e"
+              using h2e_lt1 by linarith
+            have hlt_c: "s + 2*e < c"
+              using h2e_lt2 by linarith
+
+            have "a < ?plus q"
+              using ha_lt hsum_gt by linarith
+            moreover have "?plus q < c"
+              using hsum_lt hlt_c by linarith
+            ultimately have "?plus q \<in> open_interval a c"
+              unfolding open_interval_def by simp
+            moreover have "q \<in> ?R \<times> ?R"
+              by simp
+            ultimately show "q \<in> {p \<in> ?R \<times> ?R. ?plus p \<in> open_interval a c}"
+              by simp
+          qed
+
+          show "\<exists>b'\<in>product_basis ?TR ?TR. p \<in> b' \<and> b' \<subseteq> {p \<in> ?R \<times> ?R. ?plus p \<in> open_interval a c}"
+            apply (rule bexI[where x="U \<times> V"])
+             apply (intro conjI)
+              apply (rule hpUV)
+             apply (rule hUV_sub)
+            apply (rule hUV_basis)
+            done
+        qed
+
+        have hPre': "{p. ?plus p \<in> b} \<in> ?TP"
+          using hP_open unfolding P_def by simp
+        have hEq: "{p \<in> ?R \<times> ?R. ?plus p \<in> b} = {p. ?plus p \<in> b}"
+          by simp
+        show "{p \<in> ?R \<times> ?R. ?plus p \<in> b} \<in> ?TP"
+          using hPre' by (simp add: hEq[symmetric])
+      next
+        assume hbr: "\<exists>a. b = open_ray_gt a"
+        then obtain a where hbeq: "b = open_ray_gt a"
+          by blast
+        define P where "P = {p \<in> ?R \<times> ?R. ?plus p \<in> b}"
+
+        have hP_open: "P \<in> ?TP"
+          unfolding P_def hbeq product_topology_on_def topology_generated_by_basis_def
+        proof (intro CollectI conjI ballI)
+          show "{p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_gt a} \<subseteq> (UNIV::(real \<times> real) set)"
+            by simp
+          fix p assume hp: "p \<in> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_gt a}"
+          have hs: "a < ?plus p"
+            using hp unfolding open_ray_gt_def by simp_all
+          define s where "s = ?plus p"
+          have hs': "a < s"
+            unfolding s_def using hs by simp
+          define e where "e = (s - a) / 4"
+          have he_pos: "0 < e"
+          proof -
+            have "0 < s - a"
+              using hs' by linarith
+            thus ?thesis
+              unfolding e_def by (simp add: divide_pos_pos)
+          qed
+
+          define U where "U = open_interval (pi1 p - e) (pi1 p + e)"
+          define V where "V = open_interval (pi2 p - e) (pi2 p + e)"
+
+          have hU_open: "U \<in> ?TR"
+            unfolding U_def
+            apply (rule open_interval_in_order_topology)
+            using he_pos by linarith
+          have hV_open: "V \<in> ?TR"
+            unfolding V_def
+            apply (rule open_interval_in_order_topology)
+            using he_pos by linarith
+
+          have hpUV: "p \<in> U \<times> V"
+            unfolding U_def V_def open_interval_def
+            using he_pos by (cases p, simp add: pi1_def pi2_def)
+
+          have hUV_basis: "U \<times> V \<in> product_basis ?TR ?TR"
+            unfolding product_basis_def using hU_open hV_open by blast
+
+          have hUV_sub: "U \<times> V \<subseteq> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_gt a}"
+          proof (rule subsetI)
+            fix q assume hq: "q \<in> U \<times> V"
+            have hqU: "pi1 q \<in> U"
+              using hq by (cases q, simp add: pi1_def)
+            have hqV: "pi2 q \<in> V"
+              using hq by (cases q, simp add: pi2_def)
+            have hqU': "pi1 p - e < pi1 q"
+              using hqU unfolding U_def open_interval_def by simp
+            have hqV': "pi2 p - e < pi2 q"
+              using hqV unfolding V_def open_interval_def by simp
+            have hsum_gt: "s - 2*e < ?plus q"
+            proof -
+              have "(pi1 p - e) + (pi2 p - e) < (pi1 q) + (pi2 q)"
+                using hqU' hqV' by linarith
+              thus ?thesis
+                unfolding s_def by simp
+            qed
+            have ha_lt: "a < s - 2*e"
+            proof -
+              have hEq: "s - 2*e = (s + a) / 2"
+                unfolding e_def
+                by (simp add: field_simps)
+              have "a < (s + a) / 2"
+              proof -
+                have "a < (s + a) / 2 \<longleftrightarrow> a * (2::real) < s + a"
+                  by (simp add: divide_less_eq)
+                moreover have "a * (2::real) < s + a"
+                  using hs' by linarith
+                ultimately show ?thesis
+                  by simp
+              qed
+              thus ?thesis
+                unfolding hEq by simp
+            qed
+            have "a < ?plus q"
+              using ha_lt hsum_gt by linarith
+            hence "?plus q \<in> open_ray_gt a"
+              unfolding open_ray_gt_def by simp
+            moreover have "q \<in> ?R \<times> ?R"
+              by simp
+            ultimately show "q \<in> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_gt a}"
+              by simp
+          qed
+
+          show "\<exists>b'\<in>product_basis ?TR ?TR. p \<in> b' \<and> b' \<subseteq> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_gt a}"
+            apply (rule bexI[where x="U \<times> V"])
+             apply (intro conjI)
+              apply (rule hpUV)
+             apply (rule hUV_sub)
+            apply (rule hUV_basis)
+            done
+        qed
+
+        have hPre': "{p. ?plus p \<in> b} \<in> ?TP"
+          using hP_open unfolding P_def by simp
+        have hEq: "{p \<in> ?R \<times> ?R. ?plus p \<in> b} = {p. ?plus p \<in> b}"
+          by simp
+        show "{p \<in> ?R \<times> ?R. ?plus p \<in> b} \<in> ?TP"
+          using hPre' by (simp add: hEq[symmetric])
+      next
+        assume hbl: "\<exists>a. b = open_ray_lt a"
+        then obtain a where hbeq: "b = open_ray_lt a"
+          by blast
+        define P where "P = {p \<in> ?R \<times> ?R. ?plus p \<in> b}"
+
+        have hP_open: "P \<in> ?TP"
+          unfolding P_def hbeq product_topology_on_def topology_generated_by_basis_def
+        proof (intro CollectI conjI ballI)
+          show "{p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_lt a} \<subseteq> (UNIV::(real \<times> real) set)"
+            by simp
+          fix p assume hp: "p \<in> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_lt a}"
+          have hs: "?plus p < a"
+            using hp unfolding open_ray_lt_def by simp_all
+          define s where "s = ?plus p"
+          have hs': "s < a"
+            unfolding s_def using hs by simp
+          define e where "e = (a - s) / 4"
+          have he_pos: "0 < e"
+          proof -
+            have "0 < a - s"
+              using hs' by linarith
+            thus ?thesis
+              unfolding e_def by (simp add: divide_pos_pos)
+          qed
+
+          define U where "U = open_interval (pi1 p - e) (pi1 p + e)"
+          define V where "V = open_interval (pi2 p - e) (pi2 p + e)"
+
+          have hU_open: "U \<in> ?TR"
+            unfolding U_def
+            apply (rule open_interval_in_order_topology)
+            using he_pos by linarith
+          have hV_open: "V \<in> ?TR"
+            unfolding V_def
+            apply (rule open_interval_in_order_topology)
+            using he_pos by linarith
+
+          have hpUV: "p \<in> U \<times> V"
+            unfolding U_def V_def open_interval_def
+            using he_pos by (cases p, simp add: pi1_def pi2_def)
+
+          have hUV_basis: "U \<times> V \<in> product_basis ?TR ?TR"
+            unfolding product_basis_def using hU_open hV_open by blast
+
+          have hUV_sub: "U \<times> V \<subseteq> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_lt a}"
+          proof (rule subsetI)
+            fix q assume hq: "q \<in> U \<times> V"
+            have hqU: "pi1 q \<in> U"
+              using hq by (cases q, simp add: pi1_def)
+            have hqV: "pi2 q \<in> V"
+              using hq by (cases q, simp add: pi2_def)
+            have hqU'': "pi1 q < pi1 p + e"
+              using hqU unfolding U_def open_interval_def by simp
+            have hqV'': "pi2 q < pi2 p + e"
+              using hqV unfolding V_def open_interval_def by simp
+            have hsum_lt: "?plus q < s + 2*e"
+            proof -
+              have "(pi1 q) + (pi2 q) < (pi1 p + e) + (pi2 p + e)"
+                using hqU'' hqV'' by linarith
+              thus ?thesis
+                unfolding s_def by simp
+            qed
+            have hlt_a: "s + 2*e < a"
+            proof -
+              have hEq: "s + 2*e = (s + a) / 2"
+                unfolding e_def
+                by (simp add: field_simps)
+              have "(s + a) / 2 < a"
+              proof -
+                have "(s + a) / 2 < a \<longleftrightarrow> s + a < a * (2::real)"
+                  by (simp add: divide_less_eq)
+                moreover have "s + a < a * (2::real)"
+                  using hs' by linarith
+                ultimately show ?thesis
+                  by simp
+              qed
+              thus ?thesis
+                unfolding hEq by simp
+            qed
+            have "?plus q < a"
+              using hsum_lt hlt_a by linarith
+            hence "?plus q \<in> open_ray_lt a"
+              unfolding open_ray_lt_def by simp
+            moreover have "q \<in> ?R \<times> ?R"
+              by simp
+            ultimately show "q \<in> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_lt a}"
+              by simp
+          qed
+
+          show "\<exists>b'\<in>product_basis ?TR ?TR. p \<in> b' \<and> b' \<subseteq> {p \<in> ?R \<times> ?R. ?plus p \<in> open_ray_lt a}"
+            apply (rule bexI[where x="U \<times> V"])
+             apply (intro conjI)
+              apply (rule hpUV)
+             apply (rule hUV_sub)
+            apply (rule hUV_basis)
+            done
+        qed
+
+        have hPre': "{p. ?plus p \<in> b} \<in> ?TP"
+          using hP_open unfolding P_def by simp
+        have hEq: "{p \<in> ?R \<times> ?R. ?plus p \<in> b} = {p. ?plus p \<in> b}"
+          by simp
+        show "{p \<in> ?R \<times> ?R. ?plus p \<in> b} \<in> ?TP"
+          using hPre' by (simp add: hEq[symmetric])
+      next
+        assume hU: "b = (UNIV::real set)"
+        have hRR_open: "?R \<times> ?R \<in> ?TP"
+          using hTopRR unfolding is_topology_on_def by blast
+        show "{p \<in> ?R \<times> ?R. ?plus p \<in> b} \<in> ?TP"
+          unfolding hU using hRR_open by simp
+      qed
+    qed
+  qed
+qed
+*)
+
+(** Continuity of unary negation on \<open>\<real>\<close> in the order topology. **)
+lemma top1_continuous_uminus_order_topology:
+  shows "top1_continuous_map_on
+      (UNIV::real set) order_topology_on_UNIV
+      (UNIV::real set) order_topology_on_UNIV
+      (\<lambda>x::real. -x)"
+  sorry
+
+(*
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  let ?neg = "(\<lambda>x::real. -x)"
+
+  have hTopR: "is_topology_on ?R ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hBasisR: "basis_for ?R (basis_order_topology::real set set) ?TR"
+    by (rule basis_for_order_topology_on_UNIV)
+
+  show ?thesis
+  proof (rule top1_continuous_map_on_generated_by_basis)
+    show "is_topology_on ?R ?TR"
+      by (rule hTopR)
+    show "basis_for ?R (basis_order_topology::real set set) ?TR"
+      by (rule hBasisR)
+    show "\<forall>x\<in>?R. ?neg x \<in> ?R"
+      by simp
+    show "\<forall>b\<in>(basis_order_topology::real set set). {x \<in> ?R. ?neg x \<in> b} \<in> ?TR"
+    proof (intro ballI)
+      fix b :: "real set"
+      assume hb: "b \<in> (basis_order_topology::real set set)"
+      have hcases:
+        "(\<exists>a c. a < c \<and> b = open_interval a c)
+         \<or> (\<exists>a. b = open_ray_gt a)
+         \<or> (\<exists>a. b = open_ray_lt a)
+         \<or> b = (UNIV::real set)"
+        by (rule basis_order_topology_cases[OF hb])
+      show "{x \<in> ?R. -x \<in> b} \<in> ?TR"
+      proof (rule disjE[OF hcases])
+        assume hbint: "\<exists>a c. a < c \<and> b = open_interval a c"
+        then obtain a c where hac: "a < c" and hbeq: "b = open_interval a c"
+          by blast
+        have hpre: "{x \<in> ?R. -x \<in> open_interval a c} = open_interval (-c) (-a)"
+          unfolding open_interval_def by auto
+        have hOpen: "open_interval (-c) (-a) \<in> ?TR"
+          apply (rule open_interval_in_order_topology)
+          using hac by linarith
+        have hEq: "{x \<in> ?R. -x \<in> b} = open_interval (-c) (-a)"
+          unfolding hbeq by (rule hpre)
+        show "{x \<in> ?R. -x \<in> b} \<in> ?TR"
+          using hOpen by (simp add: hEq)
+      next
+        assume hbr: "\<exists>a. b = open_ray_gt a"
+        then obtain a where hbeq: "b = open_ray_gt a"
+          by blast
+        have hpre: "{x \<in> ?R. -x \<in> open_ray_gt a} = open_ray_lt (-a)"
+          unfolding open_ray_gt_def open_ray_lt_def by auto
+        have hOpen: "open_ray_lt (-a) \<in> ?TR"
+          by (rule open_ray_lt_in_order_topology)
+        have hEq: "{x \<in> ?R. -x \<in> b} = open_ray_lt (-a)"
+          unfolding hbeq by (rule hpre)
+        show "{x \<in> ?R. -x \<in> b} \<in> ?TR"
+          using hOpen by (simp add: hEq)
+      next
+        assume hbl: "\<exists>a. b = open_ray_lt a"
+        then obtain a where hbeq: "b = open_ray_lt a"
+          by blast
+        have hpre: "{x \<in> ?R. -x \<in> open_ray_lt a} = open_ray_gt (-a)"
+          unfolding open_ray_gt_def open_ray_lt_def by auto
+        have hOpen: "open_ray_gt (-a) \<in> ?TR"
+          by (rule open_ray_gt_in_order_topology)
+        have hEq: "{x \<in> ?R. -x \<in> b} = open_ray_gt (-a)"
+          unfolding hbeq by (rule hpre)
+        show "{x \<in> ?R. -x \<in> b} \<in> ?TR"
+          using hOpen by (simp add: hEq)
+      next
+        assume hU: "b = (UNIV::real set)"
+        have hR_open: "?R \<in> ?TR"
+          using hTopR unfolding is_topology_on_def by blast
+        show "{x \<in> ?R. -x \<in> b} \<in> ?TR"
+          unfolding hU using hR_open by simp
+      qed
+    qed
+  qed
+qed
+*)
+
+(** Convenience: sums and differences of continuous real-valued maps in the order topology. **)
+lemma top1_continuous_add_real:
+  fixes f g :: "'a \<Rightarrow> real"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hf: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f"
+  assumes hg: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV g"
+  shows "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. f x + g x)"
+  sorry
+
+(*
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  let ?TP = "product_topology_on ?TR ?TR"
+  let ?pair = "(\<lambda>x. (f x, g x))"
+
+  have hTopR: "is_topology_on ?R ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopRR: "is_topology_on (?R \<times> ?R) ?TP"
+    by (rule product_topology_on_is_topology_on[OF hTopR hTopR])
+
+  have hpi1: "top1_continuous_map_on X TX ?R ?TR (pi1 \<circ> ?pair)"
+  proof -
+    have hEq: "(pi1 \<circ> ?pair) = f"
+      by (rule ext, simp add: o_def pi1_def)
+    show ?thesis
+      unfolding hEq
+      by (rule hf)
+  qed
+  have hpi2: "top1_continuous_map_on X TX ?R ?TR (pi2 \<circ> ?pair)"
+  proof -
+    have hEq: "(pi2 \<circ> ?pair) = g"
+      by (rule ext, simp add: o_def pi2_def)
+    show ?thesis
+      unfolding hEq
+      by (rule hg)
+  qed
+
+  have hpair: "top1_continuous_map_on X TX (?R \<times> ?R) ?TP ?pair"
+  proof -
+    have hiff:
+      "top1_continuous_map_on X TX (?R \<times> ?R) ?TP ?pair
+       \<longleftrightarrow>
+         (top1_continuous_map_on X TX ?R ?TR (pi1 \<circ> ?pair)
+          \<and> top1_continuous_map_on X TX ?R ?TR (pi2 \<circ> ?pair))"
+      by (rule Theorem_18_4[OF hTopX hTopR hTopR])
+    show ?thesis
+      by (rule iffD2[OF hiff], intro conjI, rule hpi1, rule hpi2)
+  qed
+
+  have hplus: "top1_continuous_map_on (?R \<times> ?R) ?TP ?R ?TR (\<lambda>p::real \<times> real. pi1 p + pi2 p)"
+    by (rule top1_continuous_add_order_topology)
+
+  show ?thesis
+  proof -
+    have hEq: "(\<lambda>x. f x + g x) = (\<lambda>p::real \<times> real. pi1 p + pi2 p) \<circ> ?pair"
+      by (rule ext, simp add: o_def pi1_def pi2_def)
+    show ?thesis
+      unfolding hEq
+      by (rule top1_continuous_map_on_comp[OF hpair hplus])
+  qed
+qed
+*)
+
+lemma top1_continuous_uminus_real:
+  fixes f :: "'a \<Rightarrow> real"
+  assumes hf: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f"
+  shows "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. - f x)"
+  sorry
+
+(*
+proof -
+  let ?R = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  have hneg: "top1_continuous_map_on ?R ?TR ?R ?TR (\<lambda>t::real. -t)"
+    by (rule top1_continuous_uminus_order_topology)
+  have hEq: "(\<lambda>x. - f x) = (\<lambda>t::real. -t) \<circ> f"
+    by (rule ext, simp add: o_def)
+  show ?thesis
+    unfolding hEq
+    by (rule top1_continuous_map_on_comp[OF hf hneg])
+qed
+*)
+
+lemma top1_continuous_diff_real:
+  fixes f g :: "'a \<Rightarrow> real"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hf: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f"
+  assumes hg: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV g"
+  shows "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. f x - g x)"
+  sorry
+
+(*
+proof -
+  have hneg: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. - g x)"
+    by (rule top1_continuous_uminus_real[OF hg])
+  have hadd: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. f x + (- g x))"
+    by (rule top1_continuous_add_real[OF hTopX hf hneg])
+  show ?thesis
+    using hadd by simp
+qed
+*)
+
 (** from *\S35 Theorem 35.1 (Tietze extension theorem) [top1.tex:~4771] **)
 theorem Theorem_35_1:
   fixes f :: "'a \<Rightarrow> real"
