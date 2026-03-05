@@ -17359,19 +17359,588 @@ next
   qed
 qed
 
+(** Closed intervals in linear continua are compact (library notion \<open>compact\<close>). **)
+lemma top1_compact_Icc_linear_continuum:
+  fixes a b :: "'a::linear_continuum_topology"
+  assumes hab: "a \<le> b"
+  shows "compact {a..b}"
+proof (rule compactI)
+  fix C :: "'a set set"
+  assume hCopen: "\<forall>t\<in>C. open t"
+  assume hcov: "{a..b} \<subseteq> \<Union>C"
+
+  define S where
+    "S = {x \<in> {a..b}. \<exists>C'\<subseteq>C. finite C' \<and> {a..x} \<subseteq> \<Union>C'}"
+
+  have ha_in_cover: "a \<in> \<Union>C"
+  proof -
+    have haI: "a \<in> {a..b}"
+      using hab by simp
+    show ?thesis
+      by (rule subsetD[OF hcov haI])
+  qed
+
+  have S_ne: "S \<noteq> {}"
+  proof -
+    obtain U where hU: "U \<in> C" and haU: "a \<in> U"
+      using ha_in_cover by blast
+    have hfin: "finite {U}" by simp
+    have hsub: "{U} \<subseteq> C"
+      using hU by blast
+    have hcovU: "{a..a} \<subseteq> \<Union>{U}"
+    proof (rule subsetI)
+      fix x assume hx: "x \<in> {a..a}"
+      have hx_a: "x = a"
+        using hx by simp
+      have "x \<in> U"
+        using haU hx_a by simp
+      thus "x \<in> \<Union>{U}"
+        using hU by blast
+    qed
+    have "a \<in> S"
+      unfolding S_def
+      apply (rule CollectI)
+      apply (intro conjI)
+       using hab apply simp
+      apply (rule exI[where x="{U}"])
+      using hfin hsub hcovU by blast
+    thus ?thesis
+      by blast
+  qed
+
+  have haS: "a \<in> S"
+  proof -
+    obtain U where hU: "U \<in> C" and haU: "a \<in> U"
+      using ha_in_cover by blast
+    have hfin: "finite {U}" by simp
+    have hsub: "{U} \<subseteq> C"
+      using hU by blast
+    have hcovU: "{a..a} \<subseteq> \<Union>{U}"
+    proof (rule subsetI)
+      fix x assume hx: "x \<in> {a..a}"
+      have hx_a: "x = a"
+        using hx by simp
+      have "x \<in> U"
+        using haU hx_a by simp
+      thus "x \<in> \<Union>{U}"
+        using hU by blast
+    qed
+    show ?thesis
+      unfolding S_def
+      apply (rule CollectI)
+      apply (intro conjI)
+       using hab apply simp
+      apply (rule exI[where x="{U}"])
+      using hfin hsub hcovU by blast
+  qed
+
+  have S_bdd: "bdd_above S"
+  proof (rule bdd_aboveI[where M=b])
+    fix x assume hx: "x \<in> S"
+    have "x \<in> {a..b}"
+      using hx unfolding S_def by blast
+    thus "x \<le> b"
+      by simp
+  qed
+
+  define c where "c = Sup S"
+  have hc_le_b: "c \<le> b"
+  proof -
+    have hub: "\<And>x. x \<in> S \<Longrightarrow> x \<le> b"
+    proof -
+      fix x assume hx: "x \<in> S"
+      have "x \<in> {a..b}"
+        using hx unfolding S_def by blast
+      thus "x \<le> b"
+        by simp
+    qed
+    show ?thesis
+      unfolding c_def
+      by (rule cSup_least[OF S_ne], rule hub)
+  qed
+
+  have ha_le_c: "a \<le> c"
+  proof -
+    obtain x where hx: "x \<in> S"
+      using S_ne by blast
+    have hx_le: "x \<le> c"
+      unfolding c_def by (rule cSup_upper[OF hx S_bdd])
+    have ha_le_x: "a \<le> x"
+    proof -
+      have "x \<in> {a..b}"
+        using hx unfolding S_def by blast
+      thus "a \<le> x"
+        by simp
+    qed
+    show ?thesis
+      using ha_le_x hx_le by simp
+  qed
+
+  have hcI: "c \<in> {a..b}"
+    using ha_le_c hc_le_b by simp
+
+  have hc_in_cover: "c \<in> \<Union>C"
+    by (rule subsetD[OF hcov hcI])
+
+  obtain U where hU: "U \<in> C" and hcU: "c \<in> U"
+    using hc_in_cover by blast
+  have hopenU: "open U"
+    using hCopen hU by blast
+
+  have hc_in_S: "c \<in> S"
+  proof (cases "c = a")
+    case True
+    show ?thesis
+      using True haS by simp
+  next
+    case False
+    have ha_lt_c: "a < c"
+      using False ha_le_c by simp
+
+    have ex_d: "\<exists>d<c. {d <.. c} \<subseteq> U"
+      by (rule open_left[OF hopenU hcU ha_lt_c])
+	    then obtain d where hd: "d < c" and hdcU: "{d <.. c} \<subseteq> U"
+	      by blast
+	
+	    have hdSup: "d < Sup S"
+	    proof -
+	      have "c = Sup S"
+	        unfolding c_def by simp
+	      thus ?thesis
+	        using hd by simp
+	    qed
+    obtain s where hsS: "s \<in> S" and hd_lt_s: "d < s"
+      by (rule less_cSupE[OF hdSup S_ne])
+
+    obtain C1 where hC1sub: "C1 \<subseteq> C" and hC1fin: "finite C1" and hC1cov: "{a..s} \<subseteq> \<Union>C1"
+      using hsS unfolding S_def by blast
+
+    have hs_le_c: "s \<le> c"
+      unfolding c_def by (rule cSup_upper[OF hsS S_bdd])
+
+    have hcov_ac: "{a..c} \<subseteq> \<Union>(insert U C1)"
+    proof (rule subsetI)
+      fix x assume hx: "x \<in> {a..c}"
+      show "x \<in> \<Union>(insert U C1)"
+      proof (cases "x \<le> s")
+        case True
+        have hx_as: "x \<in> {a..s}"
+          using hx True by simp
+        have "x \<in> \<Union>C1"
+          by (rule subsetD[OF hC1cov hx_as])
+        thus ?thesis
+          by blast
+      next
+        case False
+        have hsx: "s < x"
+          using False by simp
+        have hx_le_c: "x \<le> c"
+          using hx by simp
+        have hd_lt_x: "d < x"
+          using hd_lt_s hsx by simp
+        have "x \<in> {d <.. c}"
+          using hd_lt_x hx_le_c by simp
+        hence "x \<in> U"
+          by (rule subsetD[OF hdcU])
+        thus ?thesis
+          using hU by blast
+      qed
+    qed
+
+	    have "c \<in> S"
+	      unfolding S_def
+	      apply (rule CollectI)
+	      apply (intro conjI)
+	       using hc_le_b ha_le_c apply simp
+	      apply (rule exI[where x="insert U C1"])
+	      apply (intro conjI)
+	        using hU hC1sub apply blast
+	       apply (rule finite.insertI[OF hC1fin])
+	      apply (rule hcov_ac)
+	      done
+    thus ?thesis .
+  qed
+
+  have hc_eq_b: "c = b"
+  proof (rule classical)
+    show "c = b"
+    proof (rule ccontr)
+      assume hne: "c \<noteq> b"
+      have hc_lt_b: "c < b"
+        using hc_le_b hne by simp
+
+      have ex_e: "\<exists>e>c. {c ..< e} \<subseteq> U"
+        by (rule open_right[OF hopenU hcU hc_lt_b])
+	      then obtain e where he: "c < e" and hceU: "{c ..< e} \<subseteq> U"
+	        by blast
+
+	      define e' where "e' = min e b"
+	      have hc_lt_e': "c < e'"
+	        unfolding e'_def
+	        using he hc_lt_b
+	        by (simp add: min_less_iff_conj)
+
+	      obtain t where hct: "c < t" and ht_lt_e': "t < e'"
+	        using dense[OF hc_lt_e'] by blast
+
+	      have he'_le_e: "e' \<le> e"
+	        unfolding e'_def by simp
+	      have he'_le_b: "e' \<le> b"
+	        unfolding e'_def by simp
+
+	      have ht_lt_e: "t < e"
+	        by (rule less_le_trans[OF ht_lt_e' he'_le_e])
+	      have ht_lt_b: "t < b"
+	        by (rule less_le_trans[OF ht_lt_e' he'_le_b])
+	      have ht_le_b: "t \<le> b"
+	        by (rule less_imp_le[OF ht_lt_b])
+
+      obtain Cc where hCcsub: "Cc \<subseteq> C" and hCcfin: "finite Cc" and hCccov: "{a..c} \<subseteq> \<Union>Cc"
+        using hc_in_S unfolding S_def by blast
+
+      have hcov_at: "{a..t} \<subseteq> \<Union>(insert U Cc)"
+      proof (rule subsetI)
+        fix x assume hx: "x \<in> {a..t}"
+        show "x \<in> \<Union>(insert U Cc)"
+        proof (cases "x \<le> c")
+          case True
+          have hx_ac: "x \<in> {a..c}"
+            using hx True by simp
+          have "x \<in> \<Union>Cc"
+            by (rule subsetD[OF hCccov hx_ac])
+          thus ?thesis
+            by blast
+        next
+          case False
+          have hcx: "c < x"
+            using False by simp
+          have hx_lt_e: "x < e"
+          proof -
+            have "x \<le> t"
+              using hx by simp
+            thus ?thesis
+              using ht_lt_e le_less_trans by blast
+          qed
+          have "x \<in> {c ..< e}"
+            using hcx hx_lt_e by simp
+          hence "x \<in> U"
+            by (rule subsetD[OF hceU])
+          thus ?thesis
+            using hU by blast
+        qed
+      qed
+
+	      have ht_in_S: "t \<in> S"
+	      proof -
+	        have ha_le_t: "a \<le> t"
+	          using ha_le_c hct by simp
+	        have ht_ab: "t \<in> {a..b}"
+	          using ha_le_t ht_le_b by simp
+		        have hcover: "\<exists>C'. C' \<subseteq> C \<and> finite C' \<and> {a..t} \<subseteq> \<Union>C'"
+		        proof (rule exI[where x="insert U Cc"])
+		          have hsub': "insert U Cc \<subseteq> C"
+		          proof (rule subsetI)
+		            fix x assume hx: "x \<in> insert U Cc"
+		            show "x \<in> C"
+		            proof (cases "x = U")
+		              case True
+		              show ?thesis
+		                using True hU by simp
+		            next
+		              case False
+		              have hx_in_Cc: "x \<in> Cc"
+		                using hx False by simp
+		              show ?thesis
+		                by (rule subsetD[OF hCcsub hx_in_Cc])
+		            qed
+		          qed
+		          have hfin': "finite (insert U Cc)"
+		            by (rule finite.insertI[OF hCcfin])
+		          have hcov': "{a..t} \<subseteq> \<Union>(insert U Cc)"
+		            by (rule hcov_at)
+		          show "insert U Cc \<subseteq> C \<and> finite (insert U Cc) \<and> {a..t} \<subseteq> \<Union>(insert U Cc)"
+		            by (intro conjI hsub' hfin' hcov')
+		        qed
+	        show ?thesis
+	          unfolding S_def
+	          using ht_ab hcover by blast
+	      qed
+
+      have ht_le_c: "t \<le> c"
+        unfolding c_def by (rule cSup_upper[OF ht_in_S S_bdd])
+      have False
+        using hct ht_le_c by simp
+      thus False ..
+    qed
+  qed
+
+	  obtain Cb where hCbsub: "Cb \<subseteq> C" and hCbfin: "finite Cb" and hCbcov: "{a..b} \<subseteq> \<Union>Cb"
+	  proof -
+	    have hb_in_S: "b \<in> S"
+	      using hc_in_S hc_eq_b by simp
+	    have hb_ex: "\<exists>C'. C' \<subseteq> C \<and> finite C' \<and> {a..b} \<subseteq> \<Union>C'"
+	    proof -
+	      have hb_props: "b \<in> {a..b} \<and> (\<exists>C'. C' \<subseteq> C \<and> finite C' \<and> {a..b} \<subseteq> \<Union>C')"
+	        using hb_in_S unfolding S_def by (rule CollectD)
+	      show ?thesis
+	        using hb_props by (rule conjunct2)
+	    qed
+	    from hb_ex obtain Cb0 where hCb0sub: "Cb0 \<subseteq> C" and hCb0fin: "finite Cb0" and hCb0cov: "{a..b} \<subseteq> \<Union>Cb0"
+	      by blast
+	    show ?thesis
+	      using hCb0sub hCb0fin hCb0cov by (rule that)
+	  qed
+
+  show "\<exists>C'. C' \<subseteq> C \<and> finite C' \<and> {a..b} \<subseteq> \<Union>C'"
+    by (intro exI[where x=Cb] conjI hCbsub hCbfin hCbcov)
+qed
+
 (** from \S27 Theorem 27.1 (Closed intervals in linear continua are compact) [top1.tex:3357] **)
 theorem Theorem_27_1:
   fixes a b :: "'a::linear_continuum_topology"
   assumes hab: "a \<le> b"
   shows "top1_compact_on {a..b} (subspace_topology (UNIV::'a set) top1_open_sets {a..b})"
-  sorry
+proof -
+  have hcompact: "compact {a..b}"
+    by (rule top1_compact_Icc_linear_continuum[OF hab])
+  show ?thesis
+    using top1_compact_on_subspace_UNIV_iff_compact[of "{a..b}"] hcompact
+    by simp
+qed
 
 (** from \S27 Theorem 27.3 (Heine--Borel in \<open>\<real>^n\<close>) [top1.tex:3393] **)
+definition top1_bounded_set :: "'a::real_normed_vector set \<Rightarrow> bool" where
+  "top1_bounded_set A \<longleftrightarrow> (\<exists>B\<ge>0. \<forall>x\<in>A. norm x \<le> B)"
+
+lemma compact_real_imp_top1_bounded_set:
+  fixes A :: "real set"
+  assumes hcomp: "compact A"
+  shows "top1_bounded_set A"
+proof (cases "A = {}")
+  case True
+  show ?thesis
+    unfolding top1_bounded_set_def True
+    by (intro exI[where x=0] conjI) simp_all
+next
+  case False
+  show ?thesis
+  proof -
+  define f :: "nat \<Rightarrow> real set"
+    where f_def: "f = (\<lambda>n::nat. {- (of_nat n :: real) <..< (of_nat (Suc n) :: real)})"
+
+  have hAcov: "A \<subseteq> (\<Union>n::nat. f n)"
+  proof (rule subsetI)
+    fix x assume hxA: "x \<in> A"
+    obtain n :: nat where hn: "abs x + 1 < of_nat n"
+      using reals_Archimedean2[of "abs x + 1"] by blast
+    have hx_lt_n: "abs x < (of_nat n :: real)"
+    proof -
+      have "abs x < abs x + 1"
+        by simp
+      thus ?thesis
+        using hn less_trans by blast
+    qed
+
+    have hx_lb: "- (of_nat n :: real) < x"
+      using hx_lt_n by (simp add: abs_less_iff)
+    have hx_ub: "x < (of_nat (Suc n) :: real)"
+    proof -
+      have hx_ub0: "x < (of_nat n :: real)"
+        using hx_lt_n by (simp add: abs_less_iff)
+      have hn_lt: "(of_nat n :: real) < of_nat (Suc n)"
+        by simp
+      show ?thesis
+        by (rule less_trans[OF hx_ub0 hn_lt])
+    qed
+
+    have "x \<in> f n"
+      unfolding f_def using hx_lb hx_ub by simp
+    thus "x \<in> (\<Union>n::nat. f n)"
+      by blast
+  qed
+
+  have hAcov': "A \<subseteq> \<Union>(range f)"
+    using hAcov by simp
+
+  have hopen: "\<And>B. B \<in> range f \<Longrightarrow> open B"
+  proof -
+    fix B assume hB: "B \<in> range f"
+    then obtain n where hBeq: "B = f n"
+      by blast
+    show "open B"
+      unfolding hBeq f_def by simp
+  qed
+
+  obtain D where hDsub: "D \<subseteq> range f" and hDfin: "finite D" and hDcov: "A \<subseteq> \<Union>D"
+    by (rule compactE[OF hcomp hAcov' hopen])
+
+  have ex_n: "\<forall>U\<in>D. \<exists>n. U = f n"
+    using hDsub by blast
+  obtain g where hg: "\<forall>U\<in>D. U = f (g U)"
+    using bchoice[OF ex_n] by blast
+
+  define K where "K = g ` D"
+  have hKfin: "finite K"
+    unfolding K_def by (rule finite_imageI[OF hDfin])
+
+  have hKcov: "A \<subseteq> (\<Union>n\<in>K. f n)"
+  proof -
+    have hUn: "\<Union>D \<subseteq> (\<Union>n\<in>K. f n)"
+    proof (rule subsetI)
+      fix x assume hx: "x \<in> \<Union>D"
+      then obtain U where hUD: "U \<in> D" and hxU: "x \<in> U"
+        by blast
+      have hUeq: "U = f (g U)"
+        using hg hUD by blast
+      have "g U \<in> K"
+        unfolding K_def using hUD by blast
+      moreover have "x \<in> f (g U)"
+        using hxU hUeq by simp
+      ultimately show "x \<in> (\<Union>n\<in>K. f n)"
+        by (rule UN_I)
+    qed
+    show ?thesis
+      by (rule subset_trans[OF hDcov hUn])
+  qed
+
+  have hKne: "K \<noteq> {}"
+  proof
+    assume hKempty: "K = {}"
+    have "A \<subseteq> {}"
+      using hKcov unfolding hKempty by simp
+    hence "A = {}"
+      by blast
+    with False show False
+      by simp
+  qed
+
+  define N where "N = Max K"
+  have hle: "\<And>n. n \<in> K \<Longrightarrow> n \<le> N"
+    unfolding N_def using hKfin by (rule Max_ge)
+
+  have hf_mono: "\<And>m n::nat. m \<le> n \<Longrightarrow> f m \<subseteq> f n"
+  proof -
+    fix m n :: nat assume hmn: "m \<le> n"
+    show "f m \<subseteq> f n"
+    proof (rule subsetI)
+      fix x assume hx: "x \<in> f m"
+      have hx_lb: "- (of_nat m :: real) < x"
+        using hx unfolding f_def by simp
+      have hx_ub: "x < (of_nat (Suc m) :: real)"
+        using hx unfolding f_def by simp
+      have hm_le: "(of_nat m :: real) \<le> of_nat n"
+        using hmn by simp
+      have hn_lb: "- (of_nat n :: real) \<le> - (of_nat m :: real)"
+        using hm_le by simp
+      have hx_lb': "- (of_nat n :: real) < x"
+        by (rule le_less_trans[OF hn_lb hx_lb])
+      have hsuc_le: "of_nat (Suc m) \<le> (of_nat (Suc n) :: real)"
+        using hmn by simp
+      have hx_ub': "x < (of_nat (Suc n) :: real)"
+        by (rule less_le_trans[OF hx_ub hsuc_le])
+      show "x \<in> f n"
+        unfolding f_def using hx_lb' hx_ub' by simp
+    qed
+  qed
+
+  have hUn_sub: "(\<Union>n\<in>K. f n) \<subseteq> f N"
+  proof (rule subsetI)
+    fix x assume hx: "x \<in> (\<Union>n\<in>K. f n)"
+    then obtain n where hnK: "n \<in> K" and hxfn: "x \<in> f n"
+      by blast
+    have hsub: "f n \<subseteq> f N"
+      using hf_mono hle[OF hnK] by blast
+    show "x \<in> f N"
+      by (rule subsetD[OF hsub hxfn])
+  qed
+
+  have hAsubN: "A \<subseteq> f N"
+    by (rule subset_trans[OF hKcov hUn_sub])
+
+  have hnorm_le: "\<forall>x\<in>A. norm x \<le> (of_nat (Suc N) :: real)"
+  proof (rule ballI)
+    fix x assume hxA: "x \<in> A"
+    have hxN: "x \<in> f N"
+      using hAsubN hxA by blast
+    have hx_lb: "- (of_nat N :: real) < x"
+      using hxN unfolding f_def by simp
+    have hx_ub: "x < (of_nat (Suc N) :: real)"
+      using hxN unfolding f_def by simp
+
+    have hneg: "- (of_nat (Suc N) :: real) < - (of_nat N :: real)"
+      by simp
+    have hx_lb': "- (of_nat (Suc N) :: real) < x"
+      by (rule less_trans[OF hneg hx_lb])
+
+    have habs_lt: "abs x < (of_nat (Suc N) :: real)"
+      using hx_lb' hx_ub by (simp add: abs_less_iff)
+    show "norm x \<le> (of_nat (Suc N) :: real)"
+      using habs_lt by (simp add: real_norm_def less_imp_le)
+  qed
+
+	    show ?thesis
+	      unfolding top1_bounded_set_def
+	    proof (intro exI[where x="of_nat (Suc N)"] conjI)
+	      show "0 \<le> (of_nat (Suc N) :: real)"
+	        by simp
+	      show "\<forall>x\<in>A. norm x \<le> (of_nat (Suc N) :: real)"
+	        using hnorm_le .
+		    qed
+		  qed
+qed
+
 theorem Theorem_27_3:
   fixes A :: "real set"
   shows
-    "top1_compact_on A (subspace_topology (UNIV::real set) top1_open_sets A) \<longleftrightarrow> (closed A \<and> bounded A)"
-  sorry
+    "top1_compact_on A (subspace_topology (UNIV::real set) top1_open_sets A) \<longleftrightarrow> (closed A \<and> top1_bounded_set A)"
+proof -
+  have hbridge:
+    "top1_compact_on A (subspace_topology (UNIV::real set) top1_open_sets A) \<longleftrightarrow> compact A"
+    using top1_compact_on_subspace_UNIV_iff_compact[of A] by simp
+
+  have hcompact_iff: "compact A \<longleftrightarrow> (closed A \<and> top1_bounded_set A)"
+  proof
+    assume hcomp: "compact A"
+    have hclosed: "closed A"
+      by (rule compact_imp_closed[OF hcomp])
+    have hbounded: "top1_bounded_set A"
+      by (rule compact_real_imp_top1_bounded_set[OF hcomp])
+    show "closed A \<and> top1_bounded_set A"
+      using hclosed hbounded by simp
+  next
+	    assume hprops: "closed A \<and> top1_bounded_set A"
+	    have hclosed: "closed A"
+	      using hprops by simp
+	    obtain B where hB: "B \<ge> 0" and hBnd: "\<forall>x\<in>A. norm x \<le> B"
+	      using hprops unfolding top1_bounded_set_def by blast
+
+    have hAsub: "A \<subseteq> {-B..B}"
+    proof (rule subsetI)
+      fix x assume hxA: "x \<in> A"
+      have hn: "norm x \<le> B"
+        using hBnd hxA by blast
+      have habs: "abs x \<le> B"
+        using hn by (simp add: real_norm_def)
+      have hbounds: "-B \<le> x \<and> x \<le> B"
+        using habs by (simp add: abs_le_iff)
+      thus "x \<in> {-B..B}"
+        by simp
+    qed
+
+    have hIcc_compact: "compact {-B..B}"
+      by (rule top1_compact_Icc_linear_continuum) (use hB in simp)
+
+    have "compact ({-B..B} \<inter> A)"
+      by (rule compact_Int_closed[OF hIcc_compact hclosed])
+    moreover have "{-B..B} \<inter> A = A"
+      using hAsub by blast
+    ultimately show "compact A"
+      by simp
+  qed
+
+  show ?thesis
+    using hbridge hcompact_iff by simp
+qed
 
 section \<open>\<S>28 Limit Point Compactness\<close>
 
