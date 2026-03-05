@@ -25257,14 +25257,282 @@ proof -
 	  have hTXeq': "TX = top1_metric_topology_on X d"
 	    using hMet_sub_TX hTX_sub_Met by blast
 	
-	  show "top1_metrizable_on X TX"
-	    unfolding top1_metrizable_on_def
-	    apply (rule exI[where x=d])
-	    apply (intro conjI)
-	     apply (rule d_metric)
-	    apply (rule hTXeq')
-	    done
-	qed
+		  show "top1_metrizable_on X TX"
+		    unfolding top1_metrizable_on_def
+		    apply (rule exI[where x=d])
+		    apply (intro conjI)
+		     apply (rule d_metric)
+		    apply (rule hTXeq')
+		    done
+		qed
+
+(** from \S34 Theorem 34.2 (Imbedding theorem) [top1.tex:4744] **)
+theorem Theorem_34_2:
+  fixes f :: "'i \<Rightarrow> 'a \<Rightarrow> real"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hT1: "\<forall>x\<in>X. closedin_on X TX {x}"
+  assumes hfcont: "\<forall>\<alpha>\<in>J. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (f \<alpha>)"
+  assumes hloc:
+    "\<forall>x0\<in>X. \<forall>U. neighborhood_of x0 X TX U \<longrightarrow>
+       (\<exists>\<alpha>\<in>J. 0 < f \<alpha> x0 \<and> (\<forall>x\<in>X - U. f \<alpha> x = 0))"
+  defines "F x \<equiv> (\<lambda>\<alpha>. if \<alpha> \<in> J then f \<alpha> x else undefined)"
+  shows "top1_embedding_on X TX
+           (top1_PiE J (\<lambda>_. (UNIV::real set)))
+           (top1_product_topology_on J (\<lambda>_. (UNIV::real set)) (\<lambda>_. order_topology_on_UNIV))
+           F"
+proof -
+  let ?XR = "(UNIV::real set)"
+  let ?TR = "order_topology_on_UNIV"
+  let ?Y = "top1_PiE J (\<lambda>_. ?XR)"
+  let ?TY = "top1_product_topology_on J (\<lambda>_. ?XR) (\<lambda>_. ?TR)"
+  let ?W = "F ` X"
+  let ?TW = "subspace_topology ?Y ?TY ?W"
+
+  have hTopR: "is_topology_on ?XR ?TR"
+    by (rule order_topology_on_UNIV_is_topology_on)
+
+  have hTopComp: "\<forall>i\<in>J. is_topology_on ?XR ?TR"
+    using hTopR by blast
+
+  have hTopY: "is_topology_on ?Y ?TY"
+    by (rule top1_product_topology_on_is_topology_on[OF hTopComp])
+
+  have hFmap: "\<forall>x\<in>X. F x \<in> ?Y"
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    show "F x \<in> ?Y"
+      unfolding top1_PiE_iff F_def by simp
+  qed
+
+  have hcontF_Y: "top1_continuous_map_on X TX ?Y ?TY F"
+  proof -
+    have hiff:
+      "top1_continuous_map_on X TX ?Y ?TY F \<longleftrightarrow>
+       (\<forall>i\<in>J. top1_continuous_map_on X TX ?XR ?TR (\<lambda>x. (F x) i))"
+      by (rule Theorem_19_6[OF hTopX hTopComp hFmap])
+
+    have hcoords: "\<forall>i\<in>J. top1_continuous_map_on X TX ?XR ?TR (\<lambda>x. (F x) i)"
+    proof (intro ballI)
+      fix i assume hi: "i \<in> J"
+      have hEq: "(\<lambda>x. (F x) i) = f i"
+        by (rule ext, simp add: F_def hi)
+      show "top1_continuous_map_on X TX ?XR ?TR (\<lambda>x. (F x) i)"
+        unfolding hEq using hfcont hi by simp
+    qed
+
+    show ?thesis
+      by (rule iffD2[OF hiff hcoords])
+  qed
+
+  have hWsubY: "?W \<subseteq> ?Y"
+  proof (rule subsetI)
+    fix y assume hyW: "y \<in> ?W"
+    then obtain x where hxX: "x \<in> X" and hyEq: "y = F x"
+      by blast
+    have "F x \<in> ?Y"
+      using hFmap hxX by blast
+    thus "y \<in> ?Y"
+      using hyEq by simp
+  qed
+
+  have hcontF_W: "top1_continuous_map_on X TX ?W ?TW F"
+  proof -
+    have hrestrict_all:
+      "\<forall>W0 g.
+        top1_continuous_map_on X TX ?Y ?TY g \<and> W0 \<subseteq> ?Y \<and> g ` X \<subseteq> W0
+        \<longrightarrow> top1_continuous_map_on X TX W0 (subspace_topology ?Y ?TY W0) g"
+      using Theorem_18_2(5)[OF hTopX hTopY hTopY] .
+    have hpre: "top1_continuous_map_on X TX ?Y ?TY F \<and> ?W \<subseteq> ?Y \<and> F ` X \<subseteq> ?W"
+      by (intro conjI, rule hcontF_Y, rule hWsubY, simp)
+    show ?thesis
+      using mp[OF spec[OF spec[OF hrestrict_all, where x="?W"], where x=F] hpre] .
+  qed
+
+  have hFinj: "inj_on F X"
+  proof (rule inj_onI)
+    fix x y
+    assume hxX: "x \<in> X"
+    assume hyX: "y \<in> X"
+    assume hEq: "F x = F y"
+    show "x = y"
+    proof (rule ccontr)
+      assume hxy: "x \<noteq> y"
+      have hsing: "closedin_on X TX {y}"
+        using hT1 hyX by blast
+      have hUopen: "X - {y} \<in> TX"
+        using hsing unfolding closedin_on_def by blast
+      have hxU: "x \<in> X - {y}"
+        using hxX hxy by blast
+      have hnbd: "neighborhood_of x X TX (X - {y})"
+        unfolding neighborhood_of_def using hUopen hxU by blast
+
+      obtain i where hiJ: "i \<in> J" and hpos: "0 < f i x" and hzero: "\<forall>z\<in>X - (X - {y}). f i z = 0"
+        using hloc hxX hnbd by blast
+
+      have hyXU: "y \<in> X - (X - {y})"
+        using hyX by simp
+      have hfiy: "f i y = 0"
+        using hzero hyXU by blast
+
+      have hEqi: "(F x) i = (F y) i"
+        using hEq by simp
+      have hFix: "(F x) i = f i x"
+        by (simp add: F_def hiJ)
+      have hFiy: "(F y) i = f i y"
+        by (simp add: F_def hiJ)
+
+      have "f i x = f i y"
+        using hEqi hFix hFiy by simp
+      hence "f i x = 0"
+        using hfiy by simp
+      thus False
+        using hpos by simp
+    qed
+  qed
+
+  have hTopW: "is_topology_on ?W ?TW"
+    by (rule subspace_topology_is_topology_on[OF hTopY hWsubY])
+
+  have hcontInv: "top1_continuous_map_on ?W ?TW X TX (inv_into X F)"
+  proof -
+    have hiff:
+      "top1_continuous_map_on ?W ?TW X TX (inv_into X F) \<longleftrightarrow>
+       ((\<forall>y\<in>?W. inv_into X F y \<in> X)
+        \<and> (\<forall>y\<in>?W. \<forall>V. neighborhood_of (inv_into X F y) X TX V \<longrightarrow>
+             (\<exists>U. neighborhood_of y ?W ?TW U \<and> inv_into X F ` U \<subseteq> V)))"
+      using Theorem_18_1(3)[OF hTopW hTopX, of "inv_into X F"] .
+
+    have hmaps: "\<forall>y\<in>?W. inv_into X F y \<in> X"
+    proof (intro ballI)
+      fix y assume hyW: "y \<in> ?W"
+      have hyFX: "y \<in> F ` X"
+        using hyW by simp
+      show "inv_into X F y \<in> X"
+        by (rule inv_into_into[OF hyFX])
+    qed
+
+    have hnbd:
+      "\<forall>y\<in>?W. \<forall>V. neighborhood_of (inv_into X F y) X TX V \<longrightarrow>
+        (\<exists>U. neighborhood_of y ?W ?TW U \<and> inv_into X F ` U \<subseteq> V)"
+    proof (intro ballI allI impI)
+      fix y V
+      assume hyW: "y \<in> ?W"
+      assume hV: "neighborhood_of (inv_into X F y) X TX V"
+
+      obtain x0 where hx0X: "x0 \<in> X" and hyEq: "y = F x0"
+        using hyW by blast
+      have hyinv: "inv_into X F y = x0"
+        unfolding hyEq by (rule inv_into_f_f[OF hFinj hx0X])
+
+      have hVx0: "neighborhood_of x0 X TX V"
+        using hV hyinv by simp
+
+      obtain i where hiJ: "i \<in> J" and hpos: "0 < f i x0" and hzero: "\<forall>x\<in>X - V. f i x = 0"
+        using hloc hx0X hVx0 by blast
+
+      define B where "B = {p \<in> ?Y. p i \<in> open_ray_gt (0::real)}"
+      have hopen: "open_ray_gt (0::real) \<in> ?TR"
+        by (rule open_ray_gt_in_order_topology)
+
+      have hproj: "top1_continuous_map_on ?Y ?TY ?XR ?TR (\<lambda>p. p i)"
+        by (rule top1_continuous_map_on_product_projection[OF hTopComp hiJ])
+      have hBopen: "B \<in> ?TY"
+      proof -
+        have hpre: "\<forall>U\<in>?TR. {p \<in> ?Y. (\<lambda>p. p i) p \<in> U} \<in> ?TY"
+          using hproj unfolding top1_continuous_map_on_def by blast
+        have "{p \<in> ?Y. p i \<in> open_ray_gt (0::real)} \<in> ?TY"
+          using hpre hopen by simp
+        thus ?thesis
+          unfolding B_def by simp
+      qed
+
+      have hyB: "y \<in> B"
+      proof -
+        have hFy: "(F x0) i = f i x0"
+          by (simp add: F_def hiJ)
+        have "f i x0 \<in> open_ray_gt (0::real)"
+          unfolding open_ray_gt_def using hpos by simp
+        hence "F x0 i \<in> open_ray_gt (0::real)"
+          using hFy by simp
+        thus ?thesis
+          unfolding hyEq B_def using hx0X hFmap by simp
+      qed
+
+      define U where "U = ?W \<inter> B"
+      have hUopen: "U \<in> ?TW"
+        unfolding U_def subspace_topology_def
+        apply (rule CollectI)
+        apply (rule exI[where x=B])
+        using hBopen by simp
+      have hyU: "y \<in> U"
+        unfolding U_def using hyW hyB by blast
+      have hUnbd: "neighborhood_of y ?W ?TW U"
+        unfolding neighborhood_of_def using hUopen hyU by blast
+
+      have hUsub: "inv_into X F ` U \<subseteq> V"
+      proof (rule subsetI)
+        fix z assume hz: "z \<in> inv_into X F ` U"
+        then obtain p where hpU: "p \<in> U" and hzEq: "z = inv_into X F p"
+          by blast
+        have hpW: "p \<in> ?W" and hpB: "p \<in> B"
+          using hpU unfolding U_def by blast+
+        obtain x where hxX: "x \<in> X" and hpEq: "p = F x"
+          using hpW by blast
+        have hzEq': "z = x"
+          unfolding hzEq hpEq by (rule inv_into_f_f[OF hFinj hxX])
+
+        have hpi: "p i \<in> open_ray_gt (0::real)"
+          using hpB unfolding B_def by simp
+        have "0 < p i"
+          using hpi unfolding open_ray_gt_def by simp
+        hence hfxpos: "0 < f i x"
+          unfolding hpEq by (simp add: F_def hiJ)
+
+        have hxV: "x \<in> V"
+        proof (rule ccontr)
+          assume hxnot: "x \<notin> V"
+          have hxout: "x \<in> X - V"
+            using hxX hxnot by blast
+          have "f i x = 0"
+            using hzero hxout by blast
+          thus False
+            using hfxpos by simp
+        qed
+
+        show "z \<in> V"
+          using hxV hzEq' by simp
+      qed
+
+      show "\<exists>U. neighborhood_of y ?W ?TW U \<and> inv_into X F ` U \<subseteq> V"
+        by (rule exI[where x=U], intro conjI, rule hUnbd, rule hUsub)
+    qed
+
+    show ?thesis
+      by (rule iffD2[OF hiff], intro conjI, rule hmaps, rule hnbd)
+  qed
+
+  have hbij: "bij_betw F X ?W"
+    unfolding bij_betw_def
+    apply (intro conjI)
+     apply (rule hFinj)
+    apply simp
+    done
+
+  have hhomeo: "top1_homeomorphism_on X TX ?W ?TW F"
+    unfolding top1_homeomorphism_on_def
+    apply (intro conjI)
+      apply (rule hbij)
+     apply (rule hcontF_W)
+    apply (rule hcontInv)
+    done
+
+  show ?thesis
+    unfolding top1_embedding_on_def
+    apply (intro conjI)
+     apply (rule hWsubY)
+    apply (rule hhomeo)
+    done
+qed
 
 section \<open>*\<S>35 The Tietze Extension Theorem\<close>
 
