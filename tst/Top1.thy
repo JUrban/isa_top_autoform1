@@ -11189,6 +11189,368 @@ proof -
 qed
 
 (** from \S22 Theorem 22.2 (Universal property of quotient maps) [top1.tex:2441] **)
+
+(** Congruence lemmas: continuity / quotientness depend only on values on the carrier. **)
+lemma top1_preimage_on_cong:
+  assumes heq: "\<forall>x\<in>X. f x = g x"
+  shows "{x\<in>X. f x \<in> V} = {x\<in>X. g x \<in> V}"
+proof (rule set_eqI)
+  fix x
+  show "x \<in> {x \<in> X. f x \<in> V} \<longleftrightarrow> x \<in> {x \<in> X. g x \<in> V}"
+  proof
+    assume hx: "x \<in> {x \<in> X. f x \<in> V}"
+    have hxX: "x \<in> X" and hfx: "f x \<in> V"
+      using hx by blast+
+    have hfg: "f x = g x"
+      using heq hxX by blast
+    have "g x = f x"
+      using hfg by simp
+    hence "g x \<in> V"
+      using hfx by simp
+    thus "x \<in> {x \<in> X. g x \<in> V}"
+      using hxX by blast
+  next
+    assume hx: "x \<in> {x \<in> X. g x \<in> V}"
+    have hxX: "x \<in> X" and hgx: "g x \<in> V"
+      using hx by blast+
+    have "f x = g x"
+      using heq hxX by blast
+    hence "f x \<in> V"
+      using hgx by simp
+    thus "x \<in> {x \<in> X. f x \<in> V}"
+      using hxX by blast
+  qed
+qed
+
+lemma top1_image_on_cong:
+  assumes heq: "\<forall>x\<in>X. f x = g x"
+  shows "f ` X = g ` X"
+proof (rule subset_antisym)
+  show "f ` X \<subseteq> g ` X"
+  proof (rule subsetI)
+    fix y assume hy: "y \<in> f ` X"
+    then obtain x where hxX: "x \<in> X" and hyx: "y = f x"
+      by blast
+    have "y = g x"
+      using heq hxX hyx by simp
+    thus "y \<in> g ` X"
+      using hxX by blast
+  qed
+  show "g ` X \<subseteq> f ` X"
+  proof (rule subsetI)
+    fix y assume hy: "y \<in> g ` X"
+    then obtain x where hxX: "x \<in> X" and hyx: "y = g x"
+      by blast
+    have "y = f x"
+      using heq hxX hyx by simp
+    thus "y \<in> f ` X"
+      using hxX by blast
+  qed
+qed
+
+lemma top1_continuous_map_on_cong:
+  assumes heq: "\<forall>x\<in>X. f x = g x"
+  shows "top1_continuous_map_on X TX Y TY f \<longleftrightarrow> top1_continuous_map_on X TX Y TY g"
+proof (rule iffI)
+  assume hf: "top1_continuous_map_on X TX Y TY f"
+  have hfmap: "\<forall>x\<in>X. f x \<in> Y"
+    using hf unfolding top1_continuous_map_on_def by blast
+  have hfpre: "\<forall>V\<in>TY. {x\<in>X. f x \<in> V} \<in> TX"
+    using hf unfolding top1_continuous_map_on_def by blast
+  show "top1_continuous_map_on X TX Y TY g"
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>x\<in>X. g x \<in> Y"
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      have hfg: "f x = g x"
+        using heq hxX by blast
+      have "g x = f x"
+        using hfg by simp
+      also have "... \<in> Y"
+        using hfmap hxX by blast
+      finally show "g x \<in> Y"
+        by simp
+    qed
+    show "\<forall>V\<in>TY. {x \<in> X. g x \<in> V} \<in> TX"
+	    proof (intro ballI)
+	      fix V assume hV: "V \<in> TY"
+	      have hEq: "{x\<in>X. f x \<in> V} = {x\<in>X. g x \<in> V}"
+	        by (rule top1_preimage_on_cong[OF heq])
+	      have "{x\<in>X. g x \<in> V} = {x\<in>X. f x \<in> V}"
+	        using hEq by simp
+	      thus "{x \<in> X. g x \<in> V} \<in> TX"
+	        using hfpre hV by simp
+	    qed
+	  qed
+next
+  assume hg: "top1_continuous_map_on X TX Y TY g"
+  have hgmap: "\<forall>x\<in>X. g x \<in> Y"
+    using hg unfolding top1_continuous_map_on_def by blast
+  have hgpre: "\<forall>V\<in>TY. {x\<in>X. g x \<in> V} \<in> TX"
+    using hg unfolding top1_continuous_map_on_def by blast
+  show "top1_continuous_map_on X TX Y TY f"
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>x\<in>X. f x \<in> Y"
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      have "f x = g x"
+        using heq hxX by blast
+      also have "... \<in> Y"
+        using hgmap hxX by blast
+      finally show "f x \<in> Y"
+        by simp
+    qed
+    show "\<forall>V\<in>TY. {x \<in> X. f x \<in> V} \<in> TX"
+    proof (intro ballI)
+      fix V assume hV: "V \<in> TY"
+      have "{x\<in>X. f x \<in> V} = {x\<in>X. g x \<in> V}"
+        by (rule top1_preimage_on_cong[OF heq])
+      thus "{x \<in> X. f x \<in> V} \<in> TX"
+        using hgpre hV by simp
+    qed
+  qed
+qed
+
+lemma top1_quotient_map_on_cong:
+  assumes heq: "\<forall>x\<in>X. f x = g x"
+  shows "top1_quotient_map_on X TX Y TY f \<longleftrightarrow> top1_quotient_map_on X TX Y TY g"
+proof (rule iffI)
+  assume hf: "top1_quotient_map_on X TX Y TY f"
+  have hTopX: "is_topology_on X TX"
+    using hf unfolding top1_quotient_map_on_def by blast
+  have hTopY: "is_topology_on Y TY"
+    using hf unfolding top1_quotient_map_on_def by blast
+  have hcontf: "top1_continuous_map_on X TX Y TY f"
+    using hf unfolding top1_quotient_map_on_def by blast
+  have hsurjf: "f ` X = Y"
+    using hf unfolding top1_quotient_map_on_def by blast
+  have hQf: "\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. f x \<in> V} \<in> TX \<longrightarrow> V \<in> TY)"
+    using hf unfolding top1_quotient_map_on_def by blast
+
+  have hsurjg: "g ` X = Y"
+    using top1_image_on_cong[OF heq] hsurjf by simp
+  have hcontg: "top1_continuous_map_on X TX Y TY g"
+    using top1_continuous_map_on_cong[OF heq] hcontf by blast
+  have hQg: "\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. g x \<in> V} \<in> TX \<longrightarrow> V \<in> TY)"
+  proof (intro allI impI)
+    fix V assume hV: "V \<subseteq> Y"
+    assume hpre: "{x\<in>X. g x \<in> V} \<in> TX"
+    have hpre': "{x\<in>X. f x \<in> V} \<in> TX"
+    proof -
+      have "{x\<in>X. f x \<in> V} = {x\<in>X. g x \<in> V}"
+        by (rule top1_preimage_on_cong[OF heq])
+      thus ?thesis
+        using hpre by simp
+    qed
+    show "V \<in> TY"
+      using hQf hV hpre' by blast
+  qed
+
+  show "top1_quotient_map_on X TX Y TY g"
+    unfolding top1_quotient_map_on_def
+    apply (intro conjI)
+        apply (rule hTopX)
+       apply (rule hTopY)
+      apply (rule hcontg)
+     apply (rule hsurjg)
+    apply (rule hQg)
+    done
+next
+  assume hg: "top1_quotient_map_on X TX Y TY g"
+  have hTopX: "is_topology_on X TX"
+    using hg unfolding top1_quotient_map_on_def by blast
+  have hTopY: "is_topology_on Y TY"
+    using hg unfolding top1_quotient_map_on_def by blast
+  have hcontg: "top1_continuous_map_on X TX Y TY g"
+    using hg unfolding top1_quotient_map_on_def by blast
+  have hsurjg: "g ` X = Y"
+    using hg unfolding top1_quotient_map_on_def by blast
+  have hQg: "\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. g x \<in> V} \<in> TX \<longrightarrow> V \<in> TY)"
+    using hg unfolding top1_quotient_map_on_def by blast
+
+  have hsurjf: "f ` X = Y"
+    using top1_image_on_cong[OF heq] hsurjg by simp
+  have hcontf: "top1_continuous_map_on X TX Y TY f"
+    using top1_continuous_map_on_cong[OF heq] hcontg by blast
+  have hQf: "\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. f x \<in> V} \<in> TX \<longrightarrow> V \<in> TY)"
+  proof (intro allI impI)
+    fix V assume hV: "V \<subseteq> Y"
+    assume hpre: "{x\<in>X. f x \<in> V} \<in> TX"
+    have hpre': "{x\<in>X. g x \<in> V} \<in> TX"
+    proof -
+      have hEq: "{x\<in>X. f x \<in> V} = {x\<in>X. g x \<in> V}"
+        by (rule top1_preimage_on_cong[OF heq])
+      have "{x\<in>X. g x \<in> V} = {x\<in>X. f x \<in> V}"
+        using hEq by simp
+      thus ?thesis
+        using hpre by simp
+    qed
+    show "V \<in> TY"
+      using hQg hV hpre' by blast
+  qed
+
+  show "top1_quotient_map_on X TX Y TY f"
+    unfolding top1_quotient_map_on_def
+    apply (intro conjI)
+        apply (rule hTopX)
+       apply (rule hTopY)
+      apply (rule hcontf)
+     apply (rule hsurjf)
+    apply (rule hQf)
+    done
+qed
+
+(** Composite of quotient maps is a quotient map [top1.tex:2428–2432]. **)
+lemma top1_quotient_map_on_comp:
+  assumes hp: "top1_quotient_map_on X TX Y TY p"
+  assumes hq: "top1_quotient_map_on Y TY Z TZ q"
+  shows "top1_quotient_map_on X TX Z TZ (q \<circ> p)"
+proof -
+  have hTopX: "is_topology_on X TX"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hTopY: "is_topology_on Y TY"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hTopZ: "is_topology_on Z TZ"
+    using hq unfolding top1_quotient_map_on_def by blast
+  have hcontp: "top1_continuous_map_on X TX Y TY p"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hcontq: "top1_continuous_map_on Y TY Z TZ q"
+    using hq unfolding top1_quotient_map_on_def by blast
+  have hsurjp: "p ` X = Y"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hsurjq: "q ` Y = Z"
+    using hq unfolding top1_quotient_map_on_def by blast
+  have hQp: "\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. p x \<in> V} \<in> TX \<longrightarrow> V \<in> TY)"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hQq: "\<forall>V. V \<subseteq> Z \<longrightarrow> ({y\<in>Y. q y \<in> V} \<in> TY \<longrightarrow> V \<in> TZ)"
+    using hq unfolding top1_quotient_map_on_def by blast
+
+  have hpmap: "\<forall>x\<in>X. p x \<in> Y"
+    using hcontp unfolding top1_continuous_map_on_def by blast
+  have hqmap: "\<forall>y\<in>Y. q y \<in> Z"
+    using hcontq unfolding top1_continuous_map_on_def by blast
+  have hpreq_cont: "\<forall>V\<in>TZ. {y\<in>Y. q y \<in> V} \<in> TY"
+    using hcontq unfolding top1_continuous_map_on_def by blast
+  have hprep_cont: "\<forall>W\<in>TY. {x\<in>X. p x \<in> W} \<in> TX"
+    using hcontp unfolding top1_continuous_map_on_def by blast
+
+  have hcontqp: "top1_continuous_map_on X TX Z TZ (q \<circ> p)"
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>x\<in>X. (q \<circ> p) x \<in> Z"
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      have "p x \<in> Y"
+        using hpmap hxX by blast
+      hence "q (p x) \<in> Z"
+        using hqmap by blast
+      thus "(q \<circ> p) x \<in> Z"
+        by simp
+    qed
+    show "\<forall>V\<in>TZ. {x \<in> X. (q \<circ> p) x \<in> V} \<in> TX"
+    proof (intro ballI)
+      fix V assume hV: "V \<in> TZ"
+      have hpreY: "{y\<in>Y. q y \<in> V} \<in> TY"
+        using hpreq_cont hV by blast
+      have hpreX: "{x\<in>X. p x \<in> {y\<in>Y. q y \<in> V}} \<in> TX"
+        using hprep_cont hpreY by blast
+      have hEq: "{x\<in>X. (q \<circ> p) x \<in> V} = {x\<in>X. p x \<in> {y\<in>Y. q y \<in> V}}"
+      proof (rule set_eqI)
+        fix x
+        show "x \<in> {x \<in> X. (q \<circ> p) x \<in> V} \<longleftrightarrow> x \<in> {x \<in> X. p x \<in> {y \<in> Y. q y \<in> V}}"
+        proof
+          assume hx: "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+          have hxX: "x \<in> X" and hqpx: "q (p x) \<in> V"
+            using hx by simp_all
+          have hpxY: "p x \<in> Y"
+            using hpmap hxX by blast
+          have "p x \<in> {y \<in> Y. q y \<in> V}"
+            using hpxY hqpx by blast
+          thus "x \<in> {x \<in> X. p x \<in> {y \<in> Y. q y \<in> V}}"
+            using hxX by simp
+        next
+          assume hx: "x \<in> {x \<in> X. p x \<in> {y \<in> Y. q y \<in> V}}"
+          have hxX: "x \<in> X" and hpx: "p x \<in> {y \<in> Y. q y \<in> V}"
+            using hx by simp_all
+          have "q (p x) \<in> V"
+            using hpx by blast
+          thus "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+            using hxX by simp
+        qed
+      qed
+      show "{x \<in> X. (q \<circ> p) x \<in> V} \<in> TX"
+        by (subst hEq) (rule hpreX)
+    qed
+  qed
+
+  have hsurjqp: "(q \<circ> p) ` X = Z"
+  proof -
+    have "(q \<circ> p) ` X = q ` (p ` X)"
+      by (simp add: image_image)
+    also have "... = q ` Y"
+      using hsurjp by simp
+    also have "... = Z"
+      using hsurjq by simp
+    finally show ?thesis .
+  qed
+
+  have hQqp: "\<forall>V. V \<subseteq> Z \<longrightarrow> ({x\<in>X. (q \<circ> p) x \<in> V} \<in> TX \<longrightarrow> V \<in> TZ)"
+  proof (intro allI impI)
+    fix V assume hVsub: "V \<subseteq> Z"
+    assume hpre: "{x\<in>X. (q \<circ> p) x \<in> V} \<in> TX"
+    define W where "W = {y\<in>Y. q y \<in> V}"
+    have hWsub: "W \<subseteq> Y"
+      unfolding W_def by blast
+	    have hpreW: "{x\<in>X. p x \<in> W} \<in> TX"
+		    proof -
+		      have hEq: "{x\<in>X. p x \<in> W} = {x\<in>X. (q \<circ> p) x \<in> V}"
+		      proof (rule set_eqI)
+		        fix x
+		        show "x \<in> {x \<in> X. p x \<in> W} \<longleftrightarrow> x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+		        proof
+		          assume hx: "x \<in> {x \<in> X. p x \<in> W}"
+		          have hxX: "x \<in> X" and hpx: "p x \<in> W"
+		            using hx by simp_all
+		          have hpxY: "p x \<in> Y"
+		            using hpmap hxX by blast
+		          have hqpx: "q (p x) \<in> V"
+		            using hpx unfolding W_def by blast
+		          show "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+		            using hxX hqpx by simp
+		        next
+		          assume hx: "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+		          have hxX: "x \<in> X" and hqpx: "q (p x) \<in> V"
+		            using hx by simp_all
+		          have hpxY: "p x \<in> Y"
+		            using hpmap hxX by blast
+		          have "p x \<in> W"
+		            unfolding W_def using hpxY hqpx by blast
+		          thus "x \<in> {x \<in> X. p x \<in> W}"
+		            using hxX by simp
+		        qed
+		      qed
+		      show ?thesis
+		        by (subst hEq) (rule hpre)
+		    qed
+    have hWopen: "W \<in> TY"
+      using hQp hWsub hpreW by blast
+    show "V \<in> TZ"
+      using hQq hVsub hWopen unfolding W_def by blast
+  qed
+
+  show ?thesis
+    unfolding top1_quotient_map_on_def
+    apply (intro conjI)
+        apply (rule hTopX)
+       apply (rule hTopZ)
+      apply (rule hcontqp)
+     apply (rule hsurjqp)
+    apply (rule hQqp)
+    done
+qed
+
 theorem Theorem_22_2:
   assumes hp: "top1_quotient_map_on X TX Y TY p"
   assumes hgmap: "\<forall>x\<in>X. g x \<in> Z"
@@ -11198,7 +11560,292 @@ theorem Theorem_22_2:
     \<and> (\<forall>x\<in>X. f (p x) = g x)
     \<and> (top1_continuous_map_on Y TY Z TZ f \<longleftrightarrow> top1_continuous_map_on X TX Z TZ g)
     \<and> (top1_quotient_map_on Y TY Z TZ f \<longleftrightarrow> top1_quotient_map_on X TX Z TZ g)"
-  sorry
+proof -
+  have hcontp: "top1_continuous_map_on X TX Y TY p"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hsurj: "p ` X = Y"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hQp: "\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. p x \<in> V} \<in> TX \<longrightarrow> V \<in> TY)"
+    using hp unfolding top1_quotient_map_on_def by blast
+  have hpmap: "\<forall>x\<in>X. p x \<in> Y"
+    using hcontp unfolding top1_continuous_map_on_def by blast
+  have hprep_cont: "\<forall>W\<in>TY. {x\<in>X. p x \<in> W} \<in> TX"
+    using hcontp unfolding top1_continuous_map_on_def by blast
+
+  define f where "f y = g (SOME x. x \<in> X \<and> p x = y)" for y
+
+  have hf_map: "\<forall>y\<in>Y. f y \<in> Z"
+  proof (intro ballI)
+    fix y assume hyY: "y \<in> Y"
+    have "y \<in> p ` X"
+      using hsurj hyY by simp
+    then obtain x where hxX: "x \<in> X" and hpx: "p x = y"
+      by blast
+    have hex: "\<exists>x. x \<in> X \<and> p x = y"
+      using hxX hpx by blast
+    have hsome: "(SOME x. x \<in> X \<and> p x = y) \<in> X"
+      using someI_ex[OF hex] by blast
+    have "g (SOME x. x \<in> X \<and> p x = y) \<in> Z"
+      using hgmap hsome by blast
+    thus "f y \<in> Z"
+      unfolding f_def by simp
+  qed
+
+  have hf_factor: "\<forall>x\<in>X. f (p x) = g x"
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    have hex: "\<exists>u. u \<in> X \<and> p u = p x"
+      using hxX by blast
+    have hsome: "(SOME u. u \<in> X \<and> p u = p x) \<in> X \<and> p (SOME u. u \<in> X \<and> p u = p x) = p x"
+      using someI_ex[OF hex] by blast
+    have huX: "(SOME u. u \<in> X \<and> p u = p x) \<in> X"
+      using hsome by blast
+    have hpeq: "p (SOME u. u \<in> X \<and> p u = p x) = p x"
+      using hsome by blast
+    have "g (SOME u. u \<in> X \<and> p u = p x) = g x"
+      using hconst huX hxX hpeq by blast
+    thus "f (p x) = g x"
+      unfolding f_def by simp
+  qed
+
+  have hcont_equiv: "top1_continuous_map_on Y TY Z TZ f \<longleftrightarrow> top1_continuous_map_on X TX Z TZ g"
+  proof (rule iffI)
+    assume hfcont: "top1_continuous_map_on Y TY Z TZ f"
+    have hfpre: "\<forall>V\<in>TZ. {y\<in>Y. f y \<in> V} \<in> TY"
+      using hfcont unfolding top1_continuous_map_on_def by blast
+    show "top1_continuous_map_on X TX Z TZ g"
+      unfolding top1_continuous_map_on_def
+    proof (intro conjI)
+      show "\<forall>x\<in>X. g x \<in> Z"
+        by (rule hgmap)
+      show "\<forall>V\<in>TZ. {x \<in> X. g x \<in> V} \<in> TX"
+      proof (intro ballI)
+        fix V assume hV: "V \<in> TZ"
+        have hW: "{y\<in>Y. f y \<in> V} \<in> TY"
+          using hfpre hV by blast
+        have hpreX: "{x\<in>X. p x \<in> {y\<in>Y. f y \<in> V}} \<in> TX"
+          using hprep_cont hW by blast
+        have hEq: "{x\<in>X. g x \<in> V} = {x\<in>X. p x \<in> {y\<in>Y. f y \<in> V}}"
+        proof (rule set_eqI)
+          fix x
+          show "x \<in> {x \<in> X. g x \<in> V} \<longleftrightarrow> x \<in> {x \<in> X. p x \<in> {y \<in> Y. f y \<in> V}}"
+          proof
+            assume hx: "x \<in> {x \<in> X. g x \<in> V}"
+            have hxX: "x \<in> X" and hgx: "g x \<in> V"
+              using hx by blast+
+            have "f (p x) = g x"
+              using hf_factor hxX by blast
+            hence "f (p x) \<in> V"
+              using hgx by simp
+            have "p x \<in> {y\<in>Y. f y \<in> V}"
+              using hpmap hxX \<open>f (p x) \<in> V\<close> by blast
+            thus "x \<in> {x \<in> X. p x \<in> {y\<in>Y. f y \<in> V}}"
+              using hxX by blast
+          next
+            assume hx: "x \<in> {x \<in> X. p x \<in> {y\<in>Y. f y \<in> V}}"
+            have hxX: "x \<in> X" and hpx: "p x \<in> {y\<in>Y. f y \<in> V}"
+              using hx by blast+
+            have "f (p x) \<in> V"
+              using hpx by blast
+            have hfg: "f (p x) = g x"
+              using hf_factor hxX by blast
+            have "g x = f (p x)"
+              using hfg by simp
+            hence "g x \<in> V"
+              using \<open>f (p x) \<in> V\<close> by simp
+            thus "x \<in> {x \<in> X. g x \<in> V}"
+              using hxX by blast
+          qed
+        qed
+        show "{x \<in> X. g x \<in> V} \<in> TX"
+          by (subst hEq) (rule hpreX)
+      qed
+    qed
+  next
+    assume hgcont: "top1_continuous_map_on X TX Z TZ g"
+    have hgpre: "\<forall>V\<in>TZ. {x\<in>X. g x \<in> V} \<in> TX"
+      using hgcont unfolding top1_continuous_map_on_def by blast
+    show "top1_continuous_map_on Y TY Z TZ f"
+      unfolding top1_continuous_map_on_def
+    proof (intro conjI)
+      show "\<forall>y\<in>Y. f y \<in> Z"
+        by (rule hf_map)
+      show "\<forall>V\<in>TZ. {y \<in> Y. f y \<in> V} \<in> TY"
+      proof (intro ballI)
+        fix V assume hV: "V \<in> TZ"
+        have hpreX: "{x\<in>X. g x \<in> V} \<in> TX"
+          using hgpre hV by blast
+        have hWsub: "{y\<in>Y. f y \<in> V} \<subseteq> Y"
+          by blast
+        have hpreW: "{x\<in>X. p x \<in> {y\<in>Y. f y \<in> V}} \<in> TX"
+        proof -
+          have hEq: "{x\<in>X. p x \<in> {y\<in>Y. f y \<in> V}} = {x\<in>X. g x \<in> V}"
+          proof (rule set_eqI)
+            fix x
+            show "x \<in> {x \<in> X. p x \<in> {y \<in> Y. f y \<in> V}} \<longleftrightarrow> x \<in> {x \<in> X. g x \<in> V}"
+            proof
+              assume hx: "x \<in> {x \<in> X. p x \<in> {y \<in> Y. f y \<in> V}}"
+              have hxX: "x \<in> X" and hpx: "p x \<in> {y \<in> Y. f y \<in> V}"
+                using hx by blast+
+	            have "f (p x) \<in> V"
+	              using hpx by blast
+	            have hfg: "f (p x) = g x"
+	              using hf_factor hxX by blast
+	            have "g x = f (p x)"
+	              using hfg by simp
+	            hence "g x \<in> V"
+	              using \<open>f (p x) \<in> V\<close> by simp
+	            thus "x \<in> {x \<in> X. g x \<in> V}"
+	              using hxX by blast
+            next
+              assume hx: "x \<in> {x \<in> X. g x \<in> V}"
+              have hxX: "x \<in> X" and hgx: "g x \<in> V"
+                using hx by blast+
+              have "f (p x) = g x"
+                using hf_factor hxX by blast
+              hence "f (p x) \<in> V"
+                using hgx by simp
+              have "p x \<in> {y\<in>Y. f y \<in> V}"
+                using hpmap hxX \<open>f (p x) \<in> V\<close> by blast
+              thus "x \<in> {x \<in> X. p x \<in> {y \<in> Y. f y \<in> V}}"
+                using hxX by blast
+            qed
+          qed
+          show ?thesis
+            by (subst hEq) (rule hpreX)
+        qed
+        show "{y \<in> Y. f y \<in> V} \<in> TY"
+          using hQp hWsub hpreW by blast
+      qed
+    qed
+  qed
+
+  have hquot_equiv: "top1_quotient_map_on Y TY Z TZ f \<longleftrightarrow> top1_quotient_map_on X TX Z TZ g"
+  proof (rule iffI)
+    assume hfq: "top1_quotient_map_on Y TY Z TZ f"
+    have hcomp: "top1_quotient_map_on X TX Z TZ (f \<circ> p)"
+      by (rule top1_quotient_map_on_comp[OF hp hfq])
+    have heq: "\<forall>x\<in>X. (f \<circ> p) x = g x"
+      using hf_factor by simp
+    show "top1_quotient_map_on X TX Z TZ g"
+      using top1_quotient_map_on_cong[OF heq] hcomp by blast
+  next
+    assume hgq: "top1_quotient_map_on X TX Z TZ g"
+    have hTopY: "is_topology_on Y TY"
+      using hp unfolding top1_quotient_map_on_def by blast
+    have hTopZ: "is_topology_on Z TZ"
+      using hgq unfolding top1_quotient_map_on_def by blast
+    have hgcont: "top1_continuous_map_on X TX Z TZ g"
+      using hgq unfolding top1_quotient_map_on_def by blast
+    have hfcont: "top1_continuous_map_on Y TY Z TZ f"
+      using hcont_equiv hgcont by blast
+    have hsurjg: "g ` X = Z"
+      using hgq unfolding top1_quotient_map_on_def by blast
+    have hsurjf: "f ` Y = Z"
+    proof (rule subset_antisym)
+      show "f ` Y \<subseteq> Z"
+      proof (rule subsetI)
+        fix z assume hz: "z \<in> f ` Y"
+        then obtain y where hyY: "y \<in> Y" and hzy: "z = f y"
+          by blast
+        have "f y \<in> Z"
+          using hf_map hyY by blast
+        thus "z \<in> Z"
+          using hzy by simp
+      qed
+      show "Z \<subseteq> f ` Y"
+      proof (rule subsetI)
+        fix z assume hzZ: "z \<in> Z"
+        have "z \<in> g ` X"
+          using hsurjg hzZ by simp
+        then obtain x where hxX: "x \<in> X" and hzx: "z = g x"
+          by blast
+	        have "p x \<in> Y"
+	          using hpmap hxX by blast
+	        moreover have "f (p x) = g x"
+	          using hf_factor hxX by blast
+	        ultimately show "z \<in> f ` Y"
+	        proof -
+	          have "z = f (p x)"
+	            using hzx \<open>f (p x) = g x\<close> by simp
+	          thus ?thesis
+	            using \<open>p x \<in> Y\<close> by blast
+	        qed
+	      qed
+    qed
+    have hQg: "\<forall>V. V \<subseteq> Z \<longrightarrow> ({x\<in>X. g x \<in> V} \<in> TX \<longrightarrow> V \<in> TZ)"
+      using hgq unfolding top1_quotient_map_on_def by blast
+
+    have hQf: "\<forall>V. V \<subseteq> Z \<longrightarrow> ({y\<in>Y. f y \<in> V} \<in> TY \<longrightarrow> V \<in> TZ)"
+    proof (intro allI impI)
+      fix V assume hVsub: "V \<subseteq> Z"
+      assume hpreY: "{y\<in>Y. f y \<in> V} \<in> TY"
+      have hpreX: "{x\<in>X. p x \<in> {y\<in>Y. f y \<in> V}} \<in> TX"
+        using hprep_cont hpreY by blast
+      have hEq: "{x\<in>X. p x \<in> {y\<in>Y. f y \<in> V}} = {x\<in>X. g x \<in> V}"
+      proof (rule set_eqI)
+        fix x
+        show "x \<in> {x \<in> X. p x \<in> {y \<in> Y. f y \<in> V}} \<longleftrightarrow> x \<in> {x \<in> X. g x \<in> V}"
+        proof
+          assume hx: "x \<in> {x \<in> X. p x \<in> {y \<in> Y. f y \<in> V}}"
+          have hxX: "x \<in> X" and hpx: "p x \<in> {y \<in> Y. f y \<in> V}"
+            using hx by blast+
+	          have "f (p x) \<in> V"
+	            using hpx by blast
+	          have hfg: "f (p x) = g x"
+	            using hf_factor hxX by blast
+	          have "g x = f (p x)"
+	            using hfg by simp
+	          hence "g x \<in> V"
+	            using \<open>f (p x) \<in> V\<close> by simp
+	          thus "x \<in> {x \<in> X. g x \<in> V}"
+	            using hxX by blast
+        next
+          assume hx: "x \<in> {x \<in> X. g x \<in> V}"
+          have hxX: "x \<in> X" and hgx: "g x \<in> V"
+            using hx by blast+
+          have "f (p x) = g x"
+            using hf_factor hxX by blast
+          hence "f (p x) \<in> V"
+            using hgx by simp
+          have "p x \<in> {y\<in>Y. f y \<in> V}"
+            using hpmap hxX \<open>f (p x) \<in> V\<close> by blast
+          thus "x \<in> {x \<in> X. p x \<in> {y \<in> Y. f y \<in> V}}"
+            using hxX by blast
+        qed
+	      qed
+	      have hEq': "{x\<in>X. g x \<in> V} = {x\<in>X. p x \<in> {y\<in>Y. f y \<in> V}}"
+	        using hEq by simp
+	      have "{x\<in>X. g x \<in> V} \<in> TX"
+	        by (subst hEq') (rule hpreX)
+	      show "V \<in> TZ"
+	        using hQg hVsub \<open>{x\<in>X. g x \<in> V} \<in> TX\<close> by blast
+	    qed
+
+    show "top1_quotient_map_on Y TY Z TZ f"
+      unfolding top1_quotient_map_on_def
+      apply (intro conjI)
+          apply (rule hTopY)
+         apply (rule hTopZ)
+        apply (rule hfcont)
+       apply (rule hsurjf)
+      apply (rule hQf)
+      done
+  qed
+
+  show "\<exists>f.
+    (\<forall>y\<in>Y. f y \<in> Z)
+    \<and> (\<forall>x\<in>X. f (p x) = g x)
+    \<and> (top1_continuous_map_on Y TY Z TZ f \<longleftrightarrow> top1_continuous_map_on X TX Z TZ g)
+    \<and> (top1_quotient_map_on Y TY Z TZ f \<longleftrightarrow> top1_quotient_map_on X TX Z TZ g)"
+    apply (rule exI[where x=f])
+    apply (intro conjI)
+       apply (rule hf_map)
+      apply (rule hf_factor)
+     apply (rule hcont_equiv)
+    apply (rule hquot_equiv)
+    done
+qed
 
 section \<open>\<S>23 Connected Spaces\<close>
 
