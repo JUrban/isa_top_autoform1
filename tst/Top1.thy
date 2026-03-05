@@ -13187,22 +13187,33 @@ qed
 	            using cont_pair hx0 by blast
 		          have hpre: "{y \<in> Y. (\<lambda>y. (x0, y)) y \<in> U} \<in> TY"
 		            using hcont hUopen unfolding top1_continuous_map_on_def by blast
-		          have hpre': "{y \<in> Y. (x0, y) \<in> U} \<in> TY"
-		            using hpre by simp
-		          show "UX x0 \<in> TY"
-			          sorry
-		        qed
-		        have hVX_open: "\<forall>x0\<in>X. VX x0 \<in> TY"
-		        proof (intro ballI)
-		          fix x0 assume hx0: "x0 \<in> X"
+			          have hpre': "{y \<in> Y. (x0, y) \<in> U} \<in> TY"
+			            using hpre by simp
+			          show "UX x0 \<in> TY"
+			          proof -
+			            have hEq: "UX x0 = {y \<in> Y. (x0, y) \<in> U}"
+			              unfolding UX_def by simp
+			            show ?thesis
+			              by (subst hEq) (rule hpre')
+			          qed
+			        qed
+			        have hVX_open: "\<forall>x0\<in>X. VX x0 \<in> TY"
+			        proof (intro ballI)
+			          fix x0 assume hx0: "x0 \<in> X"
 		          have hcont: "top1_continuous_map_on Y TY (X \<times> Y) (product_topology_on TX TY) (\<lambda>y. (x0, y))"
 		            using cont_pair hx0 by blast
 		          have hpre: "{y \<in> Y. (\<lambda>y. (x0, y)) y \<in> V} \<in> TY"
 		            using hcont hVopen unfolding top1_continuous_map_on_def by blast
-		          have hpre': "{y \<in> Y. (x0, y) \<in> V} \<in> TY"
-		            using hpre by simp
-			          sorry
-		        qed
+			          have hpre': "{y \<in> Y. (x0, y) \<in> V} \<in> TY"
+			            using hpre by simp
+			          show "VX x0 \<in> TY"
+			          proof -
+			            have hEq: "VX x0 = {y \<in> Y. (x0, y) \<in> V}"
+			              unfolding VX_def by simp
+			            show ?thesis
+			              by (subst hEq) (rule hpre')
+			          qed
+			        qed
 
         have hUV_sections:
           "\<forall>x0\<in>X. (UX x0 \<inter> VX x0 = {}) \<and> (UX x0 \<union> VX x0 = Y)"
