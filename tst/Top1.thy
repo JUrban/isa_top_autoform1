@@ -10510,7 +10510,93 @@ qed
 
 section \<open>\<S>22 The Quotient Topology\<close>
 
-text \<open>Placeholder: quotient topology results from \<open>top1.tex\<close>, \<S>22.\<close>
+text \<open>
+  Section \<S>22 of \<open>top1.tex\<close> introduces the quotient topology and its universal property.
+  We formalize quotient maps in a way compatible with the set-based topological framework used
+  throughout this theory.
+\<close>
+
+(** from \S22 Definition (Quotient map) [top1.tex:~2320] **)
+definition top1_quotient_map_on ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool" where
+  "top1_quotient_map_on X TX Y TY p \<longleftrightarrow>
+     is_topology_on X TX \<and>
+     is_topology_on Y TY \<and>
+     top1_continuous_map_on X TX Y TY p \<and>
+     (p ` X = Y) \<and>
+     (\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. p x \<in> V} \<in> TX \<longrightarrow> V \<in> TY))"
+
+(** from \S22 Definition (Saturated set w.r.t. a map) [top1.tex:~2380] **)
+definition top1_saturated_with_respect_to_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a set \<Rightarrow> bool" where
+  "top1_saturated_with_respect_to_on X p A \<longleftrightarrow>
+     A \<subseteq> X \<and> (\<forall>x\<in>A. \<forall>y\<in>X. p y = p x \<longrightarrow> y \<in> A)"
+
+lemma top1_quotient_map_open_iff_preimage_open:
+  assumes hp: "top1_quotient_map_on X TX Y TY p"
+  assumes hV: "V \<subseteq> Y"
+  shows "V \<in> TY \<longleftrightarrow> {x\<in>X. p x \<in> V} \<in> TX"
+proof (rule iffI)
+  assume hVT: "V \<in> TY"
+  have hcont: "top1_continuous_map_on X TX Y TY p"
+    using hp unfolding top1_quotient_map_on_def by blast
+  show "{x\<in>X. p x \<in> V} \<in> TX"
+    using hcont hVT unfolding top1_continuous_map_on_def by blast
+next
+  assume hpre: "{x\<in>X. p x \<in> V} \<in> TX"
+  have hQ: "\<forall>W. W \<subseteq> Y \<longrightarrow> ({x\<in>X. p x \<in> W} \<in> TX \<longrightarrow> W \<in> TY)"
+    using hp unfolding top1_quotient_map_on_def by blast
+  show "V \<in> TY"
+    using hQ hV hpre by blast
+qed
+
+lemma top1_saturated_preimage_image_eq:
+  assumes hsat: "top1_saturated_with_respect_to_on X p A"
+  shows "{x\<in>X. p x \<in> p ` A} = A"
+proof (rule equalityI)
+  have hAX: "A \<subseteq> X"
+    using hsat unfolding top1_saturated_with_respect_to_on_def by blast
+  show "{x \<in> X. p x \<in> p ` A} \<subseteq> A"
+  proof (rule subsetI)
+    fix x assume hx: "x \<in> {x \<in> X. p x \<in> p ` A}"
+    have hxX: "x \<in> X" and hpx: "p x \<in> p ` A"
+      using hx by simp_all
+    obtain a where haA: "a \<in> A" and hpa: "p x = p a"
+      using hpx by blast
+    have hprop: "\<forall>x\<in>A. \<forall>y\<in>X. p y = p x \<longrightarrow> y \<in> A"
+      using hsat unfolding top1_saturated_with_respect_to_on_def by blast
+    show "x \<in> A"
+      using hprop haA hxX hpa by blast
+  qed
+  show "A \<subseteq> {x \<in> X. p x \<in> p ` A}"
+  proof (rule subsetI)
+    fix a assume haA: "a \<in> A"
+    have haX: "a \<in> X"
+      using hAX haA by blast
+    have "p a \<in> p ` A"
+      using haA by blast
+    show "a \<in> {x \<in> X. p x \<in> p ` A}"
+      using haX \<open>p a \<in> p ` A\<close> by simp
+  qed
+qed
+
+(** from \S22 Theorem 22.1 (Restriction to saturated subspace) [top1.tex:2395] **)
+theorem Theorem_22_1:
+  assumes hp: "top1_quotient_map_on X TX Y TY p"
+  assumes hsat: "top1_saturated_with_respect_to_on X p A"
+  shows "top1_quotient_map_on A (subspace_topology X TX A) (p ` A) (subspace_topology Y TY (p ` A)) p"
+  sorry
+
+(** from \S22 Theorem 22.2 (Universal property of quotient maps) [top1.tex:2441] **)
+theorem Theorem_22_2:
+  assumes hp: "top1_quotient_map_on X TX Y TY p"
+  assumes hgmap: "\<forall>x\<in>X. g x \<in> Z"
+  assumes hconst: "\<forall>x\<in>X. \<forall>y\<in>X. p x = p y \<longrightarrow> g x = g y"
+  shows "\<exists>f.
+    (\<forall>y\<in>Y. f y \<in> Z)
+    \<and> (\<forall>x\<in>X. f (p x) = g x)
+    \<and> (top1_continuous_map_on Y TY Z TZ f \<longleftrightarrow> top1_continuous_map_on X TX Z TZ g)
+    \<and> (top1_quotient_map_on Y TY Z TZ f \<longleftrightarrow> top1_quotient_map_on X TX Z TZ g)"
+  sorry
 
 section \<open>\<S>23 Connected Spaces\<close>
 
