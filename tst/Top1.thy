@@ -14437,6 +14437,569 @@ definition top1_locally_path_connected_on :: "'a set \<Rightarrow> 'a set set \<
   "top1_locally_path_connected_on X TX \<longleftrightarrow>
      is_topology_on X TX \<and> (\<forall>x\<in>X. top1_locally_path_connected_at X TX x)"
 
+(** The unit interval topology is a topology (as a subspace of \<real>). **)
+lemma top1_unit_interval_topology_is_topology_on:
+  "is_topology_on top1_unit_interval top1_unit_interval_topology"
+proof -
+  have hTop: "is_topology_on (UNIV::real set) top1_open_sets"
+    by (rule top1_open_sets_is_topology_on_UNIV)
+  have hsub: "top1_unit_interval \<subseteq> (UNIV::real set)"
+    by simp
+  show ?thesis
+    unfolding top1_unit_interval_topology_def
+    by (rule subspace_topology_is_topology_on[OF hTop hsub])
+qed
+
+(** Continuity transfer for real functions between subspace topologies induced by \<open>top1_open_sets\<close>. **)
+lemma top1_continuous_map_on_real_subspace_open_sets:
+  fixes S T :: "real set"
+  assumes hmap: "\<And>x. x \<in> S \<Longrightarrow> f x \<in> T"
+  assumes hcont: "continuous_on UNIV f"
+  shows
+    "top1_continuous_map_on S (subspace_topology (UNIV::real set) top1_open_sets S)
+                           T (subspace_topology (UNIV::real set) top1_open_sets T) f"
+proof -
+  have hfT: "\<forall>x\<in>S. f x \<in> T"
+    by (intro ballI, rule hmap)
+  show ?thesis
+    unfolding top1_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>x\<in>S. f x \<in> T"
+      using hfT .
+    show "\<forall>V\<in>subspace_topology UNIV top1_open_sets T. {x \<in> S. f x \<in> V} \<in> subspace_topology UNIV top1_open_sets S"
+    proof (intro ballI)
+      fix V
+      assume hV: "V \<in> subspace_topology UNIV top1_open_sets T"
+      obtain U where hU: "U \<in> top1_open_sets" and hVeq: "V = T \<inter> U"
+        using hV unfolding subspace_topology_def by blast
+      have hopenU: "open U"
+        using hU unfolding top1_open_sets_def by simp
+      have hopen_pre: "open (f -` U)"
+        by (rule open_vimage[OF hopenU hcont])
+      have hpre_mem: "f -` U \<in> top1_open_sets"
+        unfolding top1_open_sets_def using hopen_pre by simp
+      have hEq: "{x \<in> S. f x \<in> V} = S \<inter> (f -` U)"
+      proof (rule set_eqI)
+        fix x
+        show "x \<in> {x \<in> S. f x \<in> V} \<longleftrightarrow> x \<in> S \<inter> (f -` U)"
+          unfolding hVeq using hfT by blast
+      qed
+      show "{x \<in> S. f x \<in> V} \<in> subspace_topology UNIV top1_open_sets S"
+        unfolding subspace_topology_def
+        apply (rule CollectI)
+        apply (rule exI[where x="f -` U"])
+        apply (intro conjI)
+         apply (simp add: hEq Int_commute Int_left_commute Int_assoc)
+        apply (rule hpre_mem)
+        done
+    qed
+  qed
+qed
+
+(** Paths can always be traversed in the reverse direction. **)
+lemma top1_is_path_on_reverse:
+  assumes hTX: "is_topology_on X TX"
+  assumes hf: "top1_is_path_on X TX x y f"
+  shows "top1_is_path_on X TX y x (\<lambda>t. f (1 - t))"
+proof -
+  have hI: "is_topology_on top1_unit_interval top1_unit_interval_topology"
+    by (rule top1_unit_interval_topology_is_topology_on)
+  have contf: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+    using hf unfolding top1_is_path_on_def by blast
+  have hf0: "f 0 = x" and hf1: "f 1 = y"
+    using hf unfolding top1_is_path_on_def by blast+
+
+  have hmap_r: "\<And>t. t \<in> top1_unit_interval \<Longrightarrow> (1 - t) \<in> top1_unit_interval"
+  proof -
+    fix t
+    assume ht: "t \<in> top1_unit_interval"
+    have h0: "0 \<le> t" and h1: "t \<le> 1"
+      using ht unfolding top1_unit_interval_def by simp+
+    have "0 \<le> 1 - t"
+      using h1 by simp
+    moreover have "1 - t \<le> 1"
+      using h0 by simp
+    ultimately show "(1 - t) \<in> top1_unit_interval"
+      unfolding top1_unit_interval_def by simp
+  qed
+
+  have cont_r:
+    "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology top1_unit_interval top1_unit_interval_topology ((-) (1::real))"
+    unfolding top1_unit_interval_topology_def
+    apply (rule top1_continuous_map_on_real_subspace_open_sets)
+     apply (simp add: hmap_r)
+    apply (rule continuous_on_op_minus)
+    done
+
+  have cont_rev:
+    "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX (f \<circ> ((-) (1::real)))"
+    by (rule top1_continuous_map_on_comp[OF cont_r contf])
+
+  have cont_rev': "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX (\<lambda>t. f (1 - t))"
+  proof -
+    have heq: "\<forall>t\<in>top1_unit_interval. (f \<circ> ((-) (1::real))) t = (\<lambda>t. f (1 - t)) t"
+      by simp
+    show ?thesis
+      using top1_continuous_map_on_cong[OF heq] cont_rev by blast
+  qed
+
+  have hrev0: "(f \<circ> ((-) (1::real))) 0 = y"
+    using hf1 by simp
+  have hrev1: "(f \<circ> ((-) (1::real))) 1 = x"
+    using hf0 by simp
+
+  show ?thesis
+    unfolding top1_is_path_on_def
+    using cont_rev' hrev0 hrev1 by simp
+qed
+
+(** Concatenation of two paths. **)
+lemma top1_is_path_on_append:
+  assumes hTX: "is_topology_on X TX"
+  assumes hf: "top1_is_path_on X TX x y f"
+  assumes hg: "top1_is_path_on X TX y z g"
+  shows "top1_is_path_on X TX x z (\<lambda>t. if t \<le> (1/2) then f (2 * t) else g (2 * t - 1))"
+proof -
+  have hI: "is_topology_on top1_unit_interval top1_unit_interval_topology"
+    by (rule top1_unit_interval_topology_is_topology_on)
+  have contf: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+    using hf unfolding top1_is_path_on_def by blast
+  have contg: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX g"
+    using hg unfolding top1_is_path_on_def by blast
+  have hf0: "f 0 = x" and hf1: "f 1 = y"
+    using hf unfolding top1_is_path_on_def by blast+
+  have hg0: "g 0 = y" and hg1: "g 1 = z"
+    using hg unfolding top1_is_path_on_def by blast+
+
+  let ?I = "top1_unit_interval"
+  let ?TI = "top1_unit_interval_topology"
+  let ?A = "{t \<in> ?I. t \<le> (1/2)}"
+  let ?B = "{t \<in> ?I. (1/2) \<le> t}"
+
+  have hA_sub: "?A \<subseteq> ?I" by blast
+  have hB_sub: "?B \<subseteq> ?I" by blast
+
+  have hI_eq: "?I = ?A \<union> ?B"
+  proof (rule equalityI)
+    show "?I \<subseteq> ?A \<union> ?B"
+    proof (rule subsetI)
+      fix t assume ht: "t \<in> ?I"
+      have "t \<le> (1/2) \<or> (1/2) \<le> t"
+      proof (cases "t \<le> (1/2)")
+        case True
+        show ?thesis
+          using True by simp
+      next
+        case False
+        have "(1/2) < t"
+          using False by simp
+        hence "(1/2) \<le> t"
+          by simp
+        thus ?thesis
+          by simp
+      qed
+      thus "t \<in> ?A \<union> ?B"
+        using ht by blast
+    qed
+    show "?A \<union> ?B \<subseteq> ?I"
+      by blast
+  qed
+
+  have hIA: "?I - ?A = ?I \<inter> {(1/2) <..}"
+  proof (rule equalityI)
+    show "?I - ?A \<subseteq> ?I \<inter> {(1/2) <..}"
+    proof (rule subsetI)
+      fix t
+      assume ht: "t \<in> ?I - ?A"
+      have htI: "t \<in> ?I" and htNA: "t \<notin> ?A"
+        using ht by blast+
+      have htNle: "\<not> t \<le> (1/2)"
+        using htI htNA by blast
+      have hlt: "(1/2) < t"
+        using htNle by (simp add: not_le)
+      show "t \<in> ?I \<inter> {(1/2) <..}"
+        using htI hlt by simp
+    qed
+    show "?I \<inter> {(1/2) <..} \<subseteq> ?I - ?A"
+    proof (rule subsetI)
+      fix t
+      assume ht: "t \<in> ?I \<inter> {(1/2) <..}"
+      have htI: "t \<in> ?I" and hlt: "(1/2) < t"
+        using ht by blast+
+      have htNle: "\<not> t \<le> (1/2)"
+        using hlt by simp
+      have "t \<notin> ?A"
+        using htI htNle by blast
+      thus "t \<in> ?I - ?A"
+        using htI by blast
+    qed
+  qed
+  have hIB: "?I - ?B = ?I \<inter> {..< (1/2)}"
+  proof (rule equalityI)
+    show "?I - ?B \<subseteq> ?I \<inter> {..< (1/2)}"
+    proof (rule subsetI)
+      fix t
+      assume ht: "t \<in> ?I - ?B"
+      have htI: "t \<in> ?I" and htNB: "t \<notin> ?B"
+        using ht by blast+
+      have htNge: "\<not> (1/2) \<le> t"
+        using htI htNB by blast
+      have hlt: "t < (1/2)"
+        using htNge by (simp add: not_le)
+      show "t \<in> ?I \<inter> {..< (1/2)}"
+        using htI hlt by simp
+    qed
+    show "?I \<inter> {..< (1/2)} \<subseteq> ?I - ?B"
+    proof (rule subsetI)
+      fix t
+      assume ht: "t \<in> ?I \<inter> {..< (1/2)}"
+      have htI: "t \<in> ?I" and hlt: "t < (1/2)"
+        using ht by blast+
+      have htNge: "\<not> (1/2) \<le> t"
+        using hlt by simp
+      have "t \<notin> ?B"
+        using htI htNge by blast
+      thus "t \<in> ?I - ?B"
+        using htI by blast
+    qed
+  qed
+
+  have hOpen_gt: "{(1/2::real) <..} \<in> top1_open_sets"
+    unfolding top1_open_sets_def by simp
+  have hOpen_lt: "{..< (1/2::real)} \<in> top1_open_sets"
+    unfolding top1_open_sets_def by simp
+
+  have hIA_open: "?I - ?A \<in> ?TI"
+    unfolding top1_unit_interval_topology_def subspace_topology_def
+    apply (rule CollectI)
+    apply (rule exI[where x="{(1/2::real) <..}"])
+    apply (intro conjI)
+     apply (rule hIA)
+    apply (rule hOpen_gt)
+    done
+  have hIB_open: "?I - ?B \<in> ?TI"
+    unfolding top1_unit_interval_topology_def subspace_topology_def
+    apply (rule CollectI)
+    apply (rule exI[where x="{..< (1/2::real)}"])
+    apply (intro conjI)
+     apply (rule hIB)
+    apply (rule hOpen_lt)
+    done
+
+  have hA_closed: "closedin_on ?I ?TI ?A"
+    by (rule closedin_intro[OF hA_sub hIA_open])
+  have hB_closed: "closedin_on ?I ?TI ?B"
+    by (rule closedin_intro[OF hB_sub hIB_open])
+
+  have hmap_2t: "\<And>t. t \<in> ?A \<Longrightarrow> (2 * t) \<in> ?I"
+  proof -
+    fix t
+    assume htA: "t \<in> ?A"
+    have htI: "t \<in> ?I" and ht_le: "t \<le> (1/2)"
+      using htA by blast+
+    have ht0: "0 \<le> t"
+      using htI unfolding top1_unit_interval_def by simp
+    have h0: "0 \<le> 2 * t"
+      using ht0 by simp
+    have h1: "2 * t \<le> 1"
+    proof -
+      have h2pos: "0 \<le> (2::real)" by simp
+      have "2 * t \<le> 2 * (1/2)"
+        by (rule mult_left_mono[OF ht_le h2pos])
+      thus ?thesis by simp
+    qed
+    show "2 * t \<in> ?I"
+      unfolding top1_unit_interval_def using h0 h1 by simp
+  qed
+
+  have hmap_2t1: "\<And>t. t \<in> ?B \<Longrightarrow> (2 * t - 1) \<in> ?I"
+  proof -
+    fix t
+    assume htB: "t \<in> ?B"
+    have htI: "t \<in> ?I" and ht_ge: "(1/2) \<le> t"
+      using htB by blast+
+    have ht1: "t \<le> 1"
+      using htI unfolding top1_unit_interval_def by simp
+    have h0: "0 \<le> 2 * t - 1"
+    proof -
+      have h2pos: "0 \<le> (2::real)" by simp
+      have "2 * (1/2) \<le> 2 * t"
+        by (rule mult_left_mono[OF ht_ge h2pos])
+      hence "1 \<le> 2 * t" by simp
+      thus ?thesis by simp
+    qed
+    have h1: "2 * t - 1 \<le> 1"
+    proof -
+      have h2pos: "0 \<le> (2::real)" by simp
+      have "2 * t \<le> 2 * 1"
+        by (rule mult_left_mono[OF ht1 h2pos])
+      hence "2 * t - 1 \<le> 2 - 1"
+        by simp
+      thus ?thesis by simp
+    qed
+    show "2 * t - 1 \<in> ?I"
+      unfolding top1_unit_interval_def using h0 h1 by simp
+  qed
+
+  have hTopA: "subspace_topology ?I (subspace_topology (UNIV::real set) top1_open_sets ?I) ?A =
+               subspace_topology (UNIV::real set) top1_open_sets ?A"
+    by (rule subspace_topology_trans[OF hA_sub])
+  have hTopB: "subspace_topology ?I (subspace_topology (UNIV::real set) top1_open_sets ?I) ?B =
+               subspace_topology (UNIV::real set) top1_open_sets ?B"
+    by (rule subspace_topology_trans[OF hB_sub])
+
+  have cont_2t_A:
+    "top1_continuous_map_on ?A (subspace_topology ?I ?TI ?A) ?I ?TI ((*) (2::real))"
+  proof -
+    have hmap': "\<And>x. x \<in> ?A \<Longrightarrow> ((*) (2::real)) x \<in> ?I"
+      using hmap_2t by simp
+    have hcont': "continuous_on UNIV ((*) (2::real))"
+      by simp
+
+    have cont':
+      "top1_continuous_map_on ?A (subspace_topology UNIV top1_open_sets ?A)
+         ?I (subspace_topology UNIV top1_open_sets ?I) ((*) (2::real))"
+      by (rule top1_continuous_map_on_real_subspace_open_sets[OF hmap' hcont'])
+
+	    show ?thesis
+	      unfolding top1_unit_interval_topology_def
+	      apply (subst hTopA)
+	      apply (rule cont')
+	      done
+	  qed
+
+  have cont_2t1_B:
+    "top1_continuous_map_on ?B (subspace_topology ?I ?TI ?B) ?I ?TI (\<lambda>t. 2 * t - 1)"
+  proof -
+    have hmap': "\<And>x. x \<in> ?B \<Longrightarrow> (\<lambda>t. 2 * t - 1) x \<in> ?I"
+      using hmap_2t1 by simp
+    have hcont': "continuous_on UNIV (\<lambda>t::real. 2 * t - 1)"
+      apply (rule continuous_on_diff)
+       apply (rule continuous_on_mult_left)
+       apply (rule continuous_on_id)
+      apply (rule continuous_on_const)
+      done
+
+    have cont':
+      "top1_continuous_map_on ?B (subspace_topology UNIV top1_open_sets ?B)
+         ?I (subspace_topology UNIV top1_open_sets ?I) (\<lambda>t. 2 * t - 1)"
+      by (rule top1_continuous_map_on_real_subspace_open_sets[OF hmap' hcont'])
+
+	    show ?thesis
+	      unfolding top1_unit_interval_topology_def
+	      apply (subst hTopB)
+	      apply (rule cont')
+	      done
+	  qed
+
+  have cont_fA:
+    "top1_continuous_map_on ?A (subspace_topology ?I ?TI ?A) X TX (\<lambda>t. f (2 * t))"
+  proof -
+    have hcont_comp:
+      "top1_continuous_map_on ?A (subspace_topology ?I ?TI ?A) X TX (f \<circ> ((*) (2::real)))"
+      by (rule top1_continuous_map_on_comp[OF cont_2t_A contf])
+    have heq: "\<forall>t\<in>?A. (f \<circ> ((*) (2::real))) t = (\<lambda>t. f (2 * t)) t"
+      by simp
+    have "top1_continuous_map_on ?A (subspace_topology ?I ?TI ?A) X TX (\<lambda>t. f (2 * t))"
+      using top1_continuous_map_on_cong[OF heq] hcont_comp by blast
+    thus ?thesis .
+  qed
+
+  have cont_gB:
+    "top1_continuous_map_on ?B (subspace_topology ?I ?TI ?B) X TX (\<lambda>t. g (2 * t - 1))"
+  proof -
+    have hcont_comp:
+      "top1_continuous_map_on ?B (subspace_topology ?I ?TI ?B) X TX (g \<circ> (\<lambda>t. 2 * t - 1))"
+      by (rule top1_continuous_map_on_comp[OF cont_2t1_B contg])
+    have heq: "\<forall>t\<in>?B. (g \<circ> (\<lambda>t. 2 * t - 1)) t = (\<lambda>t. g (2 * t - 1)) t"
+      by simp
+    have "top1_continuous_map_on ?B (subspace_topology ?I ?TI ?B) X TX (\<lambda>t. g (2 * t - 1))"
+      using top1_continuous_map_on_cong[OF heq] hcont_comp by blast
+    thus ?thesis .
+  qed
+
+  have agree_mid: "\<forall>t\<in>(?A \<inter> ?B). f (2 * t) = g (2 * t - 1)"
+  proof (intro ballI)
+    fix t
+    assume ht: "t \<in> ?A \<inter> ?B"
+    have ht1: "t \<le> (1/2)" and ht2: "(1/2) \<le> t"
+      using ht by blast+
+    have htEq: "t = (1/2)"
+      using ht1 ht2 by simp
+    show "f (2 * t) = g (2 * t - 1)"
+      by (simp add: htEq hf1 hg0)
+  qed
+
+  have cont_h_mem:
+    "top1_continuous_map_on ?I ?TI X TX (\<lambda>t. if t \<in> ?A then f (2 * t) else g (2 * t - 1))"
+  proof -
+    have hcont:
+	      "top1_continuous_map_on ?I ?TI X TX
+	        (\<lambda>t. if t \<in> ?A then (\<lambda>t. f (2 * t)) t else (\<lambda>t. g (2 * t - 1)) t)"
+	      apply (rule Theorem_18_3[where A="?A" and B="?B"
+	            and f="(\<lambda>t. f (2 * t))" and g="(\<lambda>t. g (2 * t - 1))"])
+	              apply (rule hI)
+	             apply (rule hTX)
+	            apply (rule hA_closed)
+	           apply (rule hB_closed)
+          apply (rule hI_eq)
+	         apply (rule cont_fA)
+	        apply (rule cont_gB)
+	       apply (rule agree_mid)
+	      done
+	    show ?thesis
+	      using hcont by simp
+	  qed
+
+  define h where "h = (\<lambda>t. if t \<le> (1/2) then f (2 * t) else g (2 * t - 1))"
+
+  have heq:
+    "\<forall>t\<in>?I. h t = (\<lambda>t. if t \<in> ?A then f (2 * t) else g (2 * t - 1)) t"
+    unfolding h_def by simp
+
+  have cont_h: "top1_continuous_map_on ?I ?TI X TX h"
+    using top1_continuous_map_on_cong[OF heq] cont_h_mem by blast
+
+  have h0: "h 0 = x"
+    unfolding h_def using hf0 by simp
+  have h1: "h 1 = z"
+    unfolding h_def using hg1 by simp
+
+  show ?thesis
+    unfolding top1_is_path_on_def
+  proof (intro conjI)
+    have cont_h': "top1_continuous_map_on ?I ?TI X TX (\<lambda>t. if t \<le> (1/2) then f (2 * t) else g (2 * t - 1))"
+      using cont_h unfolding h_def by simp
+    show "top1_continuous_map_on ?I ?TI X TX (\<lambda>t. if t \<le> (1/2) then f (2 * t) else g (2 * t - 1))"
+      by (rule cont_h')
+    show "(\<lambda>t. if t \<le> (1/2) then f (2 * t) else g (2 * t - 1)) 0 = x"
+      using hf0 by simp
+    show "(\<lambda>t. if t \<le> (1/2) then f (2 * t) else g (2 * t - 1)) 1 = z"
+      using hg1 by simp
+  qed
+qed
+
+(** Any point on a path from \<open>x\<close> is in the same path component as \<open>x\<close>. **)
+lemma top1_is_path_on_point_in_path_component:
+  assumes hTX: "is_topology_on X TX"
+  assumes hf: "top1_is_path_on X TX x y f"
+  assumes ht: "t \<in> top1_unit_interval"
+  shows "top1_in_same_path_component_on X TX x (f t)"
+proof -
+  have contf: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+    using hf unfolding top1_is_path_on_def by blast
+  have hf0: "f 0 = x"
+    using hf unfolding top1_is_path_on_def by blast
+
+  have ht0: "0 \<le> t" and ht1: "t \<le> 1"
+    using ht unfolding top1_unit_interval_def by simp+
+
+  have hmap_scale: "\<And>s. s \<in> top1_unit_interval \<Longrightarrow> t * s \<in> top1_unit_interval"
+  proof -
+    fix s
+    assume hs: "s \<in> top1_unit_interval"
+    have hs0: "0 \<le> s" and hs1: "s \<le> 1"
+      using hs unfolding top1_unit_interval_def by simp+
+    have h0: "0 \<le> t * s"
+      using ht0 hs0 by simp
+    have h1: "t * s \<le> 1"
+    proof -
+      have "t * s \<le> t * 1"
+        by (rule mult_left_mono[OF hs1 ht0])
+      also have "... \<le> 1"
+        using ht1 by simp
+      finally show ?thesis by simp
+    qed
+    show "t * s \<in> top1_unit_interval"
+      unfolding top1_unit_interval_def using h0 h1 by simp
+  qed
+
+  have cont_scale:
+    "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology top1_unit_interval top1_unit_interval_topology (\<lambda>s. t * s)"
+  proof -
+    have hmap: "\<And>x. x \<in> top1_unit_interval \<Longrightarrow> (\<lambda>s. t * s) x \<in> top1_unit_interval"
+      using hmap_scale by simp
+    have hcont: "continuous_on UNIV (\<lambda>s::real. t * s)"
+      apply (rule continuous_on_mult)
+       apply (rule continuous_on_const)
+      apply (rule continuous_on_id)
+      done
+    show ?thesis
+      unfolding top1_unit_interval_topology_def
+      by (rule top1_continuous_map_on_real_subspace_open_sets[OF hmap hcont])
+  qed
+
+  have cont_comp:
+    "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX (f \<circ> (\<lambda>s. t * s))"
+    by (rule top1_continuous_map_on_comp[OF cont_scale contf])
+
+  have h0: "(f \<circ> (\<lambda>s. t * s)) 0 = x"
+    using hf0 by simp
+  have h1: "(f \<circ> (\<lambda>s. t * s)) 1 = f t"
+    by simp
+
+  show ?thesis
+    unfolding top1_in_same_path_component_on_def
+    apply (rule exI[where x="f \<circ> (\<lambda>s. t * s)"])
+    unfolding top1_is_path_on_def
+    using cont_comp h0 h1 by simp
+qed
+
+(** Path components are contained in the carrier. **)
+lemma top1_path_component_of_on_subset:
+  assumes hTX: "is_topology_on X TX"
+  assumes hx: "x \<in> X"
+  shows "top1_path_component_of_on X TX x \<subseteq> X"
+proof (rule subsetI)
+  fix y
+  assume hy: "y \<in> top1_path_component_of_on X TX x"
+  have hxy: "top1_in_same_path_component_on X TX x y"
+    using hy unfolding top1_path_component_of_on_def by simp
+  obtain f where hf: "top1_is_path_on X TX x y f"
+    using hxy unfolding top1_in_same_path_component_on_def by blast
+  have contf: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+    using hf unfolding top1_is_path_on_def by blast
+  have mapf: "\<forall>t\<in>top1_unit_interval. f t \<in> X"
+    using contf unfolding top1_continuous_map_on_def by blast
+  have h1: "1 \<in> top1_unit_interval"
+    unfolding top1_unit_interval_def by simp
+  have "f 1 \<in> X"
+    using mapf h1 by blast
+  thus "y \<in> X"
+    using hf unfolding top1_is_path_on_def by simp
+qed
+
+(** The relation \<open>top1_in_same_path_component_on\<close> is symmetric. **)
+lemma top1_in_same_path_component_on_sym:
+  assumes hTX: "is_topology_on X TX"
+  assumes hxy: "top1_in_same_path_component_on X TX x y"
+  shows "top1_in_same_path_component_on X TX y x"
+proof -
+  obtain f where hf: "top1_is_path_on X TX x y f"
+    using hxy unfolding top1_in_same_path_component_on_def by blast
+  have "top1_is_path_on X TX y x (\<lambda>t. f (1 - t))"
+    by (rule top1_is_path_on_reverse[OF hTX hf])
+  thus ?thesis
+    unfolding top1_in_same_path_component_on_def by blast
+qed
+
+(** The relation \<open>top1_in_same_path_component_on\<close> is transitive. **)
+lemma top1_in_same_path_component_on_trans:
+  assumes hTX: "is_topology_on X TX"
+  assumes hxy: "top1_in_same_path_component_on X TX x y"
+  assumes hyz: "top1_in_same_path_component_on X TX y z"
+  shows "top1_in_same_path_component_on X TX x z"
+proof -
+  obtain f where hf: "top1_is_path_on X TX x y f"
+    using hxy unfolding top1_in_same_path_component_on_def by blast
+  obtain g where hg: "top1_is_path_on X TX y z g"
+    using hyz unfolding top1_in_same_path_component_on_def by blast
+  have hh: "top1_is_path_on X TX x z (\<lambda>t. if t \<le> (1/2) then f (2 * t) else g (2 * t - 1))"
+    by (rule top1_is_path_on_append[OF hTX hf hg])
+  show ?thesis
+    unfolding top1_in_same_path_component_on_def using hh by blast
+qed
+
 (** from *\S25 Theorem 25.2 (Path components) [top1.tex:2967] **)
 theorem Theorem_25_2:
   assumes hTX: "is_topology_on X TX"
@@ -14446,7 +15009,314 @@ theorem Theorem_25_2:
     and "\<And>P. P \<in> top1_path_components_on X TX \<Longrightarrow> top1_path_connected_on P (subspace_topology X TX P)"
     and "\<And>A. A \<subseteq> X \<Longrightarrow> top1_path_connected_on A (subspace_topology X TX A) \<Longrightarrow> A \<noteq> {} \<Longrightarrow>
               (\<exists>P\<in>top1_path_components_on X TX. A \<subseteq> P)"
-  sorry
+proof -
+  have hI: "is_topology_on top1_unit_interval top1_unit_interval_topology"
+    by (rule top1_unit_interval_topology_is_topology_on)
+
+  show "(\<Union>(top1_path_components_on X TX)) = X"
+  proof (rule equalityI)
+    show "\<Union>(top1_path_components_on X TX) \<subseteq> X"
+    proof (rule subsetI)
+      fix y
+      assume hy: "y \<in> \<Union>(top1_path_components_on X TX)"
+      obtain P where hP: "P \<in> top1_path_components_on X TX" and hyP: "y \<in> P"
+        using hy by blast
+      obtain x where hxX: "x \<in> X" and hPeq: "P = top1_path_component_of_on X TX x"
+        using hP unfolding top1_path_components_on_def by blast
+      have hy_comp: "top1_in_same_path_component_on X TX x y"
+        using hyP hPeq unfolding top1_path_component_of_on_def by simp
+      obtain f where hf: "top1_is_path_on X TX x y f"
+        using hy_comp unfolding top1_in_same_path_component_on_def by blast
+      have contf: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+        using hf unfolding top1_is_path_on_def by blast
+      have mapf: "\<forall>t\<in>top1_unit_interval. f t \<in> X"
+        using contf unfolding top1_continuous_map_on_def by blast
+      have h1: "1 \<in> top1_unit_interval"
+        unfolding top1_unit_interval_def by simp
+      have "f 1 \<in> X"
+        using mapf h1 by blast
+      thus "y \<in> X"
+        using hf unfolding top1_is_path_on_def by simp
+    qed
+    show "X \<subseteq> \<Union>(top1_path_components_on X TX)"
+    proof (rule subsetI)
+      fix x
+      assume hxX: "x \<in> X"
+      have hx_rel: "top1_in_same_path_component_on X TX x x"
+        unfolding top1_in_same_path_component_on_def
+        apply (rule exI[where x="(\<lambda>t. x)"])
+        unfolding top1_is_path_on_def
+        apply (intro conjI)
+         apply (rule top1_continuous_map_on_const[OF hI hTX hxX])
+        apply (rule refl)
+        apply (rule refl)
+        done
+      have hx_mem: "x \<in> top1_path_component_of_on X TX x"
+        unfolding top1_path_component_of_on_def using hx_rel by simp
+      have hPc: "top1_path_component_of_on X TX x \<in> top1_path_components_on X TX"
+        unfolding top1_path_components_on_def using hxX by blast
+      show "x \<in> \<Union>(top1_path_components_on X TX)"
+        using hPc hx_mem by blast
+    qed
+  qed
+
+  show "\<And>P Q. P \<in> top1_path_components_on X TX \<Longrightarrow> Q \<in> top1_path_components_on X TX \<Longrightarrow> P \<inter> Q \<noteq> {} \<Longrightarrow> P = Q"
+  proof -
+    fix P Q
+    assume hP: "P \<in> top1_path_components_on X TX"
+    assume hQ: "Q \<in> top1_path_components_on X TX"
+    assume hPQ: "P \<inter> Q \<noteq> {}"
+    obtain x where hxX: "x \<in> X" and hPeq: "P = top1_path_component_of_on X TX x"
+      using hP unfolding top1_path_components_on_def by blast
+    obtain y where hyX: "y \<in> X" and hQeq: "Q = top1_path_component_of_on X TX y"
+      using hQ unfolding top1_path_components_on_def by blast
+    obtain p where hp: "p \<in> P \<inter> Q"
+      using hPQ by blast
+    have hxp: "top1_in_same_path_component_on X TX x p"
+      using hp hPeq unfolding top1_path_component_of_on_def by blast
+    have hyp: "top1_in_same_path_component_on X TX y p"
+      using hp hQeq unfolding top1_path_component_of_on_def by blast
+    have hpy: "top1_in_same_path_component_on X TX p y"
+      by (rule top1_in_same_path_component_on_sym[OF hTX hyp])
+    have hxy: "top1_in_same_path_component_on X TX x y"
+      by (rule top1_in_same_path_component_on_trans[OF hTX hxp hpy])
+
+    have hcomp_eq: "top1_path_component_of_on X TX x = top1_path_component_of_on X TX y"
+    proof (rule set_eqI)
+      fix z
+      show "z \<in> top1_path_component_of_on X TX x \<longleftrightarrow> z \<in> top1_path_component_of_on X TX y"
+      proof
+        assume hz: "z \<in> top1_path_component_of_on X TX x"
+        have hxz: "top1_in_same_path_component_on X TX x z"
+          using hz unfolding top1_path_component_of_on_def by simp
+        have hyx: "top1_in_same_path_component_on X TX y x"
+          by (rule top1_in_same_path_component_on_sym[OF hTX hxy])
+        have hyz: "top1_in_same_path_component_on X TX y z"
+          by (rule top1_in_same_path_component_on_trans[OF hTX hyx hxz])
+        show "z \<in> top1_path_component_of_on X TX y"
+          unfolding top1_path_component_of_on_def using hyz by simp
+      next
+        assume hz: "z \<in> top1_path_component_of_on X TX y"
+        have hyz: "top1_in_same_path_component_on X TX y z"
+          using hz unfolding top1_path_component_of_on_def by simp
+        have hxy': "top1_in_same_path_component_on X TX x y"
+          using hxy .
+        have hxz: "top1_in_same_path_component_on X TX x z"
+          by (rule top1_in_same_path_component_on_trans[OF hTX hxy' hyz])
+        show "z \<in> top1_path_component_of_on X TX x"
+          unfolding top1_path_component_of_on_def using hxz by simp
+      qed
+    qed
+    show "P = Q"
+      using hPeq hQeq hcomp_eq by simp
+  qed
+
+  show "\<And>P. P \<in> top1_path_components_on X TX \<Longrightarrow> top1_path_connected_on P (subspace_topology X TX P)"
+  proof -
+    fix P
+    assume hP: "P \<in> top1_path_components_on X TX"
+    obtain x0 where hx0X: "x0 \<in> X" and hPeq: "P = top1_path_component_of_on X TX x0"
+      using hP unfolding top1_path_components_on_def by blast
+
+    have hPX: "P \<subseteq> X"
+      using hPeq hx0X by (simp add: top1_path_component_of_on_subset[OF hTX])
+
+    have hTopP: "is_topology_on P (subspace_topology X TX P)"
+      by (rule subspace_topology_is_topology_on[OF hTX hPX])
+
+    have paths_P:
+      "\<forall>a\<in>P. \<forall>b\<in>P. \<exists>h. top1_is_path_on P (subspace_topology X TX P) a b h"
+    proof (intro ballI)
+      fix a assume haP: "a \<in> P"
+      fix b assume hbP: "b \<in> P"
+
+      have ha_rel: "top1_in_same_path_component_on X TX x0 a"
+        using haP hPeq unfolding top1_path_component_of_on_def by simp
+      have hb_rel: "top1_in_same_path_component_on X TX x0 b"
+        using hbP hPeq unfolding top1_path_component_of_on_def by simp
+      obtain fa where hfa: "top1_is_path_on X TX x0 a fa"
+        using ha_rel unfolding top1_in_same_path_component_on_def by blast
+      obtain fb where hfb: "top1_is_path_on X TX x0 b fb"
+        using hb_rel unfolding top1_in_same_path_component_on_def by blast
+
+      define ra where "ra = (\<lambda>t. fa (1 - t))"
+      have hra: "top1_is_path_on X TX a x0 ra"
+        unfolding ra_def
+        by (rule top1_is_path_on_reverse[OF hTX hfa])
+
+      define h0 where "h0 = (\<lambda>t. if t \<le> (1/2) then ra (2 * t) else fb (2 * t - 1))"
+      have hh0: "top1_is_path_on X TX a b h0"
+        unfolding h0_def
+        by (rule top1_is_path_on_append[OF hTX hra hfb])
+
+      have h0_img: "\<forall>t\<in>top1_unit_interval. h0 t \<in> P"
+      proof (intro ballI)
+        fix t assume ht: "t \<in> top1_unit_interval"
+        show "h0 t \<in> P"
+        proof (cases "t \<le> (1/2)")
+          case True
+          have htA: "2 * t \<in> top1_unit_interval"
+          proof -
+            have ht0: "0 \<le> t" and ht1: "t \<le> 1"
+              using ht unfolding top1_unit_interval_def by simp+
+            have h0: "0 \<le> 2 * t"
+              using ht0 by simp
+            have h1: "2 * t \<le> 1"
+            proof -
+              have h2pos: "0 \<le> (2::real)" by simp
+              have "2 * t \<le> 2 * (1/2)"
+                by (rule mult_left_mono[OF True h2pos])
+              thus ?thesis by simp
+            qed
+            show ?thesis
+              unfolding top1_unit_interval_def using h0 h1 by simp
+          qed
+          have hmem: "top1_in_same_path_component_on X TX x0 (ra (2 * t))"
+          proof -
+            have hmap: "(1 - (2 * t)) \<in> top1_unit_interval"
+            proof -
+              have ht0: "0 \<le> t"
+                using ht unfolding top1_unit_interval_def by simp
+              have "2 * t \<le> 1"
+                using htA unfolding top1_unit_interval_def by simp
+              hence "0 \<le> 1 - (2 * t)" by simp
+              moreover have "1 - (2 * t) \<le> 1"
+              proof -
+                have "0 \<le> 2 * t"
+                  using ht0 by simp
+                thus ?thesis
+                  by simp
+              qed
+              ultimately show ?thesis
+                unfolding top1_unit_interval_def by simp
+            qed
+            have "top1_in_same_path_component_on X TX x0 (fa (1 - (2 * t)))"
+              by (rule top1_is_path_on_point_in_path_component[OF hTX hfa hmap])
+            thus ?thesis
+              unfolding ra_def by simp
+          qed
+          show ?thesis
+            unfolding hPeq top1_path_component_of_on_def h0_def
+            using True hmem by simp
+        next
+          case False
+          have htB: "2 * t - 1 \<in> top1_unit_interval"
+          proof -
+            have ht0: "0 \<le> t" and ht1: "t \<le> 1"
+              using ht unfolding top1_unit_interval_def by simp+
+            have hge: "(1/2) \<le> t"
+              using False by simp
+            have h0: "0 \<le> 2 * t - 1"
+            proof -
+              have h2pos: "0 \<le> (2::real)" by simp
+              have "2 * (1/2) \<le> 2 * t"
+                by (rule mult_left_mono[OF hge h2pos])
+              hence "1 \<le> 2 * t" by simp
+              thus ?thesis by simp
+            qed
+            have h1: "2 * t - 1 \<le> 1"
+            proof -
+              have h2pos: "0 \<le> (2::real)" by simp
+              have "2 * t \<le> 2 * 1"
+                by (rule mult_left_mono[OF ht1 h2pos])
+              hence "2 * t - 1 \<le> 2 - 1" by simp
+              thus ?thesis by simp
+            qed
+            show ?thesis
+              unfolding top1_unit_interval_def using h0 h1 by simp
+          qed
+          have hmem: "top1_in_same_path_component_on X TX x0 (fb (2 * t - 1))"
+            by (rule top1_is_path_on_point_in_path_component[OF hTX hfb htB])
+          show ?thesis
+            unfolding hPeq top1_path_component_of_on_def h0_def
+            using False hmem by simp
+        qed
+      qed
+
+      have h0_img_set: "h0 ` top1_unit_interval \<subseteq> P"
+        using h0_img by blast
+
+      have restrict_range:
+        "(\<forall>W f. top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f
+            \<and> W \<subseteq> X \<and> f ` top1_unit_interval \<subseteq> W
+            \<longrightarrow> top1_continuous_map_on top1_unit_interval top1_unit_interval_topology W (subspace_topology X TX W) f)"
+        using Theorem_18_2(5)[OF hI hTX hTX] .
+
+      have cont_h0X: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX h0"
+        using hh0 unfolding top1_is_path_on_def by blast
+      have cont_h0P:
+        "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology P (subspace_topology X TX P) h0"
+        using restrict_range cont_h0X hPX h0_img_set by blast
+
+      have h00: "h0 0 = a" and h01: "h0 1 = b"
+        using hh0 unfolding top1_is_path_on_def by blast+
+
+      have "top1_is_path_on P (subspace_topology X TX P) a b h0"
+        unfolding top1_is_path_on_def
+        using cont_h0P h00 h01 by simp
+      thus "\<exists>h. top1_is_path_on P (subspace_topology X TX P) a b h"
+        by blast
+    qed
+
+    show "top1_path_connected_on P (subspace_topology X TX P)"
+      unfolding top1_path_connected_on_def
+      using hTopP paths_P by blast
+  qed
+
+  show "\<And>A. A \<subseteq> X \<Longrightarrow> top1_path_connected_on A (subspace_topology X TX A) \<Longrightarrow> A \<noteq> {} \<Longrightarrow>
+            (\<exists>P\<in>top1_path_components_on X TX. A \<subseteq> P)"
+  proof -
+    fix A
+    assume hAX: "A \<subseteq> X"
+    assume hApc: "top1_path_connected_on A (subspace_topology X TX A)"
+    assume hAne: "A \<noteq> {}"
+    obtain x0 where hx0A: "x0 \<in> A"
+      using hAne by blast
+    have hx0X: "x0 \<in> X"
+      using hAX hx0A by blast
+
+    have hTopA: "is_topology_on A (subspace_topology X TX A)"
+      using hApc unfolding top1_path_connected_on_def by blast
+    have hpathsA: "\<forall>x\<in>A. \<forall>y\<in>A. \<exists>f. top1_is_path_on A (subspace_topology X TX A) x y f"
+      using hApc unfolding top1_path_connected_on_def by blast
+
+    have hAsubP: "A \<subseteq> top1_path_component_of_on X TX x0"
+    proof (rule subsetI)
+      fix y
+      assume hyA: "y \<in> A"
+      obtain f where hf: "top1_is_path_on A (subspace_topology X TX A) x0 y f"
+        using hpathsA hx0A hyA by blast
+      have contA: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology A (subspace_topology X TX A) f"
+        using hf unfolding top1_is_path_on_def by blast
+
+      have contX: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+      proof -
+        have rule:
+          "(\<forall>W g. top1_continuous_map_on top1_unit_interval top1_unit_interval_topology A (subspace_topology X TX A) g
+              \<and> A \<subseteq> W \<and> subspace_topology X TX A = subspace_topology W TX A
+              \<longrightarrow> top1_continuous_map_on top1_unit_interval top1_unit_interval_topology W TX g)"
+          using Theorem_18_2(6)[OF hI hTopA hTX] by blast
+        have "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+          using rule contA hAX by simp
+        thus ?thesis .
+      qed
+
+      have hx0: "f 0 = x0" and hy: "f 1 = y"
+        using hf unfolding top1_is_path_on_def by blast+
+      have hpathX: "top1_is_path_on X TX x0 y f"
+        unfolding top1_is_path_on_def using contX hx0 hy by simp
+      have "top1_in_same_path_component_on X TX x0 y"
+        unfolding top1_in_same_path_component_on_def using hpathX by blast
+      thus "y \<in> top1_path_component_of_on X TX x0"
+        unfolding top1_path_component_of_on_def by simp
+    qed
+
+    have hPc: "top1_path_component_of_on X TX x0 \<in> top1_path_components_on X TX"
+      unfolding top1_path_components_on_def using hx0X by blast
+    show "\<exists>P\<in>top1_path_components_on X TX. A \<subseteq> P"
+      using hPc hAsubP by blast
+  qed
+qed
 
 (** from *\S25 Theorem 25.4 (Local path connectedness via open path components) [top1.tex:2995] **)
 theorem Theorem_25_4:
