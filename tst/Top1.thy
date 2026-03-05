@@ -14450,6 +14450,17 @@ proof -
     by (rule subspace_topology_is_topology_on[OF hTop hsub])
 qed
 
+(** The unit interval is connected (as a subspace of \<real>). **)
+lemma top1_unit_interval_connected:
+  "top1_connected_on top1_unit_interval top1_unit_interval_topology"
+proof -
+  have hconn: "connected top1_unit_interval"
+    unfolding top1_unit_interval_def by simp
+  show ?thesis
+    unfolding top1_unit_interval_topology_def
+    by (rule top1_connected_on_subspace_openI[OF hconn])
+qed
+
 (** Continuity transfer for real functions between subspace topologies induced by \<open>top1_open_sets\<close>. **)
 lemma top1_continuous_map_on_real_subspace_open_sets:
   fixes S T :: "real set"
@@ -15318,13 +15329,313 @@ proof -
   qed
 qed
 
+(** Reflexivity for path components: each point is in the same path component as itself. **)
+lemma top1_in_same_path_component_on_refl:
+  assumes hTX: "is_topology_on X TX"
+  assumes hxX: "x \<in> X"
+  shows "top1_in_same_path_component_on X TX x x"
+proof -
+  have hI: "is_topology_on top1_unit_interval top1_unit_interval_topology"
+    by (rule top1_unit_interval_topology_is_topology_on)
+  have hpath: "top1_is_path_on X TX x x (\<lambda>t. x)"
+    unfolding top1_is_path_on_def
+    apply (intro conjI)
+     apply (rule top1_continuous_map_on_const[OF hI hTX hxX])
+    apply (rule refl)
+    apply (rule refl)
+    done
+  show ?thesis
+    unfolding top1_in_same_path_component_on_def using hpath by blast
+qed
+
+(** Each point belongs to its own path component. **)
+lemma top1_path_component_of_on_self_mem:
+  assumes hTX: "is_topology_on X TX"
+  assumes hxX: "x \<in> X"
+  shows "x \<in> top1_path_component_of_on X TX x"
+  unfolding top1_path_component_of_on_def
+  by (simp add: top1_in_same_path_component_on_refl[OF hTX hxX])
+
+(** A path component is a member of the collection of path components. **)
+lemma top1_path_component_of_on_in_components:
+  assumes hxX: "x \<in> X"
+  shows "top1_path_component_of_on X TX x \<in> top1_path_components_on X TX"
+  unfolding top1_path_components_on_def using hxX by blast
+
+(** If \<open>y\<close> lies in the path component of \<open>x\<close>, then their path components coincide. **)
+lemma top1_path_component_of_on_eq_of_mem:
+  assumes hTX: "is_topology_on X TX"
+  assumes hy: "y \<in> top1_path_component_of_on X TX x"
+  shows "top1_path_component_of_on X TX y = top1_path_component_of_on X TX x"
+proof (rule equalityI)
+  show "top1_path_component_of_on X TX y \<subseteq> top1_path_component_of_on X TX x"
+  proof (rule subsetI)
+    fix z assume hz: "z \<in> top1_path_component_of_on X TX y"
+    have hxy: "top1_in_same_path_component_on X TX x y"
+      using hy unfolding top1_path_component_of_on_def by simp
+    have hyz: "top1_in_same_path_component_on X TX y z"
+      using hz unfolding top1_path_component_of_on_def by simp
+    have hxz: "top1_in_same_path_component_on X TX x z"
+      by (rule top1_in_same_path_component_on_trans[OF hTX hxy hyz])
+    show "z \<in> top1_path_component_of_on X TX x"
+      unfolding top1_path_component_of_on_def using hxz by simp
+  qed
+  show "top1_path_component_of_on X TX x \<subseteq> top1_path_component_of_on X TX y"
+  proof (rule subsetI)
+    fix z assume hz: "z \<in> top1_path_component_of_on X TX x"
+    have hxy: "top1_in_same_path_component_on X TX x y"
+      using hy unfolding top1_path_component_of_on_def by simp
+    have hyx: "top1_in_same_path_component_on X TX y x"
+      by (rule top1_in_same_path_component_on_sym[OF hTX hxy])
+    have hxz: "top1_in_same_path_component_on X TX x z"
+      using hz unfolding top1_path_component_of_on_def by simp
+    have hyz: "top1_in_same_path_component_on X TX y z"
+      by (rule top1_in_same_path_component_on_trans[OF hTX hyx hxz])
+    show "z \<in> top1_path_component_of_on X TX y"
+      unfolding top1_path_component_of_on_def using hyz by simp
+  qed
+qed
+
+(** A path component is path connected (with the subspace topology). **)
+lemma top1_path_component_of_on_path_connected:
+  assumes hTX: "is_topology_on X TX"
+  assumes hxX: "x \<in> X"
+  shows "top1_path_connected_on (top1_path_component_of_on X TX x)
+           (subspace_topology X TX (top1_path_component_of_on X TX x))"
+proof -
+  have hP: "top1_path_component_of_on X TX x \<in> top1_path_components_on X TX"
+    by (rule top1_path_component_of_on_in_components[OF hxX])
+  show ?thesis
+    by (rule Theorem_25_2(3)[OF hTX hP])
+qed
+
+(** A path connected subspace lies in a single path component. **)
+lemma top1_path_connected_subspace_subset_path_component_of:
+  assumes hTX: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  assumes hxA: "x \<in> A"
+  assumes hApath: "top1_path_connected_on A (subspace_topology X TX A)"
+  shows "A \<subseteq> top1_path_component_of_on X TX x"
+proof (rule subsetI)
+  fix y assume hyA: "y \<in> A"
+  have hI: "is_topology_on top1_unit_interval top1_unit_interval_topology"
+    by (rule top1_unit_interval_topology_is_topology_on)
+  let ?TA = "subspace_topology X TX A"
+  have hTA: "is_topology_on A ?TA"
+    using hApath unfolding top1_path_connected_on_def by blast
+  have hpathA: "\<exists>f. top1_is_path_on A ?TA x y f"
+    using hApath hxA hyA unfolding top1_path_connected_on_def by blast
+  obtain f where hfA: "top1_is_path_on A ?TA x y f"
+    using hpathA by blast
+  have hcontA: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology A ?TA f"
+    using hfA unfolding top1_is_path_on_def by blast
+  have hfx: "f 0 = x" and hfy: "f 1 = y"
+    using hfA unfolding top1_is_path_on_def by blast+
+
+  have hcontX: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+  proof -
+    have rule:
+      "\<And>W g. top1_continuous_map_on top1_unit_interval top1_unit_interval_topology A ?TA g
+          \<Longrightarrow> A \<subseteq> W \<Longrightarrow> ?TA = subspace_topology W TX A
+          \<Longrightarrow> top1_continuous_map_on top1_unit_interval top1_unit_interval_topology W TX g"
+      using Theorem_18_2(6)[OF hI hTA hTX] by blast
+    have "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+      by (rule rule[OF hcontA hAX], simp)
+    thus ?thesis .
+  qed
+
+  have hfX: "top1_is_path_on X TX x y f"
+    unfolding top1_is_path_on_def using hcontX hfx hfy by simp
+  have "top1_in_same_path_component_on X TX x y"
+    unfolding top1_in_same_path_component_on_def using hfX by blast
+  thus "y \<in> top1_path_component_of_on X TX x"
+    unfolding top1_path_component_of_on_def by simp
+qed
+
 (** from *\S25 Theorem 25.4 (Local path connectedness via open path components) [top1.tex:2995] **)
 theorem Theorem_25_4:
   assumes hTX: "is_topology_on X TX"
   shows
     "top1_locally_path_connected_on X TX \<longleftrightarrow>
        (\<forall>U\<in>TX. U \<subseteq> X \<longrightarrow> (\<forall>P\<in>top1_path_components_on U (subspace_topology X TX U). P \<in> TX))"
-  sorry
+proof (rule iffI)
+  assume hLoc: "top1_locally_path_connected_on X TX"
+  have hLocAll: "\<forall>x\<in>X. top1_locally_path_connected_at X TX x"
+    using hLoc unfolding top1_locally_path_connected_on_def by blast
+
+  have hUnionTX: "\<And>S. S \<subseteq> TX \<Longrightarrow> \<Union>S \<in> TX"
+  proof -
+    fix S assume hS: "S \<subseteq> TX"
+    have "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
+      using hTX unfolding is_topology_on_def by blast
+    thus "\<Union>S \<in> TX"
+      using hS by blast
+  qed
+
+  show "\<forall>U\<in>TX. U \<subseteq> X \<longrightarrow> (\<forall>P\<in>top1_path_components_on U (subspace_topology X TX U). P \<in> TX)"
+  proof (rule ballI)
+    fix U assume hU: "U \<in> TX"
+    show "U \<subseteq> X \<longrightarrow> (\<forall>P\<in>top1_path_components_on U (subspace_topology X TX U). P \<in> TX)"
+    proof (rule impI)
+      assume hUX: "U \<subseteq> X"
+      let ?TU = "subspace_topology X TX U"
+      have hTU: "is_topology_on U ?TU"
+        by (rule subspace_topology_is_topology_on[OF hTX hUX])
+
+      show "\<forall>P\<in>top1_path_components_on U ?TU. P \<in> TX"
+      proof (rule ballI)
+        fix P assume hP: "P \<in> top1_path_components_on U ?TU"
+        obtain u0 where hu0U: "u0 \<in> U" and hPeq: "P = top1_path_component_of_on U ?TU u0"
+          using hP unfolding top1_path_components_on_def by blast
+
+        have hPsubU: "P \<subseteq> U"
+          unfolding hPeq by (rule top1_path_component_of_on_subset[OF hTU hu0U])
+
+        have hP_open: "\<forall>x\<in>P. \<exists>V. neighborhood_of x X TX V \<and> V \<subseteq> P \<and> V \<subseteq> X
+            \<and> top1_path_connected_on V (subspace_topology X TX V)"
+        proof (intro ballI)
+          fix x assume hxP: "x \<in> P"
+          have hxU: "x \<in> U"
+            using hPsubU hxP by blast
+          have hxX: "x \<in> X"
+            using hUX hxU by blast
+          have hU_nbhd: "neighborhood_of x X TX U"
+            unfolding neighborhood_of_def using hU hxU by blast
+          have hLocx: "top1_locally_path_connected_at X TX x"
+            using hLocAll hxX by blast
+          obtain V where hVnbhd: "neighborhood_of x X TX V"
+            and hVsubU: "V \<subseteq> U"
+            and hVX: "V \<subseteq> X"
+            and hVpath: "top1_path_connected_on V (subspace_topology X TX V)"
+            using hLocx hU_nbhd hUX unfolding top1_locally_path_connected_at_def by blast
+          have hxV: "x \<in> V"
+            using hVnbhd unfolding neighborhood_of_def by blast
+
+          have hVpathU: "top1_path_connected_on V (subspace_topology U ?TU V)"
+          proof -
+            have hTopEq: "subspace_topology U ?TU V = subspace_topology X TX V"
+              by (rule subspace_topology_trans[OF hVsubU])
+            show ?thesis
+              unfolding hTopEq by (rule hVpath)
+          qed
+
+          have hP_as_x: "P = top1_path_component_of_on U ?TU x"
+          proof -
+            have hx_mem: "x \<in> top1_path_component_of_on U ?TU u0"
+              using hxP hPeq by simp
+            have "top1_path_component_of_on U ?TU x = top1_path_component_of_on U ?TU u0"
+              by (rule top1_path_component_of_on_eq_of_mem[OF hTU hx_mem])
+            thus ?thesis
+              unfolding hPeq by simp
+          qed
+
+          have hVsubP: "V \<subseteq> P"
+          proof -
+            have "V \<subseteq> top1_path_component_of_on U ?TU x"
+              by (rule top1_path_connected_subspace_subset_path_component_of[OF hTU hVsubU hxV hVpathU])
+            thus ?thesis
+              unfolding hP_as_x by simp
+          qed
+
+          show "\<exists>V. neighborhood_of x X TX V \<and> V \<subseteq> P \<and> V \<subseteq> X
+              \<and> top1_path_connected_on V (subspace_topology X TX V)"
+            using hVnbhd hVsubP hVX hVpath by blast
+        qed
+
+        define VP where "VP = {V. \<exists>x\<in>P. neighborhood_of x X TX V \<and> V \<subseteq> P \<and> V \<subseteq> X
+            \<and> top1_path_connected_on V (subspace_topology X TX V)}"
+
+        have hVP_sub: "VP \<subseteq> TX"
+        proof (rule subsetI)
+          fix V assume hV: "V \<in> VP"
+          obtain x where hxP: "x \<in> P" and hnbhd: "neighborhood_of x X TX V"
+            and hVsub: "V \<subseteq> P" and hVX: "V \<subseteq> X"
+            and hpathV: "top1_path_connected_on V (subspace_topology X TX V)"
+            using hV unfolding VP_def by blast
+          show "V \<in> TX"
+            using hnbhd unfolding neighborhood_of_def by blast
+        qed
+
+        have hPeqUnion: "P = \<Union>VP"
+        proof (rule equalityI)
+          show "P \<subseteq> \<Union>VP"
+          proof (rule subsetI)
+            fix x assume hxP: "x \<in> P"
+            obtain V where hVnbhd: "neighborhood_of x X TX V" and hVsubP: "V \<subseteq> P"
+              and hVX: "V \<subseteq> X" and hVpath: "top1_path_connected_on V (subspace_topology X TX V)"
+              using hP_open hxP by blast
+            have hxV: "x \<in> V"
+              using hVnbhd unfolding neighborhood_of_def by blast
+            have "V \<in> VP"
+              unfolding VP_def using hxP hVnbhd hVsubP hVX hVpath by blast
+            thus "x \<in> \<Union>VP"
+              using hxV by blast
+          qed
+          show "\<Union>VP \<subseteq> P"
+            unfolding VP_def by blast
+        qed
+
+        have "P \<in> TX"
+          unfolding hPeqUnion
+          by (rule hUnionTX[OF hVP_sub])
+        thus "P \<in> TX" .
+      qed
+    qed
+  qed
+next
+  assume hOpenPC:
+    "\<forall>U\<in>TX. U \<subseteq> X \<longrightarrow> (\<forall>P\<in>top1_path_components_on U (subspace_topology X TX U). P \<in> TX)"
+  show "top1_locally_path_connected_on X TX"
+    unfolding top1_locally_path_connected_on_def
+  proof (intro conjI ballI)
+    show "is_topology_on X TX"
+      by (rule hTX)
+    fix x assume hxX: "x \<in> X"
+    show "top1_locally_path_connected_at X TX x"
+      unfolding top1_locally_path_connected_at_def
+    proof (intro allI impI)
+      fix U assume hU: "neighborhood_of x X TX U \<and> U \<subseteq> X"
+      have hUopen: "U \<in> TX"
+        using hU unfolding neighborhood_of_def by blast
+      have hxU: "x \<in> U"
+        using hU unfolding neighborhood_of_def by blast
+      have hUX: "U \<subseteq> X"
+        using hU by blast
+
+      let ?TU = "subspace_topology X TX U"
+      have hTU: "is_topology_on U ?TU"
+        by (rule subspace_topology_is_topology_on[OF hTX hUX])
+
+      define P where "P = top1_path_component_of_on U ?TU x"
+
+      have hPmem: "P \<in> top1_path_components_on U ?TU"
+        unfolding P_def top1_path_components_on_def using hxU by blast
+      have hPopen: "P \<in> TX"
+        using hOpenPC hUopen hUX hPmem by blast
+      have hxP: "x \<in> P"
+        unfolding P_def by (rule top1_path_component_of_on_self_mem[OF hTU hxU])
+      have hPsubU: "P \<subseteq> U"
+        unfolding P_def by (rule top1_path_component_of_on_subset[OF hTU hxU])
+      have hPpathU: "top1_path_connected_on P (subspace_topology U ?TU P)"
+        unfolding P_def by (rule top1_path_component_of_on_path_connected[OF hTU hxU])
+      have hPpathX: "top1_path_connected_on P (subspace_topology X TX P)"
+      proof -
+        have hTopEq: "subspace_topology U ?TU P = subspace_topology X TX P"
+          by (rule subspace_topology_trans[OF hPsubU])
+        show ?thesis
+          unfolding hTopEq[symmetric] by (rule hPpathU)
+      qed
+
+      have hPnbhd: "neighborhood_of x X TX P"
+        unfolding neighborhood_of_def using hPopen hxP by blast
+
+      show "\<exists>V. neighborhood_of x X TX V \<and> V \<subseteq> U \<and> V \<subseteq> X
+          \<and> top1_path_connected_on V (subspace_topology X TX V)"
+        apply (rule exI[where x=P])
+        using hPnbhd hPsubU hUX hPpathX by blast
+    qed
+  qed
+qed
 
 (** from *\S25 Theorem 25.5 (Path components vs components) [top1.tex:2999] **)
 theorem Theorem_25_5:
@@ -15332,7 +15643,68 @@ theorem Theorem_25_5:
   shows
     "(\<forall>x\<in>X. top1_path_component_of_on X TX x \<subseteq> top1_component_of_on X TX x)
      \<and> (top1_locally_path_connected_on X TX \<longrightarrow> (\<forall>x\<in>X. top1_path_component_of_on X TX x = top1_component_of_on X TX x))"
-  sorry
+proof (intro conjI)
+  show "\<forall>x\<in>X. top1_path_component_of_on X TX x \<subseteq> top1_component_of_on X TX x"
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    show "top1_path_component_of_on X TX x \<subseteq> top1_component_of_on X TX x"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> top1_path_component_of_on X TX x"
+      obtain f where hf: "top1_is_path_on X TX x y f"
+        using hy unfolding top1_path_component_of_on_def top1_in_same_path_component_on_def by blast
+      have hI: "is_topology_on top1_unit_interval top1_unit_interval_topology"
+        by (rule top1_unit_interval_topology_is_topology_on)
+      have hconnI: "top1_connected_on top1_unit_interval top1_unit_interval_topology"
+        by (rule top1_unit_interval_connected)
+
+      have contf: "top1_continuous_map_on top1_unit_interval top1_unit_interval_topology X TX f"
+        using hf unfolding top1_is_path_on_def by blast
+      have mapf: "\<forall>t\<in>top1_unit_interval. f t \<in> X"
+        using contf unfolding top1_continuous_map_on_def by blast
+
+      have hconn_im:
+        "top1_connected_on (f ` top1_unit_interval) (subspace_topology X TX (f ` top1_unit_interval))"
+        by (rule Theorem_23_5[OF hI hTX hconnI contf])
+
+      have him_subX: "f ` top1_unit_interval \<subseteq> X"
+      proof (rule subsetI)
+        fix u assume hu: "u \<in> f ` top1_unit_interval"
+        then obtain t where ht: "t \<in> top1_unit_interval" and hu_eq: "u = f t"
+          by blast
+        show "u \<in> X"
+          using mapf ht hu_eq by blast
+      qed
+
+      have h0: "0 \<in> top1_unit_interval"
+        unfolding top1_unit_interval_def by simp
+      have h1: "1 \<in> top1_unit_interval"
+        unfolding top1_unit_interval_def by simp
+      have hx_im: "x \<in> f ` top1_unit_interval"
+      proof -
+        have "f 0 \<in> f ` top1_unit_interval"
+          by (rule imageI[OF h0])
+        thus ?thesis
+          using hf unfolding top1_is_path_on_def by simp
+      qed
+      have hy_im: "y \<in> f ` top1_unit_interval"
+      proof -
+        have "f 1 \<in> f ` top1_unit_interval"
+          by (rule imageI[OF h1])
+        thus ?thesis
+          using hf unfolding top1_is_path_on_def by simp
+      qed
+
+      have him_subComp: "f ` top1_unit_interval \<subseteq> top1_component_of_on X TX x"
+        by (rule top1_connected_subspace_subset_component_of[OF him_subX hx_im hconn_im])
+      show "y \<in> top1_component_of_on X TX x"
+        using hy_im by (rule subsetD[OF him_subComp])
+    qed
+  qed
+
+  show "top1_locally_path_connected_on X TX \<longrightarrow>
+        (\<forall>x\<in>X. top1_path_component_of_on X TX x = top1_component_of_on X TX x)"
+    sorry
+qed
 
 section \<open>\<S>26 Compact Spaces\<close>
 
