@@ -21188,6 +21188,11 @@ proof -
   qed
 qed
 
+(** from \S32 Theorem 32.4 (Every well-ordered set is normal in the order topology) [top1.tex:4230] **)
+theorem Theorem_32_4:
+  shows "top1_normal_on (UNIV::'a::wellorder set) (order_topology_on_UNIV::'a set set)"
+  sorry
+
 section \<open>\<S>33 The Urysohn Lemma\<close>
 
 definition top1_closed_interval :: "real \<Rightarrow> real \<Rightarrow> real set" where
@@ -25532,6 +25537,550 @@ proof -
      apply (rule hWsubY)
     apply (rule hhomeo)
     done
+qed
+
+(** Restricting the ambient space of an embedding to a subspace that still contains the image. **)
+lemma top1_embedding_on_restrict_codomain_subspace:
+  assumes hEmb: "top1_embedding_on X TX Y TY f"
+  assumes hYY: "Y' \<subseteq> Y"
+  assumes himg: "f ` X \<subseteq> Y'"
+  defines "TY' \<equiv> subspace_topology Y TY Y'"
+  shows "top1_embedding_on X TX Y' TY' f"
+proof -
+  have hWsubY: "f ` X \<subseteq> Y"
+    using hEmb unfolding top1_embedding_on_def by blast
+
+  have hhomeo:
+    "top1_homeomorphism_on X TX (f ` X) (subspace_topology Y TY (f ` X)) f"
+    using hEmb unfolding top1_embedding_on_def by blast
+
+  have hsub_eq:
+    "subspace_topology Y' TY' (f ` X) = subspace_topology Y TY (f ` X)"
+  proof -
+    have hsub: "f ` X \<subseteq> Y'"
+      by (rule himg)
+    have "subspace_topology Y' (subspace_topology Y TY Y') (f ` X) = subspace_topology Y TY (f ` X)"
+      by (rule subspace_topology_trans[OF hsub])
+    thus ?thesis
+      unfolding TY'_def by simp
+  qed
+
+  have hhomeo':
+    "top1_homeomorphism_on X TX (f ` X) (subspace_topology Y' TY' (f ` X)) f"
+    unfolding hsub_eq using hhomeo .
+
+  show ?thesis
+    unfolding top1_embedding_on_def
+    apply (intro conjI)
+     apply (rule himg)
+    apply (rule hhomeo')
+    done
+qed
+
+(** The product topology on \([0,1]^J\) is the subspace topology inherited from \(\<real>^J\). **)
+lemma top1_product_topology_on_unit_interval_eq_subspace:
+  fixes J :: "'i set"
+  shows
+    "top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1)
+     =
+     subspace_topology
+       (top1_PiE J (\<lambda>_. (UNIV::real set)))
+       (top1_product_topology_on J (\<lambda>_. (UNIV::real set)) (\<lambda>_. order_topology_on_UNIV))
+       (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))"
+proof -
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
+  let ?XR = "(\<lambda>_. (UNIV::real set))"
+  let ?TR = "(\<lambda>_. order_topology_on_UNIV)"
+  let ?YR = "top1_PiE J ?XR"
+  let ?YI = "top1_PiE J (\<lambda>_. ?I)"
+  let ?BR = "top1_product_basis_on J ?XR ?TR"
+  let ?TYR = "top1_product_topology_on J ?XR ?TR"
+  let ?BI = "top1_product_basis_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)"
+
+  have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopProdR: "\<forall>i\<in>J. is_topology_on (?XR i) (?TR i)"
+    using hTopR by simp
+
+  have hBasisProdR: "basis_for ?YR ?BR ?TYR"
+    unfolding basis_for_def top1_product_topology_on_def
+    apply (intro conjI)
+     apply (rule top1_product_basis_is_basis_on[OF hTopProdR])
+    apply simp
+    done
+
+  have hYIYR: "?YI \<subseteq> ?YR"
+  proof -
+    have "\<forall>i\<in>J. (\<lambda>_. ?I) i \<subseteq> ?XR i"
+      by simp
+    thus ?thesis
+      by (rule top1_PiE_mono)
+  qed
+
+  define BY where "BY = {b \<inter> ?YI | b. b \<in> ?BR}"
+  have hBasisSub: "basis_for ?YI BY (subspace_topology ?YR ?TYR ?YI)"
+    by (rule Lemma_16_1[OF hBasisProdR hYIYR, folded BY_def])
+
+  have hBY_eq_BI: "BY = ?BI"
+  proof (rule equalityI)
+    show "BY \<subseteq> ?BI"
+    proof (rule subsetI)
+      fix c assume hc: "c \<in> BY"
+      obtain b where hb: "b \<in> ?BR" and hcEq: "c = b \<inter> ?YI"
+        using hc unfolding BY_def by blast
+      obtain U where hbdef: "b = top1_PiE J U"
+        and hU: "(\<forall>i\<in>J. U i \<in> order_topology_on_UNIV \<and> U i \<subseteq> (UNIV::real set))
+               \<and> finite {i \<in> J. U i \<noteq> (UNIV::real set)}"
+        using hb unfolding top1_product_basis_on_def by blast
+
+      define W where "W = (\<lambda>i. ?I \<inter> U i)"
+      have hcEq': "c = top1_PiE J W"
+      proof -
+        have "c = (top1_PiE J (\<lambda>_. ?I)) \<inter> top1_PiE J U"
+          unfolding hcEq hbdef by (simp add: Int_commute)
+        also have "... = top1_PiE J (\<lambda>i. ?I \<inter> U i)"
+          by (simp add: top1_PiE_Int)
+        finally show ?thesis
+          unfolding W_def by simp
+      qed
+
+      have hWcond: "(\<forall>i\<in>J. W i \<in> ?TI \<and> W i \<subseteq> ?I) \<and> finite {i \<in> J. W i \<noteq> ?I}"
+      proof (intro conjI)
+        show "\<forall>i\<in>J. W i \<in> ?TI \<and> W i \<subseteq> ?I"
+        proof (intro ballI)
+          fix i assume hi: "i \<in> J"
+          have hUi: "U i \<in> order_topology_on_UNIV"
+            using hU hi by blast
+          have "W i = ?I \<inter> U i"
+            unfolding W_def by simp
+          moreover have "?I \<inter> U i \<in> ?TI"
+            unfolding top1_closed_interval_topology_def subspace_topology_def
+            apply (rule CollectI)
+            apply (rule exI[where x="U i"])
+            using hUi by simp
+          ultimately have hWi: "W i \<in> ?TI"
+            by simp
+          show "W i \<in> ?TI \<and> W i \<subseteq> ?I"
+            using hWi unfolding W_def by blast
+        qed
+        have hfinU: "finite {i \<in> J. U i \<noteq> (UNIV::real set)}"
+          using hU by blast
+        have hsub:
+          "{i \<in> J. W i \<noteq> ?I} \<subseteq> {i \<in> J. U i \<noteq> (UNIV::real set)}"
+        proof (rule subsetI)
+          fix i assume hi: "i \<in> {i \<in> J. W i \<noteq> ?I}"
+          have hiJ: "i \<in> J" and hWi: "W i \<noteq> ?I"
+            using hi by blast+
+          have "U i \<noteq> (UNIV::real set)"
+          proof
+            assume hUiU: "U i = (UNIV::real set)"
+            have "W i = ?I"
+              unfolding W_def using hUiU by simp
+            thus False
+              using hWi by contradiction
+          qed
+          show "i \<in> {i \<in> J. U i \<noteq> (UNIV::real set)}"
+            using hiJ \<open>U i \<noteq> (UNIV::real set)\<close> by blast
+        qed
+        have "finite {i \<in> J. W i \<noteq> ?I}"
+          by (rule finite_subset[OF hsub hfinU])
+        thus "finite {i \<in> J. W i \<noteq> ?I}" .
+      qed
+
+      have "top1_PiE J W \<in> ?BI"
+        unfolding top1_product_basis_on_def
+        apply (rule CollectI)
+        apply (rule exI[where x=W])
+        using hWcond by blast
+      thus "c \<in> ?BI"
+        unfolding hcEq' .
+    qed
+    show "?BI \<subseteq> BY"
+    proof (rule subsetI)
+      fix c assume hc: "c \<in> ?BI"
+      obtain U where hcdef: "c = top1_PiE J U"
+        and hU: "(\<forall>i\<in>J. U i \<in> ?TI \<and> U i \<subseteq> ?I) \<and> finite {i \<in> J. U i \<noteq> ?I}"
+        using hc unfolding top1_product_basis_on_def by blast
+
+      have hex: "\<forall>i\<in>J. \<exists>V. V \<in> order_topology_on_UNIV \<and> (if U i = ?I then V = (UNIV::real set) else U i = ?I \<inter> V)"
+      proof (intro ballI)
+        fix i assume hi: "i \<in> J"
+        show "\<exists>V. V \<in> order_topology_on_UNIV \<and> (if U i = ?I then V = (UNIV::real set) else U i = ?I \<inter> V)"
+        proof (cases "U i = ?I")
+          case True
+          show ?thesis
+            apply (rule exI[where x="UNIV::real set"])
+            apply (intro conjI)
+             apply (rule conjunct1[OF conjunct2[OF order_topology_on_UNIV_is_topology_on[unfolded is_topology_on_def]]])
+            apply (simp add: True)
+            done
+        next
+          case False
+          have hUi: "U i \<in> ?TI"
+            using hU hi by blast
+          obtain V where hV: "V \<in> order_topology_on_UNIV" and hUiEq: "U i = ?I \<inter> V"
+            using hUi unfolding top1_closed_interval_topology_def subspace_topology_def by blast
+          show ?thesis
+            apply (rule exI[where x=V])
+            using hV hUiEq False by simp
+        qed
+      qed
+
+      obtain V where hV:
+        "\<forall>i\<in>J. V i \<in> order_topology_on_UNIV \<and> (if U i = ?I then V i = (UNIV::real set) else U i = ?I \<inter> V i)"
+        using bchoice[OF hex] by blast
+
+      define b where "b = top1_PiE J V"
+      have hb: "b \<in> ?BR"
+      proof -
+        have hVcond:
+          "(\<forall>i\<in>J. V i \<in> order_topology_on_UNIV \<and> V i \<subseteq> (UNIV::real set))
+           \<and> finite {i \<in> J. V i \<noteq> (UNIV::real set)}"
+        proof (intro conjI)
+          show "\<forall>i\<in>J. V i \<in> order_topology_on_UNIV \<and> V i \<subseteq> (UNIV::real set)"
+            using hV by blast
+          have hfinU: "finite {i \<in> J. U i \<noteq> ?I}"
+            using hU by blast
+          have hsub:
+            "{i \<in> J. V i \<noteq> (UNIV::real set)} \<subseteq> {i \<in> J. U i \<noteq> ?I}"
+          proof (rule subsetI)
+            fix i assume hi: "i \<in> {i \<in> J. V i \<noteq> (UNIV::real set)}"
+            have hiJ: "i \<in> J" and hVi: "V i \<noteq> (UNIV::real set)"
+              using hi by blast+
+            have "U i \<noteq> ?I"
+            proof
+              assume hUi: "U i = ?I"
+              have hVprop: "if U i = ?I then V i = (UNIV::real set) else U i = ?I \<inter> V i"
+                using hV hiJ by blast
+              have "V i = (UNIV::real set)"
+                using hVprop hUi by simp
+              thus False
+                using hVi by contradiction
+            qed
+            show "i \<in> {i \<in> J. U i \<noteq> ?I}"
+              using hiJ \<open>U i \<noteq> ?I\<close> by blast
+          qed
+          have "finite {i \<in> J. V i \<noteq> (UNIV::real set)}"
+            by (rule finite_subset[OF hsub hfinU])
+          thus "finite {i \<in> J. V i \<noteq> (UNIV::real set)}" .
+        qed
+        show ?thesis
+          unfolding top1_product_basis_on_def b_def
+          apply (rule CollectI)
+          apply (rule exI[where x=V])
+          using hVcond by blast
+      qed
+
+      have hEq_on: "\<forall>i\<in>J. ?I \<inter> V i = U i"
+      proof (intro ballI)
+        fix i assume hi: "i \<in> J"
+        show "?I \<inter> V i = U i"
+        proof (cases "U i = ?I")
+          case True
+          have hVprop: "if U i = ?I then V i = (UNIV::real set) else U i = ?I \<inter> V i"
+            using hV hi by blast
+          have "V i = (UNIV::real set)"
+            using hVprop True by simp
+          thus ?thesis
+            using True by simp
+        next
+          case False
+          have hVprop: "if U i = ?I then V i = (UNIV::real set) else U i = ?I \<inter> V i"
+            using hV hi by blast
+          have "U i = ?I \<inter> V i"
+            using hVprop False by simp
+          thus ?thesis
+            by simp
+        qed
+      qed
+
+      have hcEq': "?YI \<inter> b = c"
+      proof -
+        have "?YI \<inter> b = top1_PiE J (\<lambda>i. ?I \<inter> V i)"
+          unfolding b_def by (simp add: top1_PiE_Int)
+        also have "... = top1_PiE J U"
+          by (rule top1_PiE_cong_on[OF hEq_on])
+        finally show ?thesis
+          unfolding hcdef by simp
+      qed
+
+	      have hcEq2: "c = b \<inter> ?YI"
+	        using hcEq' by (simp add: Int_commute)
+	      show "c \<in> BY"
+	        unfolding BY_def
+	      proof (rule CollectI)
+	        show "\<exists>b'. c = b' \<inter> ?YI \<and> b' \<in> ?BR"
+	        proof (rule exI[where x=b])
+	          show "c = b \<inter> ?YI \<and> b \<in> ?BR"
+	          proof (intro conjI)
+	            show "c = b \<inter> ?YI"
+	              by (rule hcEq2)
+	            show "b \<in> ?BR"
+	              by (rule hb)
+	          qed
+	        qed
+	      qed
+	    qed
+	  qed
+
+  have hSubEq:
+    "subspace_topology ?YR ?TYR ?YI = topology_generated_by_basis ?YI BY"
+    using conjunct2[OF hBasisSub[unfolded basis_for_def]] .
+
+  have hProdEq:
+    "top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI) = topology_generated_by_basis ?YI ?BI"
+    unfolding top1_product_topology_on_def by simp
+
+  show ?thesis
+    unfolding hProdEq
+    unfolding hSubEq
+    unfolding hBY_eq_BI
+    by simp
+qed
+
+(** from \S34 Theorem 34.3 (Completely regular spaces embed into a cube) [top1.tex:4765] **)
+theorem Theorem_34_3_forward:
+  assumes hCR: "top1_completely_regular_on X TX"
+  shows "\<exists>J::('a \<Rightarrow> real) set. \<exists>F::'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real).
+    top1_embedding_on X TX
+      (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))
+      (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1))
+      F"
+proof -
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
+  let ?XR = "(\<lambda>_. (UNIV::real set))"
+  let ?TR = "(\<lambda>_. order_topology_on_UNIV)"
+
+  have hT1: "top1_T1_on X TX"
+    using hCR unfolding top1_completely_regular_on_def by blast
+  have hTopX: "is_topology_on X TX"
+    using hT1 unfolding top1_T1_on_def by blast
+  have hT1sing: "\<forall>x\<in>X. closedin_on X TX {x}"
+    using hT1 unfolding top1_T1_on_def by blast
+
+  have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopI: "is_topology_on ?I ?TI"
+    unfolding top1_closed_interval_topology_def
+    apply (rule subspace_topology_is_topology_on)
+     apply (rule hTopR)
+    apply simp
+    done
+
+  define J where "J = {f::'a \<Rightarrow> real. top1_continuous_map_on X TX ?I ?TI f}"
+  define F where "F x = (\<lambda>f. if f \<in> J then f x else undefined)" for x
+
+  have hfcontR: "\<forall>f\<in>J. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f"
+  proof (intro ballI)
+    fix f assume hfJ: "f \<in> J"
+    have hfI: "top1_continuous_map_on X TX ?I ?TI f"
+      using hfJ unfolding J_def by simp
+    show "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f"
+    proof -
+      have hTopUNIV: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+        by (rule hTopR)
+      have hTI_eq: "?TI = subspace_topology (UNIV::real set) order_topology_on_UNIV ?I"
+        unfolding top1_closed_interval_topology_def by simp
+      have hexpand:
+        "\<forall>W g. top1_continuous_map_on X TX ?I ?TI g \<and> ?I \<subseteq> W \<and> ?TI = subspace_topology W order_topology_on_UNIV ?I
+          \<longrightarrow> top1_continuous_map_on X TX W order_topology_on_UNIV g"
+        using Theorem_18_2(6)[OF hTopX hTopI hTopUNIV] .
+      have hImp:
+        "top1_continuous_map_on X TX ?I ?TI f \<and> ?I \<subseteq> (UNIV::real set) \<and> ?TI = subspace_topology (UNIV::real set) order_topology_on_UNIV ?I
+          \<longrightarrow> top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f"
+        by (rule spec[OF spec[OF hexpand, where x="UNIV::real set"], where x=f])
+      have hPre:
+        "top1_continuous_map_on X TX ?I ?TI f \<and> ?I \<subseteq> (UNIV::real set) \<and> ?TI = subspace_topology (UNIV::real set) order_topology_on_UNIV ?I"
+        using hfI hTI_eq by simp
+      show ?thesis
+        by (rule mp[OF hImp hPre])
+    qed
+  qed
+
+  have hSep:
+    "\<forall>x0\<in>X. \<forall>A. closedin_on X TX A \<and> x0 \<notin> A \<longrightarrow>
+       (\<exists>f::'a \<Rightarrow> real.
+          top1_continuous_map_on X TX ?I ?TI f \<and> f x0 = 1 \<and> (\<forall>x\<in>A. f x = 0))"
+    using hCR unfolding top1_completely_regular_on_def by blast
+
+  have hloc:
+    "\<forall>x0\<in>X. \<forall>U. neighborhood_of x0 X TX U \<longrightarrow>
+       (\<exists>f\<in>J. 0 < f x0 \<and> (\<forall>x\<in>X - U. f x = 0))"
+  proof (intro ballI allI impI)
+    fix x0 U
+    assume hx0X: "x0 \<in> X"
+    assume hnbd: "neighborhood_of x0 X TX U"
+    have hUopen: "U \<in> TX" and hx0U: "x0 \<in> U"
+      using hnbd unfolding neighborhood_of_def by blast+
+    have hXopen: "X \<in> TX"
+      using hTopX unfolding is_topology_on_def by blast
+    let ?A = "X - U"
+    have hAcl: "closedin_on X TX ?A"
+      unfolding closedin_on_def
+    proof (intro conjI)
+      show "?A \<subseteq> X"
+        by simp
+      have "X \<inter> U \<in> TX"
+        by (rule topology_inter2[OF hTopX hXopen hUopen])
+      moreover have "X - ?A = X \<inter> U"
+        by blast
+      ultimately show "X - ?A \<in> TX"
+        by simp
+    qed
+
+    have hx0A: "x0 \<notin> ?A"
+      using hx0U hx0X by blast
+
+    obtain f where hfI: "top1_continuous_map_on X TX ?I ?TI f"
+      and hfx0: "f x0 = 1" and hfA0: "\<forall>x\<in>?A. f x = 0"
+      using hSep hx0X hAcl hx0A by blast
+
+    have hfJ: "f \<in> J"
+      unfolding J_def using hfI by simp
+
+    have hpos: "0 < f x0"
+      using hfx0 by simp
+
+    have hfout: "\<forall>x\<in>X - U. f x = 0"
+      using hfA0 by simp
+
+    show "\<exists>f\<in>J. 0 < f x0 \<and> (\<forall>x\<in>X - U. f x = 0)"
+      apply (rule bexI[where x=f])
+       apply (intro conjI)
+        apply (rule hpos)
+       apply (rule hfout)
+      apply (rule hfJ)
+      done
+  qed
+
+  have hEmbR:
+    "top1_embedding_on X TX
+      (top1_PiE J ?XR)
+      (top1_product_topology_on J ?XR ?TR)
+      F"
+  proof -
+    have hEmb:
+      "top1_embedding_on X TX
+        (top1_PiE J ?XR)
+        (top1_product_topology_on J ?XR ?TR)
+        F"
+      by (rule Theorem_34_2[where f="(\<lambda>g::('a \<Rightarrow> real). g)" and J=J, folded F_def],
+          rule hTopX, rule hT1sing, rule hfcontR, rule hloc)
+    show ?thesis
+      by (rule hEmb)
+  qed
+
+  have hFimgI: "F ` X \<subseteq> top1_PiE J (\<lambda>_. ?I)"
+  proof (rule subsetI)
+    fix y assume hy: "y \<in> F ` X"
+    then obtain x where hxX: "x \<in> X" and hyEq: "y = F x"
+      by blast
+    have hmem: "\<forall>f\<in>J. (F x) f \<in> ?I"
+    proof (intro ballI)
+      fix f assume hfJ: "f \<in> J"
+      have hfI: "top1_continuous_map_on X TX ?I ?TI f"
+        using hfJ unfolding J_def by simp
+      have hmap: "\<forall>z\<in>X. f z \<in> ?I"
+        using hfI unfolding top1_continuous_map_on_def by blast
+      have "(F x) f = f x"
+        unfolding F_def using hfJ by simp
+      thus "(F x) f \<in> ?I"
+        using hmap hxX by simp
+    qed
+    have hext: "\<forall>f. f \<notin> J \<longrightarrow> (F x) f = undefined"
+      unfolding F_def by simp
+    have "F x \<in> top1_PiE J (\<lambda>_. ?I)"
+      unfolding top1_PiE_iff using hmem hext by blast
+    thus "y \<in> top1_PiE J (\<lambda>_. ?I)"
+      using hyEq by simp
+  qed
+
+  have hTopEq:
+    "top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)
+     =
+     subspace_topology
+       (top1_PiE J ?XR)
+       (top1_product_topology_on J ?XR ?TR)
+       (top1_PiE J (\<lambda>_. ?I))"
+    by (rule top1_product_topology_on_unit_interval_eq_subspace)
+
+  have hEmbI':
+    "top1_embedding_on X TX
+      (top1_PiE J (\<lambda>_. ?I))
+      (subspace_topology
+        (top1_PiE J ?XR)
+        (top1_product_topology_on J ?XR ?TR)
+        (top1_PiE J (\<lambda>_. ?I)))
+      F"
+  proof -
+    have hYsub:
+      "top1_PiE J (\<lambda>_. ?I) \<subseteq> top1_PiE J ?XR"
+    proof -
+      have "\<forall>i\<in>J. (\<lambda>_. ?I) i \<subseteq> ?XR i"
+        by simp
+      thus ?thesis
+        by (rule top1_PiE_mono)
+    qed
+    show ?thesis
+    proof -
+	      have hEmbTmp:
+	        "top1_embedding_on X TX (top1_PiE J (\<lambda>_. ?I))
+	          (subspace_topology (top1_PiE J ?XR) (top1_product_topology_on J ?XR ?TR) (top1_PiE J (\<lambda>_. ?I))) F"
+		      proof -
+		        show ?thesis
+		          apply (rule top1_embedding_on_restrict_codomain_subspace[OF hEmbR hYsub hFimgI])
+		          done
+		      qed
+	      show ?thesis
+	        by (rule hEmbTmp)
+	    qed
+	  qed
+
+	  have hEmbI:
+	    "top1_embedding_on X TX
+	      (top1_PiE J (\<lambda>_. ?I))
+	      (top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI))
+	      F"
+	    unfolding hTopEq using hEmbI' by simp
+	
+		  show ?thesis
+		  proof (rule exI[where x=J])
+		    show "\<exists>F. top1_embedding_on X TX (top1_PiE J (\<lambda>_. ?I))
+		      (top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)) F"
+	    proof (rule exI[where x=F])
+	      show "top1_embedding_on X TX (top1_PiE J (\<lambda>_. ?I))
+	        (top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)) F"
+	        by (rule hEmbI)
+	    qed
+	  qed
+	qed
+
+theorem Theorem_34_3:
+  shows "top1_completely_regular_on X TX \<longleftrightarrow>
+    (\<exists>J::('a \<Rightarrow> real) set. \<exists>F::'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real).
+      top1_embedding_on X TX
+        (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))
+        (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1))
+        F)"
+proof (rule iffI)
+  assume hCR: "top1_completely_regular_on X TX"
+  show "\<exists>J::('a \<Rightarrow> real) set. \<exists>F::'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real).
+      top1_embedding_on X TX
+        (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))
+        (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1))
+        F"
+    by (rule Theorem_34_3_forward[OF hCR])
+next
+  assume hEmb:
+    "\<exists>J::('a \<Rightarrow> real) set. \<exists>F::'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real).
+      top1_embedding_on X TX
+        (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))
+        (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1))
+        F"
+  show "top1_completely_regular_on X TX"
+    sorry
 qed
 
 section \<open>*\<S>35 The Tietze Extension Theorem\<close>
