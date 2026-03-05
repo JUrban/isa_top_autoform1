@@ -9775,12 +9775,742 @@ proof -
     unfolding top1_metric_topology_on_def using hTop by simp
 qed
 
+(** Standard bounded metric corresponding to a given metric (top1.tex, Theorem 20.1). **)
+definition top1_bounded_metric :: "('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> real" where
+  "top1_bounded_metric d x y = min (d x y) 1"
+
+lemma top1_bounded_metric_on:
+  assumes hd: "top1_metric_on X d"
+  shows "top1_metric_on X (top1_bounded_metric d)"
+proof -
+  have h0iff: "\<forall>x\<in>X. \<forall>y\<in>X. d x y = 0 \<longleftrightarrow> x = y"
+    using hd unfolding top1_metric_on_def by blast
+  have hsym: "\<forall>x\<in>X. \<forall>y\<in>X. d x y = d y x"
+    using hd unfolding top1_metric_on_def by blast
+  have htri: "\<forall>x\<in>X. \<forall>y\<in>X. \<forall>z\<in>X. d x z \<le> d x y + d y z"
+    using hd unfolding top1_metric_on_def by blast
+
+  show ?thesis
+    unfolding top1_metric_on_def top1_bounded_metric_def
+  proof (intro conjI)
+    show "\<forall>x\<in>X. 0 \<le> min (d x x) 1"
+      using hd unfolding top1_metric_on_def by simp
+    show "\<forall>x\<in>X. \<forall>y\<in>X. 0 \<le> min (d x y) 1"
+      using hd unfolding top1_metric_on_def by simp
+    show "\<forall>x\<in>X. \<forall>y\<in>X. (min (d x y) 1 = 0) = (x = y)"
+    proof (intro ballI)
+      fix x y assume hxX: "x \<in> X" and hyX: "y \<in> X"
+      have hd0: "d x y = 0 \<longleftrightarrow> x = y"
+        using h0iff hxX hyX by blast
+      show "(min (d x y) 1 = 0) = (x = y)"
+      proof (cases "d x y \<le> 1")
+        case True
+        then have "min (d x y) 1 = d x y"
+          by simp
+        thus ?thesis
+          by (simp add: hd0)
+      next
+        case False
+        then have "min (d x y) 1 = 1"
+          by simp
+        thus ?thesis
+        proof -
+          have hxy: "x \<noteq> y"
+          proof
+            assume hxy': "x = y"
+            have "d x y = 0"
+              using hxy' hd0 by simp
+            hence "d x y \<le> 1"
+              by simp
+            thus False
+              using False by blast
+          qed
+          show "(min (d x y) 1 = 0) = (x = y)"
+            by (simp add: \<open>min (d x y) 1 = 1\<close> hxy)
+        qed
+      qed
+    qed
+    show "\<forall>x\<in>X. \<forall>y\<in>X. min (d x y) 1 = min (d y x) 1"
+      using hsym by simp
+    show "\<forall>x\<in>X. \<forall>y\<in>X. \<forall>z\<in>X. min (d x z) 1 \<le> min (d x y) 1 + min (d y z) 1"
+    proof (intro ballI)
+      fix x y z assume hxX: "x \<in> X" and hyX: "y \<in> X" and hzX: "z \<in> X"
+      have htri_xyz: "d x z \<le> d x y + d y z"
+        using htri hxX hyX hzX by blast
+      show "min (d x z) 1 \<le> min (d x y) 1 + min (d y z) 1"
+      proof (cases "d x y < 1")
+        case False
+        then have hminxy: "min (d x y) 1 = 1"
+          by simp
+        have "min (d x z) 1 \<le> 1"
+          by simp
+        also have "... \<le> min (d x y) 1 + min (d y z) 1"
+        proof -
+          have hnonneg: "0 \<le> d y z"
+            using hd hyX hzX unfolding top1_metric_on_def by blast
+          have hminnonneg: "0 \<le> min (d y z) 1"
+            using hnonneg by simp
+          have "1 \<le> 1 + min (d y z) 1"
+            using hminnonneg by linarith
+          thus ?thesis
+            by (simp add: hminxy)
+        qed
+        finally show ?thesis .
+      next
+        case True
+        then have hminxy: "min (d x y) 1 = d x y"
+          by simp
+        show ?thesis
+        proof (cases "d y z < 1")
+          case False
+          then have hminyz: "min (d y z) 1 = 1"
+            by simp
+          have "min (d x z) 1 \<le> 1"
+            by simp
+          also have "... \<le> min (d x y) 1 + min (d y z) 1"
+          proof -
+            have hnonneg: "0 \<le> d x y"
+              using hd hxX hyX unfolding top1_metric_on_def by blast
+            have hminnonneg: "0 \<le> min (d x y) 1"
+              using hnonneg by simp
+            have "1 \<le> min (d x y) 1 + 1"
+              using hminnonneg by linarith
+            thus ?thesis
+              by (simp add: hminyz)
+          qed
+          finally show ?thesis .
+        next
+          case True
+          then have hminyz: "min (d y z) 1 = d y z"
+            by simp
+          have "min (d x z) 1 \<le> d x z"
+            by simp
+          also have "... \<le> d x y + d y z"
+            using htri_xyz by simp
+          also have "... = min (d x y) 1 + min (d y z) 1"
+            by (simp add: hminxy hminyz)
+          finally show ?thesis .
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma top1_ball_on_bounded_metric_eq:
+  assumes he: "e \<le> (1::real)"
+  shows "top1_ball_on X (top1_bounded_metric d) x e = top1_ball_on X d x e"
+proof (rule set_eqI)
+  fix y
+  show "y \<in> top1_ball_on X (top1_bounded_metric d) x e \<longleftrightarrow> y \<in> top1_ball_on X d x e"
+  proof
+    assume hy: "y \<in> top1_ball_on X (top1_bounded_metric d) x e"
+    have hyX: "y \<in> X" and hmin: "top1_bounded_metric d x y < e"
+      using hy unfolding top1_ball_on_def by blast+
+    have hmin': "min (d x y) 1 < e"
+      using hmin unfolding top1_bounded_metric_def by simp
+    have "d x y < e"
+    proof (cases "d x y \<le> 1")
+      case True
+      thus ?thesis using hmin' by simp
+    next
+      case False
+      then have "min (d x y) 1 = 1"
+        by simp
+      hence "1 < e"
+        using hmin' by simp
+      thus ?thesis
+        using he by simp
+    qed
+    show "y \<in> top1_ball_on X d x e"
+      unfolding top1_ball_on_def using hyX \<open>d x y < e\<close> by blast
+  next
+    assume hy: "y \<in> top1_ball_on X d x e"
+    have hyX: "y \<in> X" and hdist: "d x y < e"
+      using hy unfolding top1_ball_on_def by blast+
+    have "top1_bounded_metric d x y < e"
+      unfolding top1_bounded_metric_def using hdist by simp
+    show "y \<in> top1_ball_on X (top1_bounded_metric d) x e"
+      unfolding top1_ball_on_def using hyX \<open>top1_bounded_metric d x y < e\<close> by blast
+  qed
+qed
+
+lemma top1_metric_open_contains_ball:
+  assumes hd: "top1_metric_on X d"
+  assumes hU: "U \<in> top1_metric_topology_on X d"
+  assumes hxU: "x \<in> U"
+  shows "\<exists>e>0. top1_ball_on X d x e \<subseteq> U"
+proof -
+  have hUgen: "U \<in> topology_generated_by_basis X (top1_metric_basis_on X d)"
+    using hU unfolding top1_metric_topology_on_def by simp
+  have hprop: "\<exists>b\<in>top1_metric_basis_on X d. x \<in> b \<and> b \<subseteq> U"
+    using hUgen hxU unfolding topology_generated_by_basis_def by blast
+  obtain b where hb: "b \<in> top1_metric_basis_on X d" and hxb: "x \<in> b" and hbU: "b \<subseteq> U"
+    using hprop by blast
+  obtain c e where hbdef: "b = top1_ball_on X d c e" and hcX: "c \<in> X" and he: "0 < e"
+    using hb unfolding top1_metric_basis_on_def by blast
+  have hxX: "x \<in> X"
+    using hxb unfolding hbdef top1_ball_on_def by blast
+  have hdcx: "d c x < e"
+    using hxb unfolding hbdef top1_ball_on_def by blast
+
+  define r where "r = (e - d c x) / 2"
+  have hr_pos: "0 < r"
+    using hdcx he unfolding r_def by simp
+
+  have hball_sub: "top1_ball_on X d x r \<subseteq> top1_ball_on X d c e"
+  proof (rule subsetI)
+    fix y assume hy: "y \<in> top1_ball_on X d x r"
+    have hyX: "y \<in> X" and hdxy: "d x y < r"
+      using hy unfolding top1_ball_on_def by blast+
+    have htri_cxy: "d c y \<le> d c x + d x y"
+      using hd hcX hxX hyX unfolding top1_metric_on_def by blast
+    have "d c y < d c x + r"
+      using htri_cxy hdxy by simp
+    also have "... = (d c x + e) / 2"
+      unfolding r_def by (simp add: field_simps algebra_simps)
+    also have "... < e"
+      using hdcx by simp
+    finally have "d c y < e" .
+    show "y \<in> top1_ball_on X d c e"
+      unfolding top1_ball_on_def using hyX \<open>d c y < e\<close> by blast
+  qed
+
+  have hsubU: "top1_ball_on X d x r \<subseteq> U"
+    using hball_sub hbU unfolding hbdef by blast
+
+  show ?thesis
+    by (rule exI[where x=r], intro conjI, rule hr_pos, rule hsubU)
+qed
+
+(** from \S20 Theorem 20.1 (Standard bounded metric) [top1.tex:1606] **)
+theorem Theorem_20_1:
+  assumes hd: "top1_metric_on X d"
+  shows "top1_metric_on X (top1_bounded_metric d)
+    \<and> top1_metric_topology_on X (top1_bounded_metric d) = top1_metric_topology_on X d"
+proof -
+  have hdb: "top1_metric_on X (top1_bounded_metric d)"
+    by (rule top1_bounded_metric_on[OF hd])
+
+  have hTop_d: "is_topology_on X (top1_metric_topology_on X d)"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+  have hTop_db: "is_topology_on X (top1_metric_topology_on X (top1_bounded_metric d))"
+    by (rule top1_metric_topology_on_is_topology_on[OF hdb])
+
+  have hEq: "top1_metric_topology_on X (top1_bounded_metric d) = top1_metric_topology_on X d"
+  proof (rule equalityI)
+    show "top1_metric_topology_on X d \<subseteq> top1_metric_topology_on X (top1_bounded_metric d)"
+    proof (rule subsetI)
+      fix U assume hU: "U \<in> top1_metric_topology_on X d"
+      have hUX: "U \<subseteq> X"
+        using hU unfolding top1_metric_topology_on_def topology_generated_by_basis_def by blast
+      have hlocal: "\<forall>x\<in>U. \<exists>b\<in>top1_metric_basis_on X (top1_bounded_metric d). x \<in> b \<and> b \<subseteq> U"
+      proof (intro ballI)
+        fix x assume hxU: "x \<in> U"
+        obtain e where he: "e > 0" and hballsub: "top1_ball_on X d x e \<subseteq> U"
+          using top1_metric_open_contains_ball[OF hd hU hxU] by blast
+        define e' where "e' = min e (1/2)"
+        have he'pos: "e' > 0"
+          unfolding e'_def using he by simp
+        have he'le1: "e' \<le> (1::real)"
+          unfolding e'_def by simp
+        have he'le: "e' \<le> e"
+          unfolding e'_def by simp
+        have hballsub': "top1_ball_on X d x e' \<subseteq> U"
+        proof (rule subsetI)
+          fix y assume hy: "y \<in> top1_ball_on X d x e'"
+          have hyX: "y \<in> X" and hdist: "d x y < e'"
+            using hy unfolding top1_ball_on_def by blast+
+          have "d x y < e"
+            using hdist he'le by linarith
+          have "y \<in> top1_ball_on X d x e"
+            unfolding top1_ball_on_def using hyX \<open>d x y < e\<close> by blast
+          thus "y \<in> U"
+            using hballsub by blast
+        qed
+        have hball_eq: "top1_ball_on X (top1_bounded_metric d) x e' = top1_ball_on X d x e'"
+          by (rule top1_ball_on_bounded_metric_eq[OF he'le1])
+        have hball_basis: "top1_ball_on X (top1_bounded_metric d) x e' \<in> top1_metric_basis_on X (top1_bounded_metric d)"
+          unfolding top1_metric_basis_on_def using hUX hxU he'pos
+          by (cases "x \<in> X", blast, blast)
+        have hx_in: "x \<in> top1_ball_on X (top1_bounded_metric d) x e'"
+        proof -
+          have hxX: "x \<in> X" using hUX hxU by blast
+          have "top1_bounded_metric d x x = 0"
+            using hdb hxX unfolding top1_metric_on_def by blast
+          thus ?thesis
+            unfolding top1_ball_on_def using hxX he'pos by simp
+        qed
+        have hsubU': "top1_ball_on X (top1_bounded_metric d) x e' \<subseteq> U"
+          unfolding hball_eq using hballsub' by simp
+        show "\<exists>b\<in>top1_metric_basis_on X (top1_bounded_metric d). x \<in> b \<and> b \<subseteq> U"
+          by (rule bexI[where x="top1_ball_on X (top1_bounded_metric d) x e'"], intro conjI, rule hx_in, rule hsubU', rule hball_basis)
+      qed
+      have "U \<in> topology_generated_by_basis X (top1_metric_basis_on X (top1_bounded_metric d))"
+        unfolding topology_generated_by_basis_def using hUX hlocal by blast
+      thus "U \<in> top1_metric_topology_on X (top1_bounded_metric d)"
+        unfolding top1_metric_topology_on_def by simp
+    qed
+    show "top1_metric_topology_on X (top1_bounded_metric d) \<subseteq> top1_metric_topology_on X d"
+    proof (rule subsetI)
+      fix U assume hU: "U \<in> top1_metric_topology_on X (top1_bounded_metric d)"
+      have hUX: "U \<subseteq> X"
+        using hU unfolding top1_metric_topology_on_def topology_generated_by_basis_def by blast
+      have hlocal: "\<forall>x\<in>U. \<exists>b\<in>top1_metric_basis_on X d. x \<in> b \<and> b \<subseteq> U"
+      proof (intro ballI)
+        fix x assume hxU: "x \<in> U"
+        obtain e where he: "e > 0" and hballsub: "top1_ball_on X (top1_bounded_metric d) x e \<subseteq> U"
+          using top1_metric_open_contains_ball[OF hdb hU hxU] by blast
+        define e' where "e' = min e (1/2)"
+        have he'pos: "e' > 0"
+          unfolding e'_def using he by simp
+        have he'le1: "e' \<le> (1::real)"
+          unfolding e'_def by simp
+        have he'le: "e' \<le> e"
+          unfolding e'_def by simp
+        have hballsub': "top1_ball_on X (top1_bounded_metric d) x e' \<subseteq> U"
+        proof (rule subsetI)
+          fix y assume hy: "y \<in> top1_ball_on X (top1_bounded_metric d) x e'"
+          have hyX: "y \<in> X" and hdist: "top1_bounded_metric d x y < e'"
+            using hy unfolding top1_ball_on_def by blast+
+          have "top1_bounded_metric d x y < e"
+            using hdist he'le by linarith
+          have "y \<in> top1_ball_on X (top1_bounded_metric d) x e"
+            unfolding top1_ball_on_def using hyX \<open>top1_bounded_metric d x y < e\<close> by blast
+          thus "y \<in> U"
+            using hballsub by blast
+        qed
+        have hball_eq: "top1_ball_on X (top1_bounded_metric d) x e' = top1_ball_on X d x e'"
+          by (rule top1_ball_on_bounded_metric_eq[OF he'le1])
+        have hball_basis: "top1_ball_on X d x e' \<in> top1_metric_basis_on X d"
+          unfolding top1_metric_basis_on_def using hUX hxU he'pos
+          by (cases "x \<in> X", blast, blast)
+        have hx_in: "x \<in> top1_ball_on X d x e'"
+        proof -
+          have hxX: "x \<in> X" using hUX hxU by blast
+          have "d x x = 0"
+            using hd hxX unfolding top1_metric_on_def by blast
+          thus ?thesis
+            unfolding top1_ball_on_def using hxX he'pos by simp
+        qed
+        have hsubU': "top1_ball_on X d x e' \<subseteq> U"
+          using hballsub' by (simp add: hball_eq[symmetric])
+        show "\<exists>b\<in>top1_metric_basis_on X d. x \<in> b \<and> b \<subseteq> U"
+          by (rule bexI[where x="top1_ball_on X d x e'"], intro conjI, rule hx_in, rule hsubU', rule hball_basis)
+      qed
+      have "U \<in> topology_generated_by_basis X (top1_metric_basis_on X d)"
+        unfolding topology_generated_by_basis_def using hUX hlocal by blast
+      thus "U \<in> top1_metric_topology_on X d"
+        unfolding top1_metric_topology_on_def by simp
+    qed
+  qed
+
+  show ?thesis
+    by (intro conjI, rule hdb, rule hEq)
+qed
+
 section \<open>\<S>21 The Metric Topology (continued)\<close>
 
 text \<open>
-  Section \<S>21 of \<open>top1.tex\<close> develops the usual sequential and uniform notions in metric spaces.
-  This currently serves as a placeholder; later sections (notably \<S>30) reuse these ideas.
+  Section \<S>21 of \<open>top1.tex\<close> develops the familiar \<open>\<epsilon>\<close>–\<open>\<delta>\<close> definition of continuity
+  and the relation between continuity and sequences in metrizable spaces.
 \<close>
+
+(** from \S21 Theorem 21.1 (\<epsilon>–\<delta> continuity) [top1.tex:1984] **)
+theorem Theorem_21_1:
+  assumes hdX: "top1_metric_on X dX"
+  assumes hdY: "top1_metric_on Y dY"
+  shows "top1_continuous_map_on X (top1_metric_topology_on X dX) Y (top1_metric_topology_on Y dY) f
+    \<longleftrightarrow>
+      ((\<forall>x\<in>X. f x \<in> Y) \<and>
+       (\<forall>x\<in>X. \<forall>\<epsilon>::real. \<epsilon> > 0 \<longrightarrow>
+          (\<exists>\<delta>::real. \<delta> > 0 \<and> (\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>))))"
+proof (rule iffI)
+  assume hcont: "top1_continuous_map_on X (top1_metric_topology_on X dX) Y (top1_metric_topology_on Y dY) f"
+  have hmap: "\<forall>x\<in>X. f x \<in> Y"
+    using hcont unfolding top1_continuous_map_on_def by blast
+  have hpre: "\<forall>V\<in>(top1_metric_topology_on Y dY). {x\<in>X. f x \<in> V} \<in> top1_metric_topology_on X dX"
+    using hcont unfolding top1_continuous_map_on_def by blast
+  show "(\<forall>x\<in>X. f x \<in> Y) \<and>
+       (\<forall>x\<in>X. \<forall>\<epsilon>::real. \<epsilon> > 0 \<longrightarrow>
+          (\<exists>\<delta>::real. \<delta> > 0 \<and> (\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>)))"
+  proof (intro conjI)
+    show "\<forall>x\<in>X. f x \<in> Y"
+      by (rule hmap)
+    show "\<forall>x\<in>X. \<forall>\<epsilon>::real. \<epsilon> > 0 \<longrightarrow>
+          (\<exists>\<delta>::real. \<delta> > 0 \<and> (\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>))"
+    proof (intro ballI allI impI)
+      fix x
+      fix \<epsilon> :: real
+      assume hxX: "x \<in> X"
+      assume heps: "\<epsilon> > 0"
+      have hfxY: "f x \<in> Y" using hmap hxX by blast
+      have hopen_ball: "top1_ball_on Y dY (f x) \<epsilon> \<in> top1_metric_topology_on Y dY"
+        by (rule top1_ball_open_in_metric_topology[OF hdY hfxY heps])
+      have hpre_open: "{u\<in>X. f u \<in> top1_ball_on Y dY (f x) \<epsilon>} \<in> top1_metric_topology_on X dX"
+        using hpre hopen_ball by blast
+      have hxpre: "x \<in> {u\<in>X. f u \<in> top1_ball_on Y dY (f x) \<epsilon>}"
+      proof -
+        have hdx0: "dY (f x) (f x) = 0"
+          using hdY hfxY unfolding top1_metric_on_def by blast
+        show ?thesis
+          unfolding top1_ball_on_def using hxX hfxY heps hdx0 by simp
+      qed
+      obtain \<delta> where hdel: "\<delta> > 0"
+          and hball_sub: "top1_ball_on X dX x \<delta> \<subseteq> {u\<in>X. f u \<in> top1_ball_on Y dY (f x) \<epsilon>}"
+        using top1_metric_open_contains_ball[OF hdX hpre_open hxpre] by blast
+      show "\<exists>\<delta>::real. \<delta> > 0 \<and> (\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>)"
+      proof (rule exI[where x=\<delta>], intro conjI)
+        show "\<delta> > 0" by (rule hdel)
+        show "\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>"
+        proof (intro ballI impI)
+          fix y assume hyX: "y \<in> X" and hdist: "dX x y < \<delta>"
+          have hyball: "y \<in> top1_ball_on X dX x \<delta>"
+            unfolding top1_ball_on_def using hyX hdist by blast
+          have hypre: "y \<in> {u\<in>X. f u \<in> top1_ball_on Y dY (f x) \<epsilon>}"
+            using hball_sub hyball by blast
+          have "f y \<in> top1_ball_on Y dY (f x) \<epsilon>"
+            using hypre by simp
+          thus "dY (f x) (f y) < \<epsilon>"
+            unfolding top1_ball_on_def using hmap hxX hyX by blast
+        qed
+      qed
+    qed
+  qed
+next
+  assume h: "(\<forall>x\<in>X. f x \<in> Y) \<and>
+       (\<forall>x\<in>X. \<forall>\<epsilon>::real. \<epsilon> > 0 \<longrightarrow>
+          (\<exists>\<delta>::real. \<delta> > 0 \<and> (\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>)))"
+  have hmap: "\<forall>x\<in>X. f x \<in> Y"
+    using h by blast
+  have hepsdel:
+    "\<forall>x\<in>X. \<forall>\<epsilon>::real. \<epsilon> > 0 \<longrightarrow>
+        (\<exists>\<delta>::real. \<delta> > 0 \<and> (\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>))"
+    using h by blast
+
+  have hTopX: "is_topology_on X (top1_metric_topology_on X dX)"
+    by (rule top1_metric_topology_on_is_topology_on[OF hdX])
+
+  have hBasisY:
+    "basis_for Y (top1_metric_basis_on Y dY) (top1_metric_topology_on Y dY)"
+    unfolding basis_for_def top1_metric_topology_on_def
+    by (intro conjI, rule top1_metric_basis_is_basis_on[OF hdY], rule refl)
+
+  have hpre_basis:
+    "\<forall>b\<in>top1_metric_basis_on Y dY. {x\<in>X. f x \<in> b} \<in> top1_metric_topology_on X dX"
+  proof (intro ballI)
+    fix b assume hb: "b \<in> top1_metric_basis_on Y dY"
+    obtain y0 \<epsilon> where hbdef: "b = top1_ball_on Y dY y0 \<epsilon>" and hy0: "y0 \<in> Y" and heps: "\<epsilon> > 0"
+      using hb unfolding top1_metric_basis_on_def by blast
+
+    let ?P = "{x\<in>X. f x \<in> b}"
+
+    have hPX: "?P \<subseteq> X" by blast
+    have hprop: "\<forall>x\<in>?P. \<exists>c\<in>top1_metric_basis_on X dX. x \<in> c \<and> c \<subseteq> ?P"
+    proof (intro ballI)
+      fix x assume hxP: "x \<in> ?P"
+      have hxX: "x \<in> X" and hfxb: "f x \<in> b"
+        using hxP by simp_all
+      have hfxY: "f x \<in> Y"
+        using hmap hxX by blast
+      have hdist0: "dY y0 (f x) < \<epsilon>"
+        using hfxb unfolding hbdef top1_ball_on_def using hfxY by blast
+
+      define \<epsilon>' where "\<epsilon>' = \<epsilon> - dY y0 (f x)"
+      have heps': "\<epsilon>' > 0"
+        unfolding \<epsilon>'_def using hdist0 by simp
+      obtain \<delta> where hdel: "\<delta> > 0"
+          and hdel_prop: "\<forall>y\<in>X. dX x y < \<delta> \<longrightarrow> dY (f x) (f y) < \<epsilon>'"
+        using hepsdel hxX heps' by blast
+
+      have hball_sub: "top1_ball_on X dX x \<delta> \<subseteq> ?P"
+      proof (rule subsetI)
+        fix y assume hy: "y \<in> top1_ball_on X dX x \<delta>"
+        have hyX: "y \<in> X" and hdist: "dX x y < \<delta>"
+          using hy unfolding top1_ball_on_def by blast+
+        have hfyY: "f y \<in> Y"
+          using hmap hyX by blast
+        have hsmall: "dY (f x) (f y) < \<epsilon>'"
+          using hdel_prop hyX hdist by blast
+        have htri: "dY y0 (f y) \<le> dY y0 (f x) + dY (f x) (f y)"
+          using hdY hy0 hfxY hfyY unfolding top1_metric_on_def by blast
+        have "dY y0 (f y) < dY y0 (f x) + \<epsilon>'"
+          using htri hsmall by simp
+        also have "... = \<epsilon>"
+          unfolding \<epsilon>'_def by simp
+        finally have "dY y0 (f y) < \<epsilon>" .
+        have "f y \<in> top1_ball_on Y dY y0 \<epsilon>"
+          unfolding top1_ball_on_def using hfyY \<open>dY y0 (f y) < \<epsilon>\<close> by blast
+        hence "f y \<in> b"
+          unfolding hbdef by simp
+        show "y \<in> ?P"
+          using hyX \<open>f y \<in> b\<close> by simp
+      qed
+
+      have hxball: "x \<in> top1_ball_on X dX x \<delta>"
+      proof -
+        have "dX x x = 0"
+          using hdX hxX unfolding top1_metric_on_def by blast
+        thus ?thesis
+          unfolding top1_ball_on_def using hxX hdel by simp
+      qed
+
+      have hball_basis: "top1_ball_on X dX x \<delta> \<in> top1_metric_basis_on X dX"
+        unfolding top1_metric_basis_on_def using hxX hdel by blast
+
+      show "\<exists>c\<in>top1_metric_basis_on X dX. x \<in> c \<and> c \<subseteq> ?P"
+        by (rule bexI[where x="top1_ball_on X dX x \<delta>"], intro conjI, rule hxball, rule hball_sub, rule hball_basis)
+    qed
+
+    have "?P \<in> topology_generated_by_basis X (top1_metric_basis_on X dX)"
+      unfolding topology_generated_by_basis_def using hPX hprop by blast
+    thus "?P \<in> top1_metric_topology_on X dX"
+      unfolding top1_metric_topology_on_def by simp
+  qed
+
+  show "top1_continuous_map_on X (top1_metric_topology_on X dX) Y (top1_metric_topology_on Y dY) f"
+    by (rule top1_continuous_map_on_generated_by_basis[OF hTopX hBasisY hmap hpre_basis])
+qed
+
+(** from \S21 Lemma 21.2 (Sequence lemma) [top1.tex:~2000] **)
+theorem Lemma_21_2_sequence:
+  assumes hTX: "is_topology_on X TX"
+  assumes hx: "seq_converges_to_on s x X TX"
+  assumes hsA: "\<forall>n. s n \<in> A"
+  assumes hAX: "A \<subseteq> X"
+  shows "x \<in> closure_on X TX A"
+proof -
+  have hxX: "x \<in> X"
+    using hx unfolding seq_converges_to_on_def by blast
+  have hcl: "\<forall>U. neighborhood_of x X TX U \<longrightarrow> intersects U A"
+  proof (intro allI impI)
+    fix U assume hU: "neighborhood_of x X TX U"
+    obtain N where hN: "\<forall>n\<ge>N. s n \<in> U"
+      using hx hU unfolding seq_converges_to_on_def by blast
+    have "s N \<in> U"
+      using hN by simp
+    moreover have "s N \<in> A"
+      using hsA by blast
+    ultimately show "intersects U A"
+      unfolding intersects_def by blast
+  qed
+  show ?thesis
+    by (rule iffD2[OF Theorem_17_5a[OF hTX hxX hAX], OF hcl])
+qed
+
+theorem Lemma_21_2_sequence_converse:
+  assumes hd: "top1_metric_on X d"
+  assumes hxcl: "x \<in> closure_on X (top1_metric_topology_on X d) A"
+  assumes hAX: "A \<subseteq> X"
+  shows "\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X (top1_metric_topology_on X d)"
+proof -
+  have hTop: "is_topology_on X (top1_metric_topology_on X d)"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+
+  have hxX: "x \<in> X"
+    using hxcl closure_on_subset_carrier[OF hTop hAX] by blast
+
+  have hnbhd_inter:
+    "\<forall>U. neighborhood_of x X (top1_metric_topology_on X d) U \<longrightarrow> intersects U A"
+    by (rule iffD1[OF Theorem_17_5a[OF hTop hxX hAX], OF hxcl])
+
+  have hchoose: "\<forall>n. \<exists>a. a \<in> top1_ball_on X d x (inverse (of_nat (Suc n))) \<inter> A"
+  proof (intro allI)
+    fix n
+    have hpos: "0 < inverse (of_nat (Suc n) :: real)"
+      by simp
+    have hopen: "top1_ball_on X d x (inverse (of_nat (Suc n))) \<in> top1_metric_topology_on X d"
+      by (rule top1_ball_open_in_metric_topology[OF hd hxX hpos])
+    have hxball: "x \<in> top1_ball_on X d x (inverse (of_nat (Suc n)))"
+    proof -
+      have "d x x = 0"
+        using hd hxX unfolding top1_metric_on_def by blast
+      thus ?thesis
+        unfolding top1_ball_on_def using hxX hpos by simp
+    qed
+    have hnbhd: "neighborhood_of x X (top1_metric_topology_on X d) (top1_ball_on X d x (inverse (of_nat (Suc n))))"
+      unfolding neighborhood_of_def using hopen hxball by blast
+    have "intersects (top1_ball_on X d x (inverse (of_nat (Suc n)))) A"
+      using hnbhd_inter hnbhd by blast
+    thus "\<exists>a. a \<in> top1_ball_on X d x (inverse (of_nat (Suc n))) \<inter> A"
+      unfolding intersects_def by blast
+  qed
+
+  obtain s0 where hs0: "\<forall>n. s0 n \<in> top1_ball_on X d x (inverse (of_nat (Suc n))) \<inter> A"
+    using choice[OF hchoose] by blast
+
+  define s where "s = s0"
+
+  have hsA': "\<forall>n. s n \<in> A"
+    unfolding s_def using hs0 by blast
+
+  have hconv: "seq_converges_to_on s x X (top1_metric_topology_on X d)"
+  proof (unfold seq_converges_to_on_def, intro conjI)
+    show "x \<in> X" by (rule hxX)
+    show "\<forall>U. neighborhood_of x X (top1_metric_topology_on X d) U \<longrightarrow> (\<exists>N. \<forall>n\<ge>N. s n \<in> U)"
+    proof (intro allI impI)
+      fix U assume hU: "neighborhood_of x X (top1_metric_topology_on X d) U"
+      have hUopen: "U \<in> top1_metric_topology_on X d" and hxU: "x \<in> U"
+        using hU unfolding neighborhood_of_def by blast+
+      obtain \<epsilon> where heps: "\<epsilon> > 0" and hball_sub: "top1_ball_on X d x \<epsilon> \<subseteq> U"
+        using top1_metric_open_contains_ball[OF hd hUopen hxU] by blast
+
+      obtain n where hnpos: "n > 0" and hinv: "inverse (of_nat n :: real) < \<epsilon>"
+        using ex_inverse_of_nat_less[OF heps] by blast
+      have hn': "\<exists>N. n = Suc N"
+        using hnpos by (cases n, simp_all)
+      obtain N where hn: "n = Suc N"
+        using hn' by blast
+      have hNpos: "inverse (of_nat (Suc N) :: real) < \<epsilon>"
+        using hinv hn by simp
+
+      have htail: "\<forall>n\<ge>N. s n \<in> top1_ball_on X d x \<epsilon>"
+      proof (intro allI impI)
+        fix n assume hn: "n \<ge> N"
+        have hsball: "s n \<in> top1_ball_on X d x (inverse (of_nat (Suc n)))"
+          unfolding s_def using hs0 by blast
+        have hsX: "s n \<in> X"
+          using hsball unfolding top1_ball_on_def by blast
+        have hdist: "d x (s n) < inverse (of_nat (Suc n) :: real)"
+          using hsball unfolding top1_ball_on_def by blast
+        have hle: "(1 / of_nat (Suc n) :: real) \<le> (1 / of_nat (Suc N) :: real)"
+          using inverse_of_nat_le[of "Suc N" "Suc n"] hn by simp
+        have "d x (s n) < 1 / of_nat (Suc n)"
+          using hdist by (simp add: inverse_eq_divide)
+        also have "... \<le> 1 / of_nat (Suc N)"
+          by (rule hle)
+        also have "... < \<epsilon>"
+        proof -
+          have "1 / of_nat (Suc N) = inverse (of_nat (Suc N) :: real)"
+            by (simp add: inverse_eq_divide)
+          thus "1 / of_nat (Suc N) < \<epsilon>"
+            using hNpos by simp
+        qed
+        finally have "d x (s n) < \<epsilon>" .
+        show "s n \<in> top1_ball_on X d x \<epsilon>"
+          unfolding top1_ball_on_def using hsX \<open>d x (s n) < \<epsilon>\<close> by blast
+      qed
+
+      show "\<exists>N. \<forall>n\<ge>N. s n \<in> U"
+      proof (rule exI[where x=N])
+        show "\<forall>n\<ge>N. s n \<in> U"
+        proof (intro allI impI)
+          fix n assume hn: "n \<ge> N"
+          have "s n \<in> top1_ball_on X d x \<epsilon>"
+            using htail hn by blast
+          thus "s n \<in> U"
+            using hball_sub by blast
+        qed
+      qed
+    qed
+  qed
+
+  show ?thesis
+    by (rule exI[where x=s], intro conjI, rule hsA', rule hconv)
+qed
+
+(** from \S21 Theorem 21.3 (Sequential characterization of continuity) [top1.tex:2006] **)
+theorem Theorem_21_3:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hcont: "top1_continuous_map_on X TX Y TY f"
+  assumes hx: "seq_converges_to_on s x X TX"
+  shows "seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+proof -
+  have hmap: "\<forall>x\<in>X. f x \<in> Y"
+    using hcont unfolding top1_continuous_map_on_def by blast
+  have hxX: "x \<in> X"
+    using hx unfolding seq_converges_to_on_def by blast
+  have hfxY: "f x \<in> Y"
+    using hmap hxX by blast
+  show ?thesis
+    unfolding seq_converges_to_on_def
+  proof (intro conjI)
+    show "f x \<in> Y" by (rule hfxY)
+    show "\<forall>V. neighborhood_of (f x) Y TY V \<longrightarrow> (\<exists>N. \<forall>n\<ge>N. f (s n) \<in> V)"
+    proof (intro allI impI)
+      fix V assume hV: "neighborhood_of (f x) Y TY V"
+      have hVTY: "V \<in> TY" and hfxV: "f x \<in> V"
+        using hV unfolding neighborhood_of_def by blast+
+      have hpre: "{u\<in>X. f u \<in> V} \<in> TX"
+        using hcont hVTY unfolding top1_continuous_map_on_def by blast
+      have hnbhd: "neighborhood_of x X TX {u\<in>X. f u \<in> V}"
+        unfolding neighborhood_of_def using hpre hxX hfxV by simp
+      obtain N where hN: "\<forall>n\<ge>N. s n \<in> {u\<in>X. f u \<in> V}"
+        using hx hnbhd unfolding seq_converges_to_on_def by blast
+      show "\<exists>N. \<forall>n\<ge>N. f (s n) \<in> V"
+      proof (rule exI[where x=N])
+        show "\<forall>n\<ge>N. f (s n) \<in> V"
+        proof (intro allI impI)
+          fix n assume hn: "n \<ge> N"
+          have "s n \<in> {u\<in>X. f u \<in> V}"
+            using hN hn by blast
+          thus "f (s n) \<in> V"
+            by simp
+        qed
+      qed
+    qed
+  qed
+qed
+
+theorem Theorem_21_3_converse:
+  assumes hd: "top1_metric_on X d"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hmap: "\<forall>x\<in>X. f x \<in> Y"
+  assumes hseq:
+    "\<forall>s x. seq_converges_to_on s x X (top1_metric_topology_on X d)
+          \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+  shows "top1_continuous_map_on X (top1_metric_topology_on X d) Y TY f"
+proof -
+  have hTX: "is_topology_on X (top1_metric_topology_on X d)"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+  have hclosure:
+    "\<forall>A. A \<subseteq> X \<longrightarrow> f ` closure_on X (top1_metric_topology_on X d) A \<subseteq> closure_on Y TY (f ` A)"
+  proof (intro allI impI)
+    fix A assume hAX: "A \<subseteq> X"
+    show "f ` closure_on X (top1_metric_topology_on X d) A \<subseteq> closure_on Y TY (f ` A)"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> f ` closure_on X (top1_metric_topology_on X d) A"
+      obtain x where hxcl: "x \<in> closure_on X (top1_metric_topology_on X d) A" and hyfx: "y = f x"
+        using hy by blast
+      obtain s where hsA: "\<forall>n. s n \<in> A"
+          and hsconv: "seq_converges_to_on s x X (top1_metric_topology_on X d)"
+        using Lemma_21_2_sequence_converse[OF hd hxcl hAX] by blast
+      have hconvY: "seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+        using hseq hsconv by blast
+      have hs_in: "\<forall>n. f (s n) \<in> f ` A"
+      proof (intro allI)
+        fix n
+        have "s n \<in> A" using hsA by blast
+        thus "f (s n) \<in> f ` A"
+          by (rule imageI)
+      qed
+      have himg_sub: "f ` A \<subseteq> Y"
+      proof (rule subsetI)
+        fix y assume hy: "y \<in> f ` A"
+        obtain a where haA: "a \<in> A" and hyfa: "y = f a"
+          using hy by blast
+        have haX: "a \<in> X" using hAX haA by blast
+        have "f a \<in> Y" using hmap haX by blast
+        thus "y \<in> Y" using hyfa by simp
+      qed
+      have hclY: "f x \<in> closure_on Y TY (f ` A)"
+        by (rule Lemma_21_2_sequence[OF hTY hconvY hs_in himg_sub])
+      show "y \<in> closure_on Y TY (f ` A)"
+        using hclY hyfx by simp
+    qed
+  qed
+
+  have "top1_continuous_map_on X (top1_metric_topology_on X d) Y TY f
+        \<longleftrightarrow> ((\<forall>x\<in>X. f x \<in> Y) \<and>
+             (\<forall>A. A \<subseteq> X \<longrightarrow> f ` closure_on X (top1_metric_topology_on X d) A \<subseteq> closure_on Y TY (f ` A)))"
+    by (rule Theorem_18_1(1)[OF hTX hTY])
+  thus ?thesis
+    using hmap hclosure by blast
+qed
+
+section \<open>\<S>22 The Quotient Topology\<close>
+
+text \<open>Placeholder: quotient topology results from \<open>top1.tex\<close>, \<S>22.\<close>
 
 section \<open>\<S>23 Connected Spaces\<close>
 
