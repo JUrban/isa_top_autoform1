@@ -19458,7 +19458,141 @@ lemma top1_compact_on_continuous_image:
   assumes hTopY: "is_topology_on Y TY"
   assumes hcont: "top1_continuous_map_on X TX Y TY f"
   shows "top1_compact_on (f ` X) (subspace_topology Y TY (f ` X))"
-  sorry
+proof -
+  define FX where "FX = f ` X"
+
+  have hTopX: "is_topology_on X TX"
+    using hcomp unfolding top1_compact_on_def by blast
+  have hCoverX:
+    "\<forall>Uc. Uc \<subseteq> TX \<and> X \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F)"
+    using hcomp unfolding top1_compact_on_def by blast
+
+  have hFXsub: "FX \<subseteq> Y"
+    unfolding FX_def using hcont unfolding top1_continuous_map_on_def by blast
+  have hGoal: "top1_compact_on FX (subspace_topology Y TY FX)"
+    unfolding top1_compact_on_def
+  proof (intro conjI)
+    show "is_topology_on FX (subspace_topology Y TY FX)"
+      by (rule subspace_topology_is_topology_on[where X=Y and T=TY and Y=FX, OF hTopY hFXsub])
+
+    show "\<forall>Uc. Uc \<subseteq> subspace_topology Y TY FX \<and> FX \<subseteq> \<Union>Uc
+          \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> FX \<subseteq> \<Union>F)"
+    proof (intro allI impI)
+      fix Uc :: "'b set set"
+      assume hUc: "Uc \<subseteq> subspace_topology Y TY FX \<and> FX \<subseteq> \<Union>Uc"
+      have hUc_sub: "Uc \<subseteq> subspace_topology Y TY FX"
+        using hUc by blast
+      have hUc_cov: "FX \<subseteq> \<Union>Uc"
+        using hUc by blast
+
+      define Pc where
+        "Pc = {{x\<in>X. f x \<in> V} | V. V \<in> TY \<and> (FX \<inter> V) \<in> Uc}"
+
+      have hPc_sub: "Pc \<subseteq> TX"
+      proof (rule subsetI)
+        fix A
+        assume hA: "A \<in> Pc"
+        obtain V where hV: "V \<in> TY" and hUin: "(FX \<inter> V) \<in> Uc" and hAeq: "A = {x\<in>X. f x \<in> V}"
+          using hA unfolding Pc_def by blast
+        have "A \<in> TX"
+          using hcont hV unfolding top1_continuous_map_on_def hAeq by blast
+        thus "A \<in> TX" .
+      qed
+
+      have hPc_cov: "X \<subseteq> \<Union>Pc"
+      proof (rule subsetI)
+        fix x
+        assume hxX: "x \<in> X"
+        have hfxFX: "f x \<in> FX"
+          unfolding FX_def by (rule imageI[OF hxX])
+        have hfxU: "f x \<in> \<Union>Uc"
+          by (rule subsetD[OF hUc_cov hfxFX])
+        then obtain U where hU: "U \<in> Uc" and hfxU': "f x \<in> U"
+          by blast
+
+        have hUsub: "U \<in> subspace_topology Y TY FX"
+          using hUc_sub hU by blast
+        obtain V where hV: "V \<in> TY" and hUeq: "U = FX \<inter> V"
+          using hUsub unfolding subspace_topology_def by blast
+
+        have hfxV: "f x \<in> V"
+          using hfxU' unfolding hUeq using hfxFX by blast
+        have hxPre: "x \<in> {x\<in>X. f x \<in> V}"
+          using hxX hfxV by blast
+        have hPre_in: "{x\<in>X. f x \<in> V} \<in> Pc"
+          unfolding Pc_def using hV hUeq hU by blast
+        show "x \<in> \<Union>Pc"
+          by (rule UnionI[OF hPre_in hxPre])
+      qed
+
+      obtain Fp where hFpfin: "finite Fp" and hFpsub: "Fp \<subseteq> Pc" and hFpcov: "X \<subseteq> \<Union>Fp"
+        using hCoverX[rule_format, OF conjI[OF hPc_sub hPc_cov]] by blast
+
+      have hrepr:
+        "\<forall>A\<in>Fp. \<exists>V. V \<in> TY \<and> (FX \<inter> V) \<in> Uc \<and> A = {x\<in>X. f x \<in> V}"
+      proof (intro ballI)
+        fix A
+        assume hAFp: "A \<in> Fp"
+        have hA: "A \<in> Pc"
+          using hFpsub hAFp by blast
+        show "\<exists>V. V \<in> TY \<and> (FX \<inter> V) \<in> Uc \<and> A = {x\<in>X. f x \<in> V}"
+          using hA unfolding Pc_def by blast
+      qed
+
+      obtain pick where hpick:
+        "\<forall>A\<in>Fp. pick A \<in> TY \<and> (FX \<inter> pick A) \<in> Uc \<and> A = {x\<in>X. f x \<in> pick A}"
+        using bchoice[OF hrepr] by blast
+
+      define F where "F = (\<lambda>A. FX \<inter> pick A) ` Fp"
+      have hFfin: "finite F"
+        unfolding F_def by (rule finite_imageI[OF hFpfin])
+      have hFsub: "F \<subseteq> Uc"
+        unfolding F_def using hpick by blast
+
+      have hFcov: "FX \<subseteq> \<Union>F"
+      proof (rule subsetI)
+        fix y
+        assume hyFX: "y \<in> FX"
+        obtain x where hxX: "x \<in> X" and hyEq: "y = f x"
+          using hyFX unfolding FX_def by blast
+        have hxUFp: "x \<in> \<Union>Fp"
+          by (rule subsetD[OF hFpcov hxX])
+        then obtain A where hAFp: "A \<in> Fp" and hxA: "x \<in> A"
+          by blast
+        have hAeq: "A = {x\<in>X. f x \<in> pick A}"
+          using hpick hAFp by blast
+        have hfx: "f x \<in> pick A"
+        proof -
+          have hsub: "A \<subseteq> {x\<in>X. f x \<in> pick A}"
+            using hAeq by (rule equalityD1)
+          have hx_mem: "x \<in> {x\<in>X. f x \<in> pick A}"
+            by (rule subsetD[OF hsub hxA])
+          show ?thesis
+            using hx_mem by simp
+        qed
+        have hFXA: "f x \<in> FX"
+          unfolding FX_def by (rule imageI[OF hxX])
+        have "f x \<in> FX \<inter> pick A"
+          using hFXA hfx by blast
+        moreover have "FX \<inter> pick A \<in> F"
+          unfolding F_def using hAFp by blast
+        ultimately have "f x \<in> \<Union>F"
+          by blast
+        thus "y \<in> \<Union>F"
+          unfolding hyEq by simp
+      qed
+
+      show "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> FX \<subseteq> \<Union>F"
+        by (rule exI[where x=F]) (use hFfin hFsub hFcov in blast)
+    qed
+  qed
+
+  have hGoal': "top1_compact_on (f ` X) (subspace_topology Y TY (f ` X))"
+    using hGoal
+    by (simp add: FX_def)
+  show ?thesis
+    by (rule hGoal')
+qed
 
 (** A nonempty compact subset of a linearly ordered set has a least element. **)
 lemma top1_compact_on_order_topology_has_least:
