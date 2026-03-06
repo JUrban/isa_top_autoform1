@@ -14516,6 +14516,289 @@ definition top1_quotient_topology_by_map_on ::
   "top1_quotient_topology_by_map_on X TX Y p =
      {V. V \<subseteq> Y \<and> {x\<in>X. p x \<in> V} \<in> TX}"
 
+(** The quotient topology induced by a surjective map \<open>p : X \<rightarrow> Y\<close> is a topology on \<open>Y\<close>. **)
+lemma top1_quotient_topology_by_map_on_is_topology_on:
+  assumes hTX: "is_topology_on X TX"
+  assumes hpmap: "\<forall>x\<in>X. p x \<in> Y"
+  shows "is_topology_on Y (top1_quotient_topology_by_map_on X TX Y p)"
+proof -
+  let ?TY = "top1_quotient_topology_by_map_on X TX Y p"
+
+  have empty_TX: "{} \<in> TX"
+    by (rule conjunct1[OF hTX[unfolded is_topology_on_def]])
+  have X_TX: "X \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF hTX[unfolded is_topology_on_def]]])
+  have union_TX: "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+  have inter_TX: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> TX \<longrightarrow> \<Inter>F \<in> TX"
+    by (rule conjunct2[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+
+  have preY_eq: "{x\<in>X. p x \<in> Y} = X"
+  proof (rule equalityI)
+    show "{x\<in>X. p x \<in> Y} \<subseteq> X" by simp
+    show "X \<subseteq> {x\<in>X. p x \<in> Y}"
+    proof (rule subsetI)
+      fix x assume hxX: "x \<in> X"
+      have "p x \<in> Y"
+        using hpmap hxX by blast
+      thus "x \<in> {x\<in>X. p x \<in> Y}"
+        using hxX by simp
+    qed
+  qed
+
+  have pre_empty_eq: "{x\<in>X. p x \<in> {}} = {}"
+    by blast
+
+  have empty_TY: "{} \<in> ?TY"
+    unfolding top1_quotient_topology_by_map_on_def
+    apply (intro CollectI conjI)
+     apply simp
+    apply (simp add: pre_empty_eq)
+    apply (rule empty_TX)
+    done
+
+  have Y_TY: "Y \<in> ?TY"
+    unfolding top1_quotient_topology_by_map_on_def
+    apply (intro CollectI conjI)
+     apply (rule subset_refl)
+    apply (subst preY_eq)
+    apply (rule X_TX)
+    done
+
+  have union_TY: "\<forall>U. U \<subseteq> ?TY \<longrightarrow> \<Union>U \<in> ?TY"
+  proof (intro allI impI)
+    fix U assume hU: "U \<subseteq> ?TY"
+    have hUsubY: "\<And>V. V \<in> U \<Longrightarrow> V \<subseteq> Y"
+    proof -
+      fix V assume hV: "V \<in> U"
+      have "V \<in> ?TY"
+        using hU hV by (rule subsetD)
+      thus "V \<subseteq> Y"
+        unfolding top1_quotient_topology_by_map_on_def by simp
+    qed
+
+    have union_sub: "\<Union>U \<subseteq> Y"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> \<Union>U"
+      then obtain V where hV: "V \<in> U" and hyV: "y \<in> V"
+        by blast
+      have "V \<subseteq> Y"
+        by (rule hUsubY[OF hV])
+      thus "y \<in> Y"
+        using hyV by blast
+    qed
+
+    have hpre_subTX: "(\<lambda>V. {x\<in>X. p x \<in> V}) ` U \<subseteq> TX"
+    proof (rule subsetI)
+      fix A assume hA: "A \<in> (\<lambda>V. {x\<in>X. p x \<in> V}) ` U"
+      obtain V where hV: "V \<in> U" and hAeq: "A = {x\<in>X. p x \<in> V}"
+        using hA by (elim imageE)
+      have "V \<in> ?TY"
+        using hU hV by (rule subsetD)
+      have "{x\<in>X. p x \<in> V} \<in> TX"
+        using \<open>V \<in> ?TY\<close> unfolding top1_quotient_topology_by_map_on_def by simp
+      thus "A \<in> TX"
+        using hAeq by simp
+    qed
+
+    have pre_union_eq: "{x\<in>X. p x \<in> \<Union>U} = \<Union>((\<lambda>V. {x\<in>X. p x \<in> V}) ` U)"
+    proof (rule set_eqI)
+      fix x
+      show "x \<in> {x \<in> X. p x \<in> \<Union>U} \<longleftrightarrow> x \<in> \<Union>((\<lambda>V. {x\<in>X. p x \<in> V}) ` U)"
+        apply blast
+        done
+    qed
+
+    have pre_open: "{x\<in>X. p x \<in> \<Union>U} \<in> TX"
+      apply (subst pre_union_eq)
+      apply (rule union_TX[rule_format, OF hpre_subTX])
+      done
+
+    show "\<Union>U \<in> ?TY"
+      unfolding top1_quotient_topology_by_map_on_def
+      apply (intro CollectI conjI)
+       apply (rule union_sub)
+      apply (rule pre_open)
+      done
+  qed
+
+  have inter_TY: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TY \<longrightarrow> \<Inter>F \<in> ?TY"
+  proof (intro allI impI)
+    fix F assume hF: "finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TY"
+    have hfin: "finite F" and hne: "F \<noteq> {}" and hFsub: "F \<subseteq> ?TY"
+      using hF by blast+
+    have hFsubY: "\<forall>V\<in>F. V \<subseteq> Y"
+      using hFsub unfolding top1_quotient_topology_by_map_on_def by blast
+
+    have inter_sub: "\<Inter>F \<subseteq> Y"
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> \<Inter>F"
+      obtain V where hV: "V \<in> F"
+        using hne by blast
+      have hyV: "y \<in> V"
+        using hy hV by blast
+      have "V \<subseteq> Y"
+        using hFsubY hV by blast
+      thus "y \<in> Y"
+        using hyV by blast
+    qed
+
+    have hpre_subTX: "(\<lambda>V. {x\<in>X. p x \<in> V}) ` F \<subseteq> TX"
+    proof (rule subsetI)
+      fix A assume hA: "A \<in> (\<lambda>V. {x\<in>X. p x \<in> V}) ` F"
+      obtain V where hV: "V \<in> F" and hAeq: "A = {x\<in>X. p x \<in> V}"
+        using hA by (elim imageE)
+      have "V \<in> ?TY"
+        using hFsub hV by (rule subsetD)
+      have "{x\<in>X. p x \<in> V} \<in> TX"
+        using \<open>V \<in> ?TY\<close> unfolding top1_quotient_topology_by_map_on_def by simp
+      thus "A \<in> TX"
+        using hAeq by simp
+    qed
+
+    have pre_inter_eq: "{x\<in>X. p x \<in> \<Inter>F} = \<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F)"
+    proof (rule equalityI)
+      show "{x\<in>X. p x \<in> \<Inter>F} \<subseteq> \<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F)"
+      proof (rule subsetI)
+        fix x assume hx: "x \<in> {x\<in>X. p x \<in> \<Inter>F}"
+        have hxX: "x \<in> X" and hpx: "p x \<in> \<Inter>F"
+          using hx by simp_all
+        show "x \<in> \<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F)"
+        proof (rule InterI)
+          fix A assume hA: "A \<in> (\<lambda>V. {x\<in>X. p x \<in> V}) ` F"
+          obtain V where hV: "V \<in> F" and hAeq: "A = {x\<in>X. p x \<in> V}"
+            using hA by (elim imageE)
+          have "p x \<in> V"
+            using hpx hV by blast
+          thus "x \<in> A"
+            using hxX hAeq by simp
+        qed
+      qed
+      show "\<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F) \<subseteq> {x\<in>X. p x \<in> \<Inter>F}"
+      proof (rule subsetI)
+        fix x assume hx: "x \<in> \<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F)"
+        have hxX: "x \<in> X"
+        proof -
+          obtain V where hV: "V \<in> F"
+            using hne by blast
+          have hA: "{u\<in>X. p u \<in> V} \<in> (\<lambda>W. {u\<in>X. p u \<in> W}) ` F"
+            using hV by blast
+          have "x \<in> {u\<in>X. p u \<in> V}"
+            using hx hA by blast
+          thus "x \<in> X"
+            by simp
+        qed
+        have hpx: "p x \<in> \<Inter>F"
+        proof (rule InterI)
+          fix V assume hV: "V \<in> F"
+          have hA: "{u\<in>X. p u \<in> V} \<in> (\<lambda>W. {u\<in>X. p u \<in> W}) ` F"
+            using hV by blast
+          have "x \<in> {u\<in>X. p u \<in> V}"
+            using hx hA by blast
+          thus "p x \<in> V"
+            by simp
+        qed
+        show "x \<in> {x\<in>X. p x \<in> \<Inter>F}"
+          using hxX hpx by simp
+      qed
+    qed
+
+    have pre_open_img: "\<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F) \<in> TX"
+    proof -
+      have hfin_img: "finite ((\<lambda>V. {x\<in>X. p x \<in> V}) ` F)"
+        using hfin by simp
+      have hne_img: "((\<lambda>V. {x\<in>X. p x \<in> V}) ` F) \<noteq> {}"
+        using hne by simp
+      have hImp: "finite ((\<lambda>V. {x\<in>X. p x \<in> V}) ` F) \<and>
+          (\<lambda>V. {x\<in>X. p x \<in> V}) ` F \<noteq> {} \<and>
+          (\<lambda>V. {x\<in>X. p x \<in> V}) ` F \<subseteq> TX"
+        using hfin_img hne_img hpre_subTX by simp
+      have hStep:
+        "finite ((\<lambda>V. {x\<in>X. p x \<in> V}) ` F) \<and>
+          (\<lambda>V. {x\<in>X. p x \<in> V}) ` F \<noteq> {} \<and>
+          (\<lambda>V. {x\<in>X. p x \<in> V}) ` F \<subseteq> TX \<longrightarrow>
+          \<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F) \<in> TX"
+        by (rule allE[OF inter_TX, where x="(\<lambda>V. {x\<in>X. p x \<in> V}) ` F"])
+      show ?thesis
+        by (rule mp[OF hStep hImp])
+    qed
+
+    have pre_open: "{x\<in>X. p x \<in> \<Inter>F} \<in> TX"
+      by (subst pre_inter_eq) (rule pre_open_img)
+
+    show "\<Inter>F \<in> ?TY"
+      unfolding top1_quotient_topology_by_map_on_def
+      apply (intro CollectI conjI)
+       apply (rule inter_sub)
+      apply (rule pre_open)
+      done
+  qed
+
+  show ?thesis
+    unfolding is_topology_on_def
+    apply (intro conjI)
+       apply (rule empty_TY)
+      apply (rule Y_TY)
+     apply (rule union_TY)
+    apply (rule inter_TY)
+    done
+qed
+
+(** A map equipped with its induced quotient topology is a quotient map. **)
+lemma top1_quotient_map_on_from_quotient_topology_by_map_on:
+  assumes hTX: "is_topology_on X TX"
+  assumes hpmap: "\<forall>x\<in>X. p x \<in> Y"
+  assumes hsurj: "p ` X = Y"
+  shows "top1_quotient_map_on X TX Y (top1_quotient_topology_by_map_on X TX Y p) p"
+proof -
+  let ?TY = "top1_quotient_topology_by_map_on X TX Y p"
+
+  have hTY: "is_topology_on Y ?TY"
+    by (rule top1_quotient_topology_by_map_on_is_topology_on[OF hTX hpmap])
+
+  have hpcont: "top1_continuous_map_on X TX Y ?TY p"
+    unfolding top1_continuous_map_on_def
+    apply (intro conjI)
+     apply (rule hpmap)
+    unfolding top1_quotient_topology_by_map_on_def
+    apply (intro ballI)
+    apply (drule CollectD)
+    apply (erule conjunct2)
+    done
+
+  have hQ: "\<forall>V. V \<subseteq> Y \<longrightarrow> ({x\<in>X. p x \<in> V} \<in> TX \<longrightarrow> V \<in> ?TY)"
+  proof (intro allI impI)
+    fix V assume hVsub: "V \<subseteq> Y"
+    assume hpre: "{x\<in>X. p x \<in> V} \<in> TX"
+    show "V \<in> ?TY"
+      unfolding top1_quotient_topology_by_map_on_def
+      using hVsub hpre by simp
+  qed
+
+  show ?thesis
+    unfolding top1_quotient_map_on_def
+    apply (intro conjI)
+        apply (rule hTX)
+       apply (rule hTY)
+      apply (rule hpcont)
+     apply (rule hsurj)
+    apply (rule hQ)
+    done
+qed
+
+(** A homeomorphism is a quotient map (in the sense of \<S>22). **)
+lemma top1_homeomorphism_on_imp_quotient_map_on:
+  assumes hhomeo: "top1_homeomorphism_on X TX Y TY f"
+  shows "top1_quotient_map_on X TX Y TY f"
+  sorry
+
+(** A bijective quotient map is a homeomorphism. **)
+lemma top1_bij_quotient_map_on_imp_homeomorphism_on:
+  assumes hquot: "top1_quotient_map_on X TX Y TY f"
+  assumes hbij: "bij_betw f X Y"
+  shows "top1_homeomorphism_on X TX Y TY f"
+  sorry
+
 (** Fiber partition determined by a map \<open>g\<close>: the collection \<open>{g^{-1}({z}) | z\<in>Z}\<close> (restricted to \<open>X\<close>). **)
 definition top1_fiber_partition_on :: "'a set \<Rightarrow> 'b set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a set set" where
   "top1_fiber_partition_on X Z g = (\<lambda>z. {x\<in>X. g x = z}) ` Z"
@@ -14525,6 +14808,17 @@ definition top1_fiber_projection_on :: "'a set \<Rightarrow> ('a \<Rightarrow> '
   "top1_fiber_projection_on X g x = {u\<in>X. g u = g x}"
 
 (** from \S22 Corollary 22.3 [top1.tex:2448] **)
+text \<open>
+  Intended proof strategy (Munkres \S22, Corollary 22.3):
+
+  - Equip the fiber-partition space \<open>Xstar\<close> with the quotient topology induced by the fiber projection \<open>p\<close>.
+    Then \<open>p\<close> is a quotient map (lemma \<open>top1_quotient_map_on_from_quotient_topology_by_map_on\<close>).
+  - Apply Theorem 22.2 to factor \<open>g\<close> through \<open>p\<close>, obtaining \<open>f : Xstar \<rightarrow> Z\<close> with
+    continuity equivalence and quotient-map equivalence.
+  - Use surjectivity of \<open>g\<close> to show \<open>f\<close> is bijective; then relate homeomorphism/quotient-map status via
+    auxiliary lemmas about bijective quotient maps and homeomorphisms.
+  - For Hausdorff transfer, use injectivity of \<open>f\<close> and pull back disjoint neighborhoods along \<open>f\<close>.
+\<close>
 corollary Corollary_22_3:
   fixes X :: "'a set"
   fixes TX :: "'a set set"
