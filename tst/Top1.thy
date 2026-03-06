@@ -150,9 +150,11 @@ proof (unfold is_topology_on_def, intro conjI)
            apply (intro conjI hxb hbU)
           apply (rule hbB)
           done
-      qed
-    qed
-  qed
+		    qed
+		  qed
+		qed
+
+
   show "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> topology_generated_by_basis X B \<longrightarrow> \<Inter>F \<in> topology_generated_by_basis X B"
   proof (intro allI impI)
     fix F assume hF: "finite F \<and> F \<noteq> {} \<and> F \<subseteq> topology_generated_by_basis X B"
@@ -5221,7 +5223,9 @@ definition top1_continuous_at_on ::
 definition top1_homeomorphism_on ::
   "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool" where
   "top1_homeomorphism_on X TX Y TY f \<longleftrightarrow>
-     bij_betw f X Y
+     is_topology_on X TX
+     \<and> is_topology_on Y TY
+     \<and> bij_betw f X Y
      \<and> top1_continuous_map_on X TX Y TY f
      \<and> top1_continuous_map_on Y TY X TX (inv_into X f)"
 
@@ -17089,6 +17093,8 @@ proof -
   show ?thesis
     unfolding top1_homeomorphism_on_def
     apply (intro conjI)
+        apply (rule hTX)
+       apply (rule hTY)
       apply (rule hbij)
      apply (rule hf)
     apply (rule inv_cont)
@@ -26683,6 +26689,8 @@ proof -
   have hhomeo: "top1_homeomorphism_on X TX ?W ?TW F"
     unfolding top1_homeomorphism_on_def
     apply (intro conjI)
+        apply (rule hTopX)
+       apply (rule subspace_topology_is_topology_on[OF hTopY hWsubY])
       apply (rule hbij)
      apply (rule hcontF_W)
     apply (rule hcontInv)
@@ -26996,6 +27004,1316 @@ proof -
     by simp
 qed
 
+subsection \<open>Auxiliary lemmas for Theorem 34.3 (reverse direction)\<close>
+
+text \<open>
+  We use the standard strategy: the cube \<open>[0,1]^J\<close> is completely regular, subspaces inherit complete
+  regularity, and complete regularity is invariant under homeomorphism (hence under embedding).
+\<close>
+
+lemma top1_abs_metric_on_UNIV_real:
+  shows "top1_metric_on (UNIV::real set) (\<lambda>x y. abs (x - y))"
+proof (unfold top1_metric_on_def, intro conjI)
+  show "\<forall>x\<in>(UNIV::real set). 0 \<le> abs (x - x)"
+    by simp
+  show "\<forall>x\<in>(UNIV::real set). \<forall>y\<in>(UNIV::real set). 0 \<le> abs (x - y)"
+    by simp
+  show "\<forall>x\<in>(UNIV::real set). \<forall>y\<in>(UNIV::real set). (abs (x - y) = 0) = (x = y)"
+    by simp
+  show "\<forall>x\<in>(UNIV::real set). \<forall>y\<in>(UNIV::real set). abs (x - y) = abs (y - x)"
+  proof (intro ballI)
+    fix x y :: real
+    show "abs (x - y) = abs (y - x)"
+      by (simp add: abs_minus_commute)
+  qed
+  show "\<forall>x\<in>(UNIV::real set). \<forall>y\<in>(UNIV::real set). \<forall>z\<in>(UNIV::real set).
+          abs (x - z) \<le> abs (x - y) + abs (y - z)"
+  proof (intro ballI)
+    fix x y z :: real
+    show "abs (x - z) \<le> abs (x - y) + abs (y - z)"
+    proof -
+      have "abs (x - z) = abs ((x - y) + (y - z))"
+        by simp
+      also have "... \<le> abs (x - y) + abs (y - z)"
+        by (rule abs_triangle_ineq)
+      finally show ?thesis .
+    qed
+  qed
+qed
+
+lemma open_interval_in_abs_metric_topology:
+  fixes a b :: real
+  assumes hab: "a < b"
+  shows "open_interval a b \<in> top1_metric_topology_on (UNIV::real set) (\<lambda>x y. abs (x - y))"
+proof -
+  let ?X = "(UNIV::real set)"
+  let ?d = "(\<lambda>x y. abs (x - y))"
+  have hU: "open_interval a b \<in> topology_generated_by_basis ?X (top1_metric_basis_on ?X ?d)"
+    unfolding topology_generated_by_basis_def open_interval_def
+  proof (rule CollectI, intro conjI)
+    show "{x. a < x \<and> x < b} \<subseteq> (UNIV::real set)"
+      by simp
+    show "\<forall>x\<in>{x. a < x \<and> x < b}.
+          \<exists>ba\<in>top1_metric_basis_on (UNIV::real set) (\<lambda>x y. abs (x - y)). x \<in> ba \<and> ba \<subseteq> {x. a < x \<and> x < b}"
+    proof (intro ballI)
+      fix x :: real
+      assume hx: "x \<in> {x. a < x \<and> x < b}"
+      have hax: "a < x" and hxb: "x < b"
+        using hx by simp_all
+      define e where "e = min (x - a) (b - x)"
+      have hepos: "0 < e"
+        unfolding e_def using hax hxb by simp
+      have hxball: "x \<in> top1_ball_on ?X ?d x e"
+        unfolding top1_ball_on_def using hepos by simp
+      have hball_basis: "top1_ball_on ?X ?d x e \<in> top1_metric_basis_on ?X ?d"
+        unfolding top1_metric_basis_on_def using hepos by blast
+      have hball_sub: "top1_ball_on ?X ?d x e \<subseteq> {t. a < t \<and> t < b}"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> top1_ball_on ?X ?d x e"
+        have habs: "abs (x - t) < e"
+          using ht unfolding top1_ball_on_def by blast
+	        have habs': "abs (t - x) < e"
+	          using habs by simp
+	        have hconj: "-e < t - x \<and> t - x < e"
+	          using habs' by (simp add: abs_less_iff)
+	        have hlt0: "-e < t - x"
+	          using hconj by blast
+	        have hgt0: "t - x < e"
+	          using hconj by blast
+	        have hlt: "x - e < t"
+	          using hlt0 by linarith
+	        have hgt: "t < x + e"
+	          using hgt0 by linarith
+        have "e \<le> x - a"
+          unfolding e_def by simp
+        hence hle1: "a \<le> x - e"
+          by simp
+        have "e \<le> b - x"
+          unfolding e_def by simp
+        hence hle2: "x + e \<le> b"
+          by simp
+        have "a < t"
+          by (rule le_less_trans[OF hle1 hlt])
+        moreover have "t < b"
+          by (rule less_le_trans[OF hgt hle2])
+        ultimately show "t \<in> {t. a < t \<and> t < b}"
+          by simp
+      qed
+      show "\<exists>ba\<in>top1_metric_basis_on ?X ?d. x \<in> ba \<and> ba \<subseteq> {x. a < x \<and> x < b}"
+        apply (rule bexI[where x="top1_ball_on ?X ?d x e"])
+         apply (intro conjI)
+          apply (rule hxball)
+         apply (rule hball_sub)
+        apply (rule hball_basis)
+        done
+    qed
+  qed
+  show ?thesis
+    unfolding top1_metric_topology_on_def using hU by simp
+qed
+
+lemma open_ray_gt_in_abs_metric_topology:
+  fixes a :: real
+  shows "open_ray_gt a \<in> top1_metric_topology_on (UNIV::real set) (\<lambda>x y. abs (x - y))"
+proof -
+  let ?X = "(UNIV::real set)"
+  let ?d = "(\<lambda>x y. abs (x - y))"
+  have hU: "open_ray_gt a \<in> topology_generated_by_basis ?X (top1_metric_basis_on ?X ?d)"
+    unfolding topology_generated_by_basis_def open_ray_gt_def
+  proof (rule CollectI, intro conjI)
+    show "{x. a < x} \<subseteq> (UNIV::real set)"
+      by simp
+    show "\<forall>x\<in>{x. a < x}. \<exists>ba\<in>top1_metric_basis_on ?X ?d. x \<in> ba \<and> ba \<subseteq> {x. a < x}"
+    proof (intro ballI)
+      fix x :: real
+      assume hx: "x \<in> {x. a < x}"
+      have hax: "a < x" using hx by simp
+      define e where "e = x - a"
+      have hepos: "0 < e"
+        unfolding e_def using hax by simp
+      have hxball: "x \<in> top1_ball_on ?X ?d x e"
+        unfolding top1_ball_on_def using hepos by simp
+      have hball_basis: "top1_ball_on ?X ?d x e \<in> top1_metric_basis_on ?X ?d"
+        unfolding top1_metric_basis_on_def using hepos by blast
+      have hball_sub: "top1_ball_on ?X ?d x e \<subseteq> {t. a < t}"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> top1_ball_on ?X ?d x e"
+        have habs: "abs (x - t) < e"
+          using ht unfolding top1_ball_on_def by blast
+	        have habs': "abs (t - x) < e"
+	          using habs by simp
+	        have hconj: "-e < t - x \<and> t - x < e"
+	          using habs' by (simp add: abs_less_iff)
+	        have hlt0: "-e < t - x"
+	          using hconj by blast
+	        have hlt: "x - e < t"
+	          using hlt0 by linarith
+        have "x - e = a"
+          unfolding e_def by simp
+        hence "a < t"
+          using hlt by simp
+        thus "t \<in> {t. a < t}"
+          by simp
+      qed
+      show "\<exists>ba\<in>top1_metric_basis_on ?X ?d. x \<in> ba \<and> ba \<subseteq> {t. a < t}"
+        apply (rule bexI[where x="top1_ball_on ?X ?d x e"])
+         apply (intro conjI)
+          apply (rule hxball)
+         apply (rule hball_sub)
+        apply (rule hball_basis)
+        done
+    qed
+  qed
+  show ?thesis
+    unfolding top1_metric_topology_on_def using hU by simp
+qed
+
+lemma open_ray_lt_in_abs_metric_topology:
+  fixes a :: real
+  shows "open_ray_lt a \<in> top1_metric_topology_on (UNIV::real set) (\<lambda>x y. abs (x - y))"
+proof -
+  let ?X = "(UNIV::real set)"
+  let ?d = "(\<lambda>x y. abs (x - y))"
+  have hU: "open_ray_lt a \<in> topology_generated_by_basis ?X (top1_metric_basis_on ?X ?d)"
+    unfolding topology_generated_by_basis_def open_ray_lt_def
+  proof (rule CollectI, intro conjI)
+    show "{x. x < a} \<subseteq> (UNIV::real set)"
+      by simp
+    show "\<forall>x\<in>{x. x < a}. \<exists>ba\<in>top1_metric_basis_on ?X ?d. x \<in> ba \<and> ba \<subseteq> {t. t < a}"
+    proof (intro ballI)
+      fix x :: real
+      assume hx: "x \<in> {x. x < a}"
+      have hxa: "x < a" using hx by simp
+      define e where "e = a - x"
+      have hepos: "0 < e"
+        unfolding e_def using hxa by simp
+      have hxball: "x \<in> top1_ball_on ?X ?d x e"
+        unfolding top1_ball_on_def using hepos by simp
+      have hball_basis: "top1_ball_on ?X ?d x e \<in> top1_metric_basis_on ?X ?d"
+        unfolding top1_metric_basis_on_def using hepos by blast
+      have hball_sub: "top1_ball_on ?X ?d x e \<subseteq> {t. t < a}"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> top1_ball_on ?X ?d x e"
+        have habs: "abs (x - t) < e"
+          using ht unfolding top1_ball_on_def by blast
+	        have habs': "abs (t - x) < e"
+	          using habs by simp
+	        have hconj: "-e < t - x \<and> t - x < e"
+	          using habs' by (simp add: abs_less_iff)
+	        have hgt0: "t - x < e"
+	          using hconj by blast
+	        have hgt: "t < x + e"
+	          using hgt0 by linarith
+        have "x + e = a"
+          unfolding e_def by simp
+        hence "t < a"
+          using hgt by simp
+        thus "t \<in> {t. t < a}"
+          by simp
+      qed
+      show "\<exists>ba\<in>top1_metric_basis_on ?X ?d. x \<in> ba \<and> ba \<subseteq> {t. t < a}"
+        apply (rule bexI[where x="top1_ball_on ?X ?d x e"])
+         apply (intro conjI)
+          apply (rule hxball)
+         apply (rule hball_sub)
+        apply (rule hball_basis)
+        done
+    qed
+  qed
+  show ?thesis
+    unfolding top1_metric_topology_on_def using hU by simp
+qed
+
+lemma order_topology_on_UNIV_real_eq_abs_metric_topology:
+  shows "(order_topology_on_UNIV::real set set) =
+    top1_metric_topology_on (UNIV::real set) (\<lambda>x y. abs (x - y))"
+proof -
+  let ?X = "(UNIV::real set)"
+  let ?d = "(\<lambda>x y. abs (x - y))"
+  let ?TM = "top1_metric_topology_on ?X ?d"
+
+  have hd: "top1_metric_on ?X ?d"
+    by (rule top1_abs_metric_on_UNIV_real)
+  have hTopM: "is_topology_on ?X ?TM"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+
+  have hBasisSub: "basis_order_topology \<subseteq> ?TM"
+  proof (rule subsetI)
+    fix b :: "real set"
+    assume hb: "b \<in> basis_order_topology"
+    have hbC:
+      "(\<exists>a c. a < c \<and> b = open_interval a c)
+       \<or> (\<exists>a. b = open_ray_gt a)
+       \<or> (\<exists>a. b = open_ray_lt a)
+       \<or> b = (UNIV::real set)"
+      by (rule basis_order_topology_cases[OF hb])
+    show "b \<in> ?TM"
+    proof (rule disjE[OF hbC])
+      assume hI: "\<exists>a c. a < c \<and> b = open_interval a c"
+      then obtain a c where hac: "a < c" and hbEq: "b = open_interval a c"
+        by blast
+      show ?thesis
+        unfolding hbEq by (rule open_interval_in_abs_metric_topology[OF hac])
+    next
+      assume hrest: "(\<exists>a. b = open_ray_gt a) \<or> (\<exists>a. b = open_ray_lt a) \<or> b = (UNIV::real set)"
+      show ?thesis
+      proof (rule disjE[OF hrest])
+        assume hGt: "\<exists>a. b = open_ray_gt a"
+        then obtain a where hbEq: "b = open_ray_gt a"
+          by blast
+        show ?thesis
+          unfolding hbEq by (rule open_ray_gt_in_abs_metric_topology)
+      next
+        assume hrest2: "(\<exists>a. b = open_ray_lt a) \<or> b = (UNIV::real set)"
+        show ?thesis
+        proof (rule disjE[OF hrest2])
+          assume hLt: "\<exists>a. b = open_ray_lt a"
+          then obtain a where hbEq: "b = open_ray_lt a"
+            by blast
+          show ?thesis
+            unfolding hbEq by (rule open_ray_lt_in_abs_metric_topology)
+        next
+          assume hbUniv: "b = (UNIV::real set)"
+          have hUniv: "UNIV \<in> ?TM"
+            by (rule conjunct1[OF conjunct2[OF hTopM[unfolded is_topology_on_def]]])
+          show ?thesis
+            unfolding hbUniv using hUniv by simp
+        qed
+      qed
+    qed
+  qed
+
+  have hOrderSub: "order_topology_on_UNIV \<subseteq> ?TM"
+    unfolding order_topology_on_UNIV_def
+    by (rule topology_generated_by_basis_subset[OF hTopM hBasisSub])
+
+  have hBallSub: "top1_metric_basis_on ?X ?d \<subseteq> order_topology_on_UNIV"
+  proof (rule subsetI)
+    fix b :: "real set"
+    assume hb: "b \<in> top1_metric_basis_on ?X ?d"
+    then obtain x e where he: "0 < e" and hbEq: "b = top1_ball_on ?X ?d x e"
+      unfolding top1_metric_basis_on_def by blast
+	    have hEq: "top1_ball_on ?X ?d x e = open_interval (x - e) (x + e)"
+	    proof (rule set_eqI)
+	      fix t :: real
+	      show "t \<in> top1_ball_on ?X ?d x e \<longleftrightarrow> t \<in> open_interval (x - e) (x + e)"
+	      proof -
+	        have hball: "t \<in> top1_ball_on ?X ?d x e \<longleftrightarrow> abs (x - t) < e"
+	          unfolding top1_ball_on_def by simp
+	        have hint: "t \<in> open_interval (x - e) (x + e) \<longleftrightarrow> (x - e < t \<and> t < x + e)"
+	          unfolding open_interval_def by simp
+	        have habs_iff1: "abs (x - t) < e \<longleftrightarrow> (x - t < e \<and> t - x < e)"
+	          by (simp add: abs_less_iff)
+	        have habs_iff2: "(x - t < e \<and> t - x < e) \<longleftrightarrow> (x - e < t \<and> t < x + e)"
+	          by linarith
+	        have habs_iff: "abs (x - t) < e \<longleftrightarrow> (x - e < t \<and> t < x + e)"
+	          using habs_iff1 habs_iff2 by blast
+	        show ?thesis
+	          unfolding hball hint using habs_iff by blast
+	      qed
+	    qed
+	    have hBasis: "open_interval (x - e) (x + e) \<in> basis_order_topology"
+	    proof -
+	      have hlt: "x - e < x + e"
+	        using he by linarith
+	      have hmem: "open_interval (x - e) (x + e) \<in> {open_interval a b |a b. a < b}"
+	        using hlt by blast
+	      show ?thesis
+	        unfolding basis_order_topology_def
+	        using hmem by blast
+	    qed
+	    have hBO: "is_basis_on (UNIV::real set) basis_order_topology"
+	      by (rule conjunct1[OF basis_for_order_topology_on_UNIV[unfolded basis_for_def]])
+    have hOpen: "open_interval (x - e) (x + e) \<in> order_topology_on_UNIV"
+      unfolding order_topology_on_UNIV_def
+      by (rule basis_elem_open_in_generated_topology[OF hBO hBasis])
+    show "b \<in> order_topology_on_UNIV"
+      unfolding hbEq hEq using hOpen by simp
+  qed
+
+  have hTopOrder: "is_topology_on ?X (order_topology_on_UNIV::real set set)"
+    by (rule order_topology_on_UNIV_is_topology_on)
+
+  have hMetricSub: "?TM \<subseteq> order_topology_on_UNIV"
+    unfolding top1_metric_topology_on_def
+    by (rule topology_generated_by_basis_subset[OF hTopOrder hBallSub])
+
+  show ?thesis
+    apply (rule equalityI)
+     apply (rule hOrderSub)
+    apply (rule hMetricSub)
+    done
+qed
+
+lemma subspace_metric_topology_eq_metric_topology:
+  assumes hd: "top1_metric_on X d"
+  assumes hYX: "Y \<subseteq> X"
+  shows "subspace_topology X (top1_metric_topology_on X d) Y = top1_metric_topology_on Y d"
+proof -
+  let ?TX = "top1_metric_topology_on X d"
+  let ?TY = "top1_metric_topology_on Y d"
+  have hTopX: "is_topology_on X ?TX"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+  have hTopSub: "is_topology_on Y (subspace_topology X ?TX Y)"
+    by (rule subspace_topology_is_topology_on[OF hTopX hYX])
+
+  have hBsub1: "top1_metric_basis_on Y d \<subseteq> subspace_topology X ?TX Y"
+  proof (rule subsetI)
+    fix b assume hb: "b \<in> top1_metric_basis_on Y d"
+    then obtain x e where hxY: "x \<in> Y" and he: "0 < e" and hbEq: "b = top1_ball_on Y d x e"
+      unfolding top1_metric_basis_on_def by blast
+    have hxX: "x \<in> X"
+      using hYX hxY by blast
+    have hballX: "top1_ball_on X d x e \<in> top1_metric_basis_on X d"
+      unfolding top1_metric_basis_on_def using hxX he by blast
+    have hBasisX: "is_basis_on X (top1_metric_basis_on X d)"
+      by (rule top1_metric_basis_is_basis_on[OF hd])
+    have hopenX: "top1_ball_on X d x e \<in> ?TX"
+      unfolding top1_metric_topology_on_def
+      by (rule basis_elem_open_in_generated_topology[OF hBasisX hballX])
+    have hEq: "top1_ball_on Y d x e = Y \<inter> top1_ball_on X d x e"
+      unfolding top1_ball_on_def using hYX by blast
+    show "b \<in> subspace_topology X ?TX Y"
+      unfolding hbEq subspace_topology_def
+      apply (rule CollectI)
+      apply (rule exI[where x="top1_ball_on X d x e"])
+      apply (intro conjI)
+       apply (simp add: hEq)
+      apply (rule hopenX)
+      done
+  qed
+
+  have hTY_sub: "?TY \<subseteq> subspace_topology X ?TX Y"
+  proof -
+    have hTY_def: "?TY = topology_generated_by_basis Y (top1_metric_basis_on Y d)"
+      unfolding top1_metric_topology_on_def by simp
+    have hInc: "topology_generated_by_basis Y (top1_metric_basis_on Y d) \<subseteq> subspace_topology X ?TX Y"
+      by (rule topology_generated_by_basis_subset[OF hTopSub hBsub1])
+    show ?thesis
+      unfolding hTY_def using hInc by simp
+  qed
+
+  have hSub_sub: "subspace_topology X ?TX Y \<subseteq> ?TY"
+  proof (rule subsetI)
+    fix W assume hW: "W \<in> subspace_topology X ?TX Y"
+    then obtain U where hU: "U \<in> ?TX" and hWeq: "W = Y \<inter> U"
+      unfolding subspace_topology_def by blast
+    have hWsub: "W \<subseteq> Y"
+      unfolding hWeq by blast
+
+    have hLocal: "\<forall>x\<in>W. \<exists>b\<in>top1_metric_basis_on Y d. x \<in> b \<and> b \<subseteq> W"
+    proof (intro ballI)
+      fix x assume hxW: "x \<in> W"
+      have hxY: "x \<in> Y" and hxU: "x \<in> U"
+        using hxW unfolding hWeq by blast+
+      have hxX: "x \<in> X"
+        using hYX hxY by blast
+      obtain e where he: "e > 0" and hballU: "top1_ball_on X d x e \<subseteq> U"
+        using top1_metric_open_contains_ball[OF hd hU hxU] by blast
+	      have hEq: "top1_ball_on Y d x e = Y \<inter> top1_ball_on X d x e"
+	        unfolding top1_ball_on_def using hYX by blast
+	      have hxball: "x \<in> top1_ball_on Y d x e"
+	      proof -
+	        have hxx0: "d x x = 0"
+	          using hd hxX unfolding top1_metric_on_def by blast
+	        show ?thesis
+	          unfolding top1_ball_on_def using hxY he hxx0 by simp
+	      qed
+      have hballW: "top1_ball_on Y d x e \<subseteq> W"
+        unfolding hWeq hEq using hballU by blast
+      have hballBasis: "top1_ball_on Y d x e \<in> top1_metric_basis_on Y d"
+        unfolding top1_metric_basis_on_def using hxY he by blast
+      show "\<exists>b\<in>top1_metric_basis_on Y d. x \<in> b \<and> b \<subseteq> W"
+        apply (rule bexI[where x="top1_ball_on Y d x e"])
+         apply (intro conjI)
+          apply (rule hxball)
+         apply (rule hballW)
+        apply (rule hballBasis)
+        done
+    qed
+
+    show "W \<in> ?TY"
+      unfolding top1_metric_topology_on_def topology_generated_by_basis_def
+      apply (rule CollectI)
+      apply (intro conjI)
+       apply (rule hWsub)
+      apply (rule hLocal)
+      done
+  qed
+
+  show ?thesis
+    apply (rule equalityI)
+     apply (rule hSub_sub)
+    apply (rule hTY_sub)
+    done
+qed
+
+lemma top1_closed_interval_metrizable:
+  shows "top1_metrizable_on (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1)"
+proof -
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
+  let ?d = "(\<lambda>x y. abs (x - y))"
+
+  have hdI: "top1_metric_on ?I ?d"
+    unfolding top1_metric_on_def
+    apply (intro conjI ballI allI)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal
+    proof -
+      fix x y z :: real
+      assume hx: "x \<in> ?I" and hy: "y \<in> ?I" and hz: "z \<in> ?I"
+      have "abs (x - z) = abs ((x - y) + (y - z))"
+        by simp
+      also have "... \<le> abs (x - y) + abs (y - z)"
+        by (rule abs_triangle_ineq)
+      finally show "abs (x - z) \<le> abs (x - y) + abs (y - z)" .
+    qed
+    done
+
+  have hTopEq: "order_topology_on_UNIV = top1_metric_topology_on (UNIV::real set) ?d"
+    by (rule order_topology_on_UNIV_real_eq_abs_metric_topology)
+
+  have hSubEq:
+    "subspace_topology (UNIV::real set) order_topology_on_UNIV ?I =
+     top1_metric_topology_on ?I ?d"
+  proof -
+    have hSubEq':
+      "subspace_topology (UNIV::real set) (top1_metric_topology_on (UNIV::real set) ?d) ?I =
+       top1_metric_topology_on ?I ?d"
+      apply (rule subspace_metric_topology_eq_metric_topology)
+       apply (rule top1_abs_metric_on_UNIV_real)
+      apply simp
+      done
+    show ?thesis
+      unfolding hTopEq using hSubEq' by simp
+  qed
+
+  have hTIeq: "?TI = top1_metric_topology_on ?I ?d"
+    unfolding top1_closed_interval_topology_def
+    using hSubEq by simp
+
+  show ?thesis
+    unfolding top1_metrizable_on_def
+    apply (rule exI[where x="?d"])
+    apply (intro conjI)
+     apply (rule hdI)
+    apply (rule hTIeq)
+    done
+qed
+
+lemma normal_imp_completely_regular_on:
+  assumes hN: "top1_normal_on X TX"
+  shows "top1_completely_regular_on X TX"
+proof -
+  have hT1: "top1_T1_on X TX"
+    using hN unfolding top1_normal_on_def by blast
+  have hsing: "\<forall>x\<in>X. closedin_on X TX {x}"
+    using hT1 unfolding top1_T1_on_def by blast
+
+  show ?thesis
+    unfolding top1_completely_regular_on_def
+  proof (intro conjI)
+    show "top1_T1_on X TX"
+      by (rule hT1)
+    show "\<forall>x0\<in>X. \<forall>A. closedin_on X TX A \<and> x0 \<notin> A \<longrightarrow>
+        (\<exists>f::'a \<Rightarrow> real.
+            top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f \<and>
+            f x0 = 1 \<and> (\<forall>x\<in>A. f x = 0))"
+    proof (intro ballI allI impI)
+      fix x0 A
+      assume hx0: "x0 \<in> X"
+      assume hA0: "closedin_on X TX A \<and> x0 \<notin> A"
+      have hAcl: "closedin_on X TX A" and hx0A: "x0 \<notin> A"
+        using hA0 by blast+
+      have hsing0: "closedin_on X TX {x0}"
+        using hsing hx0 by blast
+      have hdisj: "A \<inter> {x0} = {}"
+        using hx0A by blast
+	      have hab01: "(0::real) \<le> 1"
+	        by simp
+	      have hex:
+	        "\<exists>f. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f
+	             \<and> (\<forall>x\<in>A. f x = 0) \<and> (\<forall>x\<in>{x0}. f x = 1)"
+	        by (rule Theorem_33_1[OF hN hAcl hsing0 hdisj hab01])
+	      obtain f where hf:
+	        "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f
+	         \<and> (\<forall>x\<in>A. f x = 0) \<and> (\<forall>x\<in>{x0}. f x = 1)"
+	        using hex by blast
+      have hfcont: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
+        using hf by blast
+      have hfx0: "f x0 = 1"
+        using hf by simp
+      have hfA0': "\<forall>x\<in>A. f x = 0"
+        using hf by blast
+      show "\<exists>f::'a \<Rightarrow> real.
+          top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f \<and>
+          f x0 = 1 \<and> (\<forall>x\<in>A. f x = 0)"
+        apply (rule exI[where x=f])
+        apply (intro conjI)
+          apply (rule hfcont)
+         apply (rule hfx0)
+        apply (rule hfA0')
+        done
+    qed
+  qed
+qed
+
+lemma top1_closed_interval_completely_regular:
+  shows "top1_completely_regular_on (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1)"
+proof -
+  have hmet: "top1_metrizable_on (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1)"
+    by (rule top1_closed_interval_metrizable)
+  have hN: "top1_normal_on (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1)"
+    by (rule Theorem_32_2[OF hmet])
+  show ?thesis
+    by (rule normal_imp_completely_regular_on[OF hN])
+qed
+
+lemma top1_continuous_min2_unit_interval:
+  fixes f g :: "'a \<Rightarrow> real"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hf: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
+  assumes hg: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) g"
+  shows "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (\<lambda>x. min (f x) (g x))"
+proof -
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
+  let ?TP = "product_topology_on ?TI ?TI"
+  let ?pair = "(\<lambda>x. (f x, g x))"
+  let ?m = "(\<lambda>p::real \<times> real. min (pi1 p) (pi2 p))"
+
+  have hTopI: "is_topology_on ?I ?TI"
+    unfolding top1_closed_interval_topology_def
+    by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on], simp)
+
+  have hpi1: "top1_continuous_map_on X TX ?I ?TI (pi1 \<circ> ?pair)"
+  proof -
+    have hEq: "(pi1 \<circ> ?pair) = f"
+      by (rule ext, simp add: o_def pi1_def)
+    show ?thesis
+      unfolding hEq by (rule hf)
+  qed
+
+  have hpi2: "top1_continuous_map_on X TX ?I ?TI (pi2 \<circ> ?pair)"
+  proof -
+    have hEq: "(pi2 \<circ> ?pair) = g"
+      by (rule ext, simp add: o_def pi2_def)
+    show ?thesis
+      unfolding hEq by (rule hg)
+  qed
+
+  have hpair: "top1_continuous_map_on X TX (?I \<times> ?I) ?TP ?pair"
+  proof -
+    have hiff:
+      "top1_continuous_map_on X TX (?I \<times> ?I) ?TP ?pair
+       \<longleftrightarrow>
+         (top1_continuous_map_on X TX ?I ?TI (pi1 \<circ> ?pair)
+          \<and> top1_continuous_map_on X TX ?I ?TI (pi2 \<circ> ?pair))"
+      by (rule Theorem_18_4[OF hTopX hTopI hTopI])
+    show ?thesis
+      apply (rule iffD2[OF hiff])
+      apply (intro conjI)
+       apply (rule hpi1)
+      apply (rule hpi2)
+      done
+  qed
+
+  have hm: "top1_continuous_map_on (?I \<times> ?I) ?TP ?I ?TI ?m"
+    by (rule top1_continuous_min_unit_interval)
+
+  have hEq: "(\<lambda>x. min (f x) (g x)) = ?m \<circ> ?pair"
+    by (rule ext, simp add: o_def pi1_def pi2_def)
+
+  show ?thesis
+    unfolding hEq by (rule top1_continuous_map_on_comp[OF hpair hm])
+qed
+
+(** Basic finiteness helper: enumerate a finite set by a distinct list. **)
+lemma finite_distinct_list_of_set:
+  assumes hA: "finite A"
+  shows "\<exists>xs. set xs = A \<and> distinct xs"
+  using hA
+proof (induct rule: finite_induct)
+  case empty
+  show ?case
+    by (rule exI[where x="[]"], simp)
+next
+  case (insert a A)
+  obtain xs where hxs: "set xs = A \<and> distinct xs"
+    using insert by blast
+  have ha: "a \<notin> set xs"
+    using insert.hyps hxs by simp
+  show ?case
+    apply (rule exI[where x="a # xs"])
+    using hxs ha by simp
+qed
+
+lemma top1_completely_regular_on_product_topology_on:
+  assumes hCR: "\<forall>i\<in>I. top1_completely_regular_on (X i) (T i)"
+  shows "top1_completely_regular_on (top1_PiE I X) (top1_product_topology_on I X T)"
+proof -
+  let ?P = "top1_PiE I X"
+  let ?TP = "top1_product_topology_on I X T"
+  let ?I = "top1_closed_interval 0 1"
+  let ?TI = "top1_closed_interval_topology 0 1"
+
+  have hT1: "\<forall>i\<in>I. top1_T1_on (X i) (T i)"
+  proof (intro ballI)
+    fix i assume hi: "i \<in> I"
+    have "top1_completely_regular_on (X i) (T i)"
+      using hCR hi by blast
+    thus "top1_T1_on (X i) (T i)"
+      unfolding top1_completely_regular_on_def by (rule conjunct1)
+  qed
+
+  have hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  proof (intro ballI)
+    fix i assume hi: "i \<in> I"
+    have "top1_T1_on (X i) (T i)"
+      using hT1 hi by blast
+    thus "is_topology_on (X i) (T i)"
+      unfolding top1_T1_on_def by (rule conjunct1)
+  qed
+
+  have hTopP: "is_topology_on ?P ?TP"
+    by (rule top1_product_topology_on_is_topology_on[OF hTop])
+
+  have hHausd: "\<forall>i\<in>I. is_hausdorff_on (X i) (T i)"
+  proof (intro ballI)
+    fix i assume hi: "i \<in> I"
+    have hCRi: "top1_completely_regular_on (X i) (T i)"
+      using hCR hi by blast
+    have hRegi: "top1_regular_on (X i) (T i)"
+      by (rule completely_regular_imp_regular_on[OF hCRi])
+    show "is_hausdorff_on (X i) (T i)"
+      by (rule regular_imp_hausdorff_on[OF hRegi])
+  qed
+
+  have hHausdP: "is_hausdorff_on ?P ?TP"
+    by (rule Theorem_19_4_product[OF hHausd])
+
+  have hT1P: "top1_T1_on ?P ?TP"
+    by (rule hausdorff_imp_T1_on[OF hHausdP])
+
+  have hTopI: "is_topology_on ?I ?TI"
+    unfolding top1_closed_interval_topology_def
+    apply (rule subspace_topology_is_topology_on)
+     apply (rule order_topology_on_UNIV_is_topology_on)
+    apply simp
+    done
+
+  show ?thesis
+    unfolding top1_completely_regular_on_def
+  proof (intro conjI)
+    show "top1_T1_on ?P ?TP"
+      by (rule hT1P)
+
+    show "\<forall>p0\<in>?P. \<forall>A. closedin_on ?P ?TP A \<and> p0 \<notin> A \<longrightarrow>
+       (\<exists>f. top1_continuous_map_on ?P ?TP ?I ?TI f \<and> f p0 = 1 \<and> (\<forall>p\<in>A. f p = 0))"
+    proof (intro ballI allI impI)
+      fix p0 A
+      assume hp0: "p0 \<in> ?P"
+      assume hA0: "closedin_on ?P ?TP A \<and> p0 \<notin> A"
+      have hAcl: "closedin_on ?P ?TP A"
+        by (rule conjunct1[OF hA0])
+      have hp0A: "p0 \<notin> A"
+        by (rule conjunct2[OF hA0])
+
+      have hAsubP: "A \<subseteq> ?P"
+        by (rule closedin_sub[OF hAcl])
+
+      have hWopen: "?P - A \<in> ?TP"
+        using hAcl unfolding closedin_on_def by blast
+      have hp0W: "p0 \<in> ?P - A"
+        using hp0 hp0A by blast
+
+      have hWcov:
+        "\<forall>p\<in>?P - A. \<exists>b\<in>top1_product_basis_on I X T. p \<in> b \<and> b \<subseteq> ?P - A"
+        using hWopen
+        unfolding top1_product_topology_on_def topology_generated_by_basis_def
+        by blast
+
+      obtain b where hbasis: "b \<in> top1_product_basis_on I X T"
+        and hp0b: "p0 \<in> b"
+        and hbsubW: "b \<subseteq> ?P - A"
+        using hWcov hp0W by blast
+
+      obtain U where hbEq: "b = top1_PiE I U"
+        and hU: "(\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i)"
+        and hUfin: "finite {i \<in> I. U i \<noteq> X i}"
+        using hbasis unfolding top1_product_basis_on_def by blast
+
+      define S where "S = {i \<in> I. U i \<noteq> X i}"
+      have hSfin: "finite S"
+        unfolding S_def using hUfin by simp
+
+      have hSsubI: "S \<subseteq> I"
+        unfolding S_def by blast
+
+      have hp0X: "\<forall>i\<in>I. p0 i \<in> X i"
+        using hp0 unfolding top1_PiE_iff by blast
+      have hp0U: "\<forall>i\<in>I. p0 i \<in> U i"
+        using hp0b unfolding hbEq top1_PiE_iff by blast
+
+      have hb_disj_A: "b \<inter> A = {}"
+      proof (rule equalityI)
+        show "b \<inter> A \<subseteq> {}"
+	        proof (rule subsetI)
+	          fix p assume hp: "p \<in> b \<inter> A"
+	          have hpA: "p \<in> A" by (rule IntD2[OF hp])
+	          have hpW: "p \<in> ?P - A"
+	            using hbsubW IntD1[OF hp] by blast
+	          have "p \<notin> A"
+	            using hpW by simp
+	          thus "p \<in> {}"
+	            using hpA by blast
+	        qed
+        show "{} \<subseteq> b \<inter> A"
+          by (rule empty_subsetI)
+      qed
+
+      have hexF:
+        "\<exists>F. top1_continuous_map_on ?P ?TP ?I ?TI F \<and> F p0 = 1
+             \<and> (\<forall>p\<in>?P. (\<exists>i\<in>S. p i \<in> X i - U i) \<longrightarrow> F p = 0)"
+      proof -
+        obtain xs where hxs: "set xs = S" and hdist: "distinct xs"
+          using finite_distinct_list_of_set[OF hSfin] by blast
+
+        have hxsI: "set xs \<subseteq> I"
+          using hxs hSsubI by simp
+
+        have hexF_list:
+          "set xs \<subseteq> I \<Longrightarrow>
+             (\<exists>F. top1_continuous_map_on ?P ?TP ?I ?TI F \<and> F p0 = 1
+                  \<and> (\<forall>p\<in>?P. (\<exists>i\<in>set xs. p i \<in> X i - U i) \<longrightarrow> F p = 0))"
+        proof (induct xs)
+          case Nil
+          assume hset: "set [] \<subseteq> I"
+          have h1mem: "1 \<in> ?I"
+            unfolding top1_closed_interval_def by simp
+          have hconst: "top1_continuous_map_on ?P ?TP ?I ?TI (\<lambda>p. (1::real))"
+            by (rule top1_continuous_map_on_const[OF hTopP hTopI h1mem])
+          show ?case
+            apply (rule exI[where x="(\<lambda>p. (1::real))"])
+            apply (intro conjI)
+              apply (rule hconst)
+             apply simp
+            apply (intro ballI impI)
+            apply simp
+            done
+        next
+          case (Cons i xs)
+          assume hset: "set (i # xs) \<subseteq> I"
+          have hiI: "i \<in> I"
+            using hset by simp
+          have htail: "set xs \<subseteq> I"
+            using hset by simp
+
+          obtain F0 where hF0cont: "top1_continuous_map_on ?P ?TP ?I ?TI F0"
+            and hF0p0: "F0 p0 = 1"
+            and hF0zero: "\<forall>p\<in>?P. (\<exists>j\<in>set xs. p j \<in> X j - U j) \<longrightarrow> F0 p = 0"
+            using Cons.hyps[OF htail] by blast
+
+          have hTopi: "is_topology_on (X i) (T i)"
+            using hTop hiI by blast
+          have hUi: "U i \<in> T i"
+            using hU hiI by blast
+          have hXi_open: "X i \<in> T i"
+            using hTopi unfolding is_topology_on_def by (rule conjunct1[OF conjunct2])
+          have hXU_open: "X i \<inter> U i \<in> T i"
+            by (rule topology_inter2[OF hTopi hXi_open hUi])
+
+          have hAi_cl: "closedin_on (X i) (T i) (X i - U i)"
+            apply (rule closedin_intro)
+             apply (rule Diff_subset)
+            apply (simp only: Diff_Diff_Int)
+            apply (rule hXU_open)
+            done
+
+          have hp0Xi: "p0 i \<in> X i"
+            by (rule bspec[OF hp0X hiI])
+          have hp0Ui: "p0 i \<in> U i"
+            by (rule bspec[OF hp0U hiI])
+          have hp0Ai: "p0 i \<notin> X i - U i"
+            using hp0Ui by blast
+
+          have hCRi: "top1_completely_regular_on (X i) (T i)"
+            using hCR hiI by blast
+	          have hSepi:
+	            "\<forall>x0\<in>X i. \<forall>A0. closedin_on (X i) (T i) A0 \<and> x0 \<notin> A0 \<longrightarrow>
+	               (\<exists>f.
+	                   top1_continuous_map_on (X i) (T i) ?I ?TI f \<and> f x0 = 1 \<and> (\<forall>x\<in>A0. f x = 0))"
+	            using hCRi unfolding top1_completely_regular_on_def by (rule conjunct2)
+
+	          have hexfi:
+	            "\<exists>f.
+	              top1_continuous_map_on (X i) (T i) ?I ?TI f \<and> f (p0 i) = 1 \<and> (\<forall>x\<in>X i - U i. f x = 0)"
+          proof -
+	            have hImp:
+	              "closedin_on (X i) (T i) (X i - U i) \<and> p0 i \<notin> (X i - U i)
+	               \<longrightarrow>
+	                 (\<exists>f.
+	                    top1_continuous_map_on (X i) (T i) ?I ?TI f \<and> f (p0 i) = 1 \<and> (\<forall>x\<in>X i - U i. f x = 0))"
+	              by (rule spec[OF bspec[OF hSepi hp0Xi], where x="X i - U i"])
+            show ?thesis
+              apply (rule mp[OF hImp])
+              apply (intro conjI)
+               apply (rule hAi_cl)
+              apply (rule hp0Ai)
+              done
+          qed
+
+          obtain fi where hficont: "top1_continuous_map_on (X i) (T i) ?I ?TI fi"
+            and hfip0: "fi (p0 i) = 1"
+            and hfi0: "\<forall>x\<in>X i - U i. fi x = 0"
+            using hexfi by blast
+
+          have hproj: "top1_continuous_map_on ?P ?TP (X i) (T i) (\<lambda>p. p i)"
+            by (rule top1_continuous_map_on_product_projection[OF hTop hiI])
+
+          have hgi: "top1_continuous_map_on ?P ?TP ?I ?TI (\<lambda>p. fi (p i))"
+          proof -
+            have hEq: "(\<lambda>p. fi (p i)) = fi \<circ> (\<lambda>p. p i)"
+              by (rule ext, simp add: o_def)
+            show ?thesis
+              unfolding hEq by (rule top1_continuous_map_on_comp[OF hproj hficont])
+          qed
+
+          define F1 where "F1 = (\<lambda>p. min (fi (p i)) (F0 p))"
+          have hF1cont: "top1_continuous_map_on ?P ?TP ?I ?TI F1"
+            unfolding F1_def
+            by (rule top1_continuous_min2_unit_interval[OF hTopP hgi hF0cont])
+          have hF1p0: "F1 p0 = 1"
+            unfolding F1_def using hF0p0 hfip0 by simp
+
+          have hF1zero:
+            "\<forall>p\<in>?P. (\<exists>j\<in>set (i # xs). p j \<in> X j - U j) \<longrightarrow> F1 p = 0"
+          proof (intro ballI impI)
+            fix p assume hpP: "p \<in> ?P"
+            assume hex: "\<exists>j\<in>set (i # xs). p j \<in> X j - U j"
+            have hcases: "p i \<in> X i - U i \<or> (\<exists>j\<in>set xs. p j \<in> X j - U j)"
+              using hex by simp
+            show "F1 p = 0"
+            proof (rule disjE[OF hcases])
+	              assume hpi: "p i \<in> X i - U i"
+	              have "fi (p i) = 0"
+	                using hfi0 hpi by blast
+	              thus ?thesis
+	              proof -
+	                have "F1 p = min (fi (p i)) (F0 p)"
+	                  unfolding F1_def by simp
+		                also have "... = min 0 (F0 p)"
+		                  using \<open>fi (p i) = 0\<close> by simp
+		                also have "... = 0"
+		                proof -
+		                  have hmapF0: "F0 p \<in> ?I"
+		                    using hF0cont hpP unfolding top1_continuous_map_on_def by blast
+		                  have h0: "0 \<le> F0 p"
+		                    using hmapF0 unfolding top1_closed_interval_def by blast
+		                  show "min 0 (F0 p) = 0"
+		                    by (simp add: min_def h0)
+		                qed
+		                finally show "F1 p = 0" .
+		              qed
+	            next
+	              assume htail': "\<exists>j\<in>set xs. p j \<in> X j - U j"
+	              have "F0 p = 0"
+	                using hF0zero hpP htail' by blast
+	              thus ?thesis
+	              proof -
+	                have "F1 p = min (fi (p i)) (F0 p)"
+	                  unfolding F1_def by simp
+	                also have "... = min (fi (p i)) 0"
+	                  using \<open>F0 p = 0\<close> by simp
+	                also have "... = 0"
+	                proof -
+	                  have hmapfi: "fi (p i) \<in> ?I"
+	                  proof -
+	                    have hpXi: "p i \<in> X i"
+	                      using hpP hiI unfolding top1_PiE_iff by blast
+	                    have hfi_map: "\<forall>x\<in>X i. fi x \<in> ?I"
+	                      using hficont unfolding top1_continuous_map_on_def by blast
+	                    show ?thesis
+	                      using hfi_map hpXi by blast
+	                  qed
+		                  have h0: "0 \<le> fi (p i)"
+		                    using hmapfi unfolding top1_closed_interval_def by blast
+		                  show "min (fi (p i)) 0 = 0"
+		                  proof (cases "fi (p i) \<le> 0")
+		                    case True
+		                    have "fi (p i) = 0"
+		                      using h0 True by linarith
+		                    thus ?thesis
+		                      using True by (simp add: min_def)
+		                  next
+		                    case False
+		                    thus ?thesis
+		                      by (simp add: min_def)
+		                  qed
+		                qed
+		                finally show "F1 p = 0" .
+		              qed
+	            qed
+	          qed
+
+          show ?case
+            apply (rule exI[where x=F1])
+            apply (intro conjI)
+              apply (rule hF1cont)
+             apply (rule hF1p0)
+            apply (rule hF1zero)
+            done
+        qed
+
+        have "\<exists>F. top1_continuous_map_on ?P ?TP ?I ?TI F \<and> F p0 = 1
+              \<and> (\<forall>p\<in>?P. (\<exists>i\<in>set xs. p i \<in> X i - U i) \<longrightarrow> F p = 0)"
+          by (rule hexF_list[OF hxsI])
+        thus ?thesis
+          unfolding hxs by simp
+      qed
+
+      obtain F where hFcont: "top1_continuous_map_on ?P ?TP ?I ?TI F"
+        and hFp0: "F p0 = 1"
+        and hFzero: "\<forall>p\<in>?P. (\<exists>i\<in>S. p i \<in> X i - U i) \<longrightarrow> F p = 0"
+        using hexF by blast
+
+      have hAcoord:
+        "\<forall>p\<in>A. \<exists>i\<in>S. p i \<in> X i - U i"
+      proof (intro ballI)
+        fix p assume hpA: "p \<in> A"
+        have hpP: "p \<in> ?P"
+          using hAsubP hpA by blast
+        have hpnotb: "p \<notin> b"
+        proof
+          assume hpb: "p \<in> b"
+          have "p \<in> ?P - A"
+            using hbsubW hpb by blast
+          thus False
+            using hpA by simp
+        qed
+
+        have hpExt: "\<forall>j. j \<notin> I \<longrightarrow> p j = undefined"
+          using hpP unfolding top1_PiE_iff by blast
+        have hpXi: "\<forall>j\<in>I. p j \<in> X j"
+          using hpP unfolding top1_PiE_iff by blast
+
+        have hpnotU: "\<exists>i\<in>I. p i \<notin> U i"
+        proof -
+          have hnot: "p \<notin> top1_PiE I U"
+            using hpnotb unfolding hbEq by simp
+          have hnot': "\<not> ((\<forall>i\<in>I. p i \<in> U i) \<and> (\<forall>j. j \<notin> I \<longrightarrow> p j = undefined))"
+            using hnot unfolding top1_PiE_iff by simp
+          have "\<not> (\<forall>i\<in>I. p i \<in> U i)"
+            using hnot' hpExt by blast
+          thus ?thesis
+            by blast
+        qed
+
+        obtain i where hiI: "i \<in> I" and hpiU: "p i \<notin> U i"
+          using hpnotU by blast
+
+        have hpiX: "p i \<in> X i"
+          using hpXi hiI by blast
+
+        have hiS: "i \<in> S"
+        proof (rule ccontr)
+          assume hinot: "i \<notin> S"
+          have hUiX: "U i = X i"
+            using hinot hiI unfolding S_def by blast
+          have "p i \<in> U i"
+            using hpiX hUiX by simp
+          thus False
+            using hpiU by blast
+        qed
+
+        have "p i \<in> X i - U i"
+          using hpiX hpiU by blast
+        show "\<exists>i\<in>S. p i \<in> X i - U i"
+          by (rule bexI[where x=i], rule \<open>p i \<in> X i - U i\<close>, rule hiS)
+      qed
+
+      have hF_A0: "\<forall>p\<in>A. F p = 0"
+      proof (intro ballI)
+        fix p assume hpA: "p \<in> A"
+        have hpP: "p \<in> ?P"
+          using hAsubP hpA by blast
+        obtain i where hiS: "i \<in> S" and hpi: "p i \<in> X i - U i"
+          using hAcoord hpA by blast
+        have "(\<exists>i\<in>S. p i \<in> X i - U i)"
+          by (rule bexI[where x=i], rule hpi, rule hiS)
+        have "F p = 0"
+          using hFzero hpP \<open>\<exists>i\<in>S. p i \<in> X i - U i\<close> by blast
+        show "F p = 0"
+          by (rule \<open>F p = 0\<close>)
+      qed
+
+      show "\<exists>f. top1_continuous_map_on ?P ?TP ?I ?TI f \<and> f p0 = 1 \<and> (\<forall>p\<in>A. f p = 0)"
+        apply (rule exI[where x=F])
+        apply (intro conjI)
+          apply (rule hFcont)
+         apply (rule hFp0)
+        apply (rule hF_A0)
+        done
+    qed
+  qed
+qed
+
+lemma top1_homeomorphism_on_imp_completely_regular_on:
+  assumes hhomeo: "top1_homeomorphism_on X TX Y TY f"
+  assumes hCRY: "top1_completely_regular_on Y TY"
+  shows "top1_completely_regular_on X TX"
+proof -
+  have hTopX: "is_topology_on X TX"
+    using hhomeo unfolding top1_homeomorphism_on_def by blast
+  have hTopY: "is_topology_on Y TY"
+    using hhomeo unfolding top1_homeomorphism_on_def by blast
+  have hbij: "bij_betw f X Y"
+    using hhomeo unfolding top1_homeomorphism_on_def by blast
+  have hcontf: "top1_continuous_map_on X TX Y TY f"
+    using hhomeo unfolding top1_homeomorphism_on_def by blast
+  have hcontinv: "top1_continuous_map_on Y TY X TX (inv_into X f)"
+    using hhomeo unfolding top1_homeomorphism_on_def by blast
+
+  have hT1Y: "top1_T1_on Y TY"
+    using hCRY unfolding top1_completely_regular_on_def by blast
+  have hTopX': "is_topology_on X TX"
+    using hTopX .
+
+  have hT1X: "top1_T1_on X TX"
+  proof (unfold top1_T1_on_def, intro conjI)
+    show "is_topology_on X TX"
+      by (rule hTopX')
+    show "\<forall>x\<in>X. closedin_on X TX {x}"
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      have hyY: "f x \<in> Y"
+        using hbij hxX unfolding bij_betw_def by blast
+      have hsingY: "closedin_on Y TY {f x}"
+        using hT1Y hyY unfolding top1_T1_on_def by blast
+
+      have hprecl: "closedin_on X TX {u\<in>X. f u \<in> {f x}}"
+        using Theorem_18_1(2)[OF hTopX hTopY, of f] hcontf hsingY by blast
+
+      have hEq: "{u\<in>X. f u \<in> {f x}} = {x}"
+      proof (rule equalityI)
+        show "{u \<in> X. f u \<in> {f x}} \<subseteq> {x}"
+        proof (rule subsetI)
+          fix u assume hu: "u \<in> {u \<in> X. f u \<in> {f x}}"
+          have huX: "u \<in> X" and hfu: "f u = f x"
+            using hu by simp_all
+          have hinj: "inj_on f X"
+            using hbij unfolding bij_betw_def by blast
+          have "u = x"
+            by (rule hinj[unfolded inj_on_def, rule_format, OF huX hxX hfu])
+          thus "u \<in> {x}"
+            by simp
+        qed
+        show "{x} \<subseteq> {u \<in> X. f u \<in> {f x}}"
+          using hxX by simp
+      qed
+
+      show "closedin_on X TX {x}"
+        using hprecl unfolding hEq by simp
+    qed
+  qed
+
+  have hSepY:
+    "\<forall>y0\<in>Y. \<forall>B. closedin_on Y TY B \<and> y0 \<notin> B \<longrightarrow>
+       (\<exists>g::'b \<Rightarrow> real.
+           top1_continuous_map_on Y TY (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) g
+           \<and> g y0 = 1 \<and> (\<forall>y\<in>B. g y = 0))"
+    using hCRY unfolding top1_completely_regular_on_def by blast
+
+  show ?thesis
+    unfolding top1_completely_regular_on_def
+  proof (intro conjI)
+    show "top1_T1_on X TX"
+      by (rule hT1X)
+
+    show "\<forall>x0\<in>X. \<forall>A. closedin_on X TX A \<and> x0 \<notin> A \<longrightarrow>
+       (\<exists>h::'a \<Rightarrow> real.
+           top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) h
+           \<and> h x0 = 1 \<and> (\<forall>x\<in>A. h x = 0))"
+    proof (intro ballI allI impI)
+      fix x0 A
+      assume hx0: "x0 \<in> X"
+      assume hA: "closedin_on X TX A \<and> x0 \<notin> A"
+      have hAcl: "closedin_on X TX A"
+        using hA by blast
+      have hx0A: "x0 \<notin> A"
+        using hA by blast
+
+      have hAsub: "A \<subseteq> X"
+        by (rule closedin_sub[OF hAcl])
+
+      have hImgClosed: "closedin_on Y TY (f ` A)"
+      proof -
+        define inv where "inv = inv_into X f"
+        have hinj: "inj_on f X"
+          using hbij unfolding bij_betw_def by blast
+        have hsurj: "f ` X = Y"
+          using hbij unfolding bij_betw_def by blast
+
+        have hcontinv': "top1_continuous_map_on Y TY X TX inv"
+          unfolding inv_def by (rule hcontinv)
+
+        have hinv_closed_pre:
+          "\<forall>B. closedin_on X TX B \<longrightarrow> closedin_on Y TY {y\<in>Y. inv y \<in> B}"
+        proof -
+          have hiff:
+            "top1_continuous_map_on Y TY X TX inv \<longleftrightarrow>
+              ((\<forall>y\<in>Y. inv y \<in> X) \<and>
+               (\<forall>B. closedin_on X TX B \<longrightarrow> closedin_on Y TY {y\<in>Y. inv y \<in> B}))"
+            using Theorem_18_1(2)[OF hTopY hTopX, of inv] .
+          have hpre: "(\<forall>B. closedin_on X TX B \<longrightarrow> closedin_on Y TY {y\<in>Y. inv y \<in> B})"
+            using iffD1[OF hiff] hcontinv' by blast
+          show ?thesis
+            using hpre .
+        qed
+
+        have hCclosed: "closedin_on Y TY {y\<in>Y. inv y \<in> A}"
+          using hinv_closed_pre hAcl by blast
+
+        have hEq: "{y\<in>Y. inv y \<in> A} = f ` A"
+        proof (rule equalityI)
+          show "{y \<in> Y. inv y \<in> A} \<subseteq> f ` A"
+          proof (rule subsetI)
+            fix y assume hy: "y \<in> {y \<in> Y. inv y \<in> A}"
+            have hyY: "y \<in> Y" and hinvA: "inv y \<in> A"
+              using hy by blast+
+            have hyFX: "y \<in> f ` X"
+              using hyY hsurj by simp
+            have hyEq: "f (inv y) = y"
+              unfolding inv_def by (rule f_inv_into_f[OF hyFX])
+            have "y = f (inv y)"
+              using hyEq by simp
+            thus "y \<in> f ` A"
+              apply (subst \<open>y = f (inv y)\<close>)
+              apply (rule imageI)
+              apply (rule hinvA)
+              done
+          qed
+          show "f ` A \<subseteq> {y \<in> Y. inv y \<in> A}"
+          proof (rule subsetI)
+            fix y assume hy: "y \<in> f ` A"
+            then obtain a where haA: "a \<in> A" and hyEq: "y = f a"
+              by blast
+            have haX: "a \<in> X"
+              using hAsub haA by blast
+            have hyY: "y \<in> Y"
+              using hy hsurj hAsub by blast
+            have hinv: "inv y = a"
+            proof -
+              have "inv (f a) = a"
+                unfolding inv_def by (rule inv_into_f_f[OF hinj haX])
+              thus ?thesis
+                using hyEq by simp
+            qed
+            show "y \<in> {y \<in> Y. inv y \<in> A}"
+              apply (rule CollectI)
+              apply (intro conjI)
+               apply (rule hyY)
+              unfolding hinv
+              apply (rule haA)
+              done
+          qed
+        qed
+
+        show "closedin_on Y TY (f ` A)"
+          using hCclosed unfolding hEq by simp
+      qed
+
+      have hf_x0_notin: "f x0 \<notin> f ` A"
+      proof
+        assume hfx0: "f x0 \<in> f ` A"
+        obtain a where haA: "a \<in> A" and hfa: "f x0 = f a"
+          using hfx0 by blast
+        have haX: "a \<in> X"
+          using hAsub haA by blast
+	        have hinj: "inj_on f X"
+	          using hbij unfolding bij_betw_def by blast
+	        have "x0 = a"
+	        proof -
+	          have hInj: "\<forall>u\<in>X. \<forall>v\<in>X. f u = f v \<longrightarrow> u = v"
+	            using hinj unfolding inj_on_def by blast
+	          have "f x0 = f a"
+	            by (rule hfa)
+	          thus "x0 = a"
+	            using hInj hx0 haX by blast
+	        qed
+	        thus False
+	          using hx0A haA by simp
+	      qed
+
+      have hexg:
+        "\<exists>g::'b \<Rightarrow> real.
+           top1_continuous_map_on Y TY (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) g
+           \<and> g (f x0) = 1 \<and> (\<forall>y\<in>f ` A. g y = 0)"
+      proof -
+        have hfX: "f x0 \<in> Y"
+          using hbij hx0 unfolding bij_betw_def by blast
+        have hSep_fx0:
+          "\<forall>B. closedin_on Y TY B \<and> f x0 \<notin> B \<longrightarrow>
+             (\<exists>g::'b \<Rightarrow> real.
+                top1_continuous_map_on Y TY (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) g
+                \<and> g (f x0) = 1 \<and> (\<forall>y\<in>B. g y = 0))"
+          by (rule bspec[OF hSepY hfX])
+        have hImp:
+          "closedin_on Y TY (f ` A) \<and> f x0 \<notin> (f ` A)
+           \<longrightarrow>
+           (\<exists>g::'b \<Rightarrow> real.
+              top1_continuous_map_on Y TY (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) g
+              \<and> g (f x0) = 1 \<and> (\<forall>y\<in>f ` A. g y = 0))"
+          by (rule spec[OF hSep_fx0, where x="f ` A"])
+        show ?thesis
+          apply (rule mp[OF hImp])
+          apply (intro conjI)
+           apply (rule hImgClosed)
+          apply (rule hf_x0_notin)
+          done
+      qed
+
+      obtain g where hgcont: "top1_continuous_map_on Y TY (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) g"
+        and hgf: "g (f x0) = 1"
+        and hg0: "\<forall>y\<in>f ` A. g y = 0"
+        using hexg by blast
+
+      define h where "h = g \<circ> f"
+      have hhcont:
+        "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) h"
+        unfolding h_def by (rule top1_continuous_map_on_comp[OF hcontf hgcont])
+
+      have hhx0: "h x0 = 1"
+        unfolding h_def using hgf by (simp add: o_def)
+
+      have hhA0: "\<forall>x\<in>A. h x = 0"
+      proof (intro ballI)
+        fix x assume hxA: "x \<in> A"
+        have "f x \<in> f ` A"
+          by (rule imageI[OF hxA])
+        have "g (f x) = 0"
+          using hg0 \<open>f x \<in> f ` A\<close> by blast
+        thus "h x = 0"
+          unfolding h_def by (simp add: o_def)
+      qed
+
+      show "\<exists>h::'a \<Rightarrow> real.
+           top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) h
+           \<and> h x0 = 1 \<and> (\<forall>x\<in>A. h x = 0)"
+        apply (rule exI[where x=h])
+        apply (intro conjI)
+          apply (rule hhcont)
+         apply (rule hhx0)
+        apply (rule hhA0)
+        done
+    qed
+  qed
+qed
+
 (** from \S34 Theorem 34.3 (Completely regular spaces embed into a cube) [top1.tex:4765] **)
 theorem Theorem_34_3_forward:
   assumes hCR: "top1_completely_regular_on X TX"
@@ -27237,7 +28555,40 @@ next
         (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1))
         F"
   show "top1_completely_regular_on X TX"
-    sorry
+  proof -
+    obtain J :: "('a \<Rightarrow> real) set" and F :: "'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real)" where
+      hEmbF:
+        "top1_embedding_on X TX
+          (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))
+          (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1))
+          F"
+      using hEmb by blast
+
+    let ?I = "top1_closed_interval 0 1"
+    let ?TI = "top1_closed_interval_topology 0 1"
+    let ?Y = "top1_PiE J (\<lambda>_. ?I)"
+    let ?TY = "top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)"
+    let ?W = "F ` X"
+    let ?TW = "subspace_topology ?Y ?TY ?W"
+
+    have hCRcoord: "\<forall>i\<in>J. top1_completely_regular_on ?I ?TI"
+      by (intro ballI, rule top1_closed_interval_completely_regular)
+
+    have hCRcube: "top1_completely_regular_on ?Y ?TY"
+      by (rule top1_completely_regular_on_product_topology_on[OF hCRcoord])
+
+    have hWsub: "?W \<subseteq> ?Y"
+      using hEmbF unfolding top1_embedding_on_def by blast
+
+    have hCRW: "top1_completely_regular_on ?W ?TW"
+      by (rule Theorem_33_2_subspace[OF hCRcube hWsub])
+
+    have hhomeo: "top1_homeomorphism_on X TX ?W ?TW F"
+      using hEmbF unfolding top1_embedding_on_def by blast
+
+    show "top1_completely_regular_on X TX"
+      by (rule top1_homeomorphism_on_imp_completely_regular_on[OF hhomeo hCRW])
+  qed
 qed
 
 section \<open>*\<S>35 The Tietze Extension Theorem\<close>
@@ -32180,26 +33531,6 @@ definition top1_m_manifold_on :: "nat \<Rightarrow> 'a set \<Rightarrow> 'a set 
      \<and> top1_second_countable_on X TX
      \<and> (\<forall>x\<in>X. \<exists>U g. neighborhood_of x X TX U
               \<and> top1_embedding_on U (subspace_topology X TX U) (top1_Rpow_set m) (top1_Rpow_topology m) g)"
-
-(** Basic finiteness helper: enumerate a finite set by a distinct list. **)
-lemma finite_distinct_list_of_set:
-  assumes hA: "finite A"
-  shows "\<exists>xs. set xs = A \<and> distinct xs"
-  using hA
-proof (induct rule: finite_induct)
-  case empty
-  show ?case
-    by (rule exI[where x="[]"], simp)
-next
-  case (insert a A)
-  obtain xs where hxs: "set xs = A \<and> distinct xs"
-    using insert by blast
-  have ha: "a \<notin> set xs"
-    using insert.hyps hxs by simp
-  show ?case
-    apply (rule exI[where x="a # xs"])
-    using hxs ha by simp
-qed
 
 (** Embeddings are in particular injective on the carrier. **)
 lemma top1_embedding_on_imp_inj_on:
