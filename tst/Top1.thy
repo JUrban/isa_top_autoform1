@@ -10203,7 +10203,117 @@ theorem Lemma_20_2:
   defines "T' \<equiv> top1_metric_topology_on X d'"
   shows "T \<subseteq> T' \<longleftrightarrow>
     (\<forall>x\<in>X. \<forall>\<epsilon>>0. \<exists>\<delta>>0. top1_ball_on X d' x \<delta> \<subseteq> top1_ball_on X d x \<epsilon>)"
-  sorry
+proof (rule iffI)
+  assume hsub: "T \<subseteq> T'"
+
+  show "\<forall>x\<in>X. \<forall>\<epsilon>>0. \<exists>\<delta>>0. top1_ball_on X d' x \<delta> \<subseteq> top1_ball_on X d x \<epsilon>"
+  proof (intro ballI allI impI)
+    fix x :: 'a
+    fix \<epsilon> :: real
+    assume hxX: "x \<in> X"
+    assume heps: "\<epsilon> > 0"
+
+    have hopen_ball: "top1_ball_on X d x \<epsilon> \<in> T"
+      unfolding T_def by (rule top1_ball_open_in_metric_topology[OF hd hxX heps])
+    have hopen_ball': "top1_ball_on X d x \<epsilon> \<in> T'"
+      using hsub hopen_ball by blast
+
+    have hdx0: "d x x = 0"
+      using hd hxX unfolding top1_metric_on_def by blast
+    have hx_in_ball: "x \<in> top1_ball_on X d x \<epsilon>"
+      unfolding top1_ball_on_def using hxX hdx0 heps by simp
+
+    have hopen_ball_metric: "top1_ball_on X d x \<epsilon> \<in> top1_metric_topology_on X d'"
+      using hopen_ball' unfolding T'_def by simp
+
+    obtain \<delta> where hdel: "\<delta> > 0" and hsub_ball: "top1_ball_on X d' x \<delta> \<subseteq> top1_ball_on X d x \<epsilon>"
+      using top1_metric_open_contains_ball[OF hd' hopen_ball_metric hx_in_ball] by blast
+
+    show "\<exists>\<delta>>0. top1_ball_on X d' x \<delta> \<subseteq> top1_ball_on X d x \<epsilon>"
+      by (rule exI[where x=\<delta>], intro conjI, rule hdel, rule hsub_ball)
+  qed
+next
+  assume hballs: "\<forall>x\<in>X. \<forall>\<epsilon>>0. \<exists>\<delta>>0. top1_ball_on X d' x \<delta> \<subseteq> top1_ball_on X d x \<epsilon>"
+
+  have hTopT': "is_topology_on X T'"
+    unfolding T'_def by (rule top1_metric_topology_on_is_topology_on[OF hd'])
+
+  have hBasisSub: "top1_metric_basis_on X d \<subseteq> T'"
+  proof (rule subsetI)
+    fix b assume hb: "b \<in> top1_metric_basis_on X d"
+    obtain x \<epsilon> where hbdef: "b = top1_ball_on X d x \<epsilon>" and hxX: "x \<in> X" and heps: "\<epsilon> > 0"
+      using hb unfolding top1_metric_basis_on_def by blast
+
+    have hb_open_gen: "b \<in> topology_generated_by_basis X (top1_metric_basis_on X d')"
+      unfolding hbdef topology_generated_by_basis_def
+    proof (rule CollectI, intro conjI)
+      show "top1_ball_on X d x \<epsilon> \<subseteq> X"
+        unfolding top1_ball_on_def by blast
+      show "\<forall>y\<in>top1_ball_on X d x \<epsilon>.
+          \<exists>b'\<in>top1_metric_basis_on X d'. y \<in> b' \<and> b' \<subseteq> top1_ball_on X d x \<epsilon>"
+      proof (intro ballI)
+        fix y assume hyU: "y \<in> top1_ball_on X d x \<epsilon>"
+        have hyX: "y \<in> X" and hdxy: "d x y < \<epsilon>"
+          using hyU unfolding top1_ball_on_def by blast+
+
+        define r where "r = (\<epsilon> - d x y) / 2"
+        have hr_pos: "r > 0"
+          using hdxy heps unfolding r_def by simp
+
+        have hball_sub: "top1_ball_on X d y r \<subseteq> top1_ball_on X d x \<epsilon>"
+        proof (rule subsetI)
+          fix z assume hz: "z \<in> top1_ball_on X d y r"
+          have hzX: "z \<in> X" and hdyz: "d y z < r"
+            using hz unfolding top1_ball_on_def by blast+
+          have htri: "d x z \<le> d x y + d y z"
+            using hd hxX hyX hzX unfolding top1_metric_on_def by blast
+          have "d x z < d x y + r"
+            using htri hdyz by simp
+          also have "... = (d x y + \<epsilon>) / 2"
+            unfolding r_def by (simp add: field_simps algebra_simps)
+          also have "... < \<epsilon>"
+            using hdxy by simp
+          finally have hdxz: "d x z < \<epsilon>" .
+          show "z \<in> top1_ball_on X d x \<epsilon>"
+            unfolding top1_ball_on_def using hzX hdxz by blast
+        qed
+
+        obtain \<delta> where hdel: "\<delta> > 0" and hsub1: "top1_ball_on X d' y \<delta> \<subseteq> top1_ball_on X d y r"
+          using hballs hyX hr_pos by blast
+        have hsub2: "top1_ball_on X d' y \<delta> \<subseteq> top1_ball_on X d x \<epsilon>"
+          using hsub1 hball_sub by blast
+
+        have hdy0: "d' y y = 0"
+          using hd' hyX unfolding top1_metric_on_def by blast
+        have hy_in: "y \<in> top1_ball_on X d' y \<delta>"
+          unfolding top1_ball_on_def using hyX hdy0 hdel by simp
+
+        have hbasis: "top1_ball_on X d' y \<delta> \<in> top1_metric_basis_on X d'"
+          unfolding top1_metric_basis_on_def using hyX hdel by blast
+
+        show "\<exists>b'\<in>top1_metric_basis_on X d'. y \<in> b' \<and> b' \<subseteq> top1_ball_on X d x \<epsilon>"
+          apply (rule bexI[where x="top1_ball_on X d' y \<delta>"])
+           apply (intro conjI)
+            apply (rule hy_in)
+           apply (rule hsub2)
+          apply (rule hbasis)
+          done
+      qed
+    qed
+
+    have "b \<in> top1_metric_topology_on X d'"
+      unfolding top1_metric_topology_on_def using hb_open_gen by simp
+    thus "b \<in> T'"
+      unfolding T'_def by simp
+  qed
+
+  have hInc: "topology_generated_by_basis X (top1_metric_basis_on X d) \<subseteq> T'"
+    by (rule topology_generated_by_basis_subset[OF hTopT' hBasisSub])
+  have "top1_metric_topology_on X d \<subseteq> T'"
+    unfolding top1_metric_topology_on_def using hInc by simp
+  thus "T \<subseteq> T'"
+    unfolding T_def by simp
+qed
 
 (** Metrics on products of reals used in \S20 of \<open>top1.tex\<close>. **)
 
@@ -20228,7 +20338,6 @@ proof -
   qed
 qed
 
-(** from \S30 Theorem 30.2 (Subspaces and countable products) [top1.tex:3934] **)
 theorem Theorem_30_2:
   shows "(\<forall>X TX Y. top1_first_countable_on X TX \<and> Y \<subseteq> X
             \<longrightarrow> top1_first_countable_on Y (subspace_topology X TX Y))"
