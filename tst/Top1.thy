@@ -19225,7 +19225,277 @@ corollary Corollary_29_3:
   assumes hAX: "A \<subseteq> X"
   shows "closedin_on X TX A \<longrightarrow> top1_locally_compact_on A (subspace_topology X TX A)"
     and "A \<in> TX \<longrightarrow> top1_locally_compact_on A (subspace_topology X TX A)"
-  sorry
+proof -
+  have hTX: "is_topology_on X TX"
+    using hLC unfolding top1_locally_compact_on_def by blast
+  let ?TA = "subspace_topology X TX A"
+  have hTopA: "is_topology_on A ?TA"
+    by (rule subspace_topology_is_topology_on[OF hTX hAX])
+
+  have hPropX:
+    "\<forall>x\<in>X. \<forall>U. neighborhood_of x X TX U \<longrightarrow>
+      (\<exists>V. neighborhood_of x X TX V
+        \<and> top1_compact_on (closure_on X TX V) (subspace_topology X TX (closure_on X TX V))
+        \<and> closure_on X TX V \<subseteq> U)"
+  proof -
+    have hEq:
+      "top1_locally_compact_on X TX \<longleftrightarrow>
+        (\<forall>x\<in>X. \<forall>U. neighborhood_of x X TX U \<longrightarrow>
+            (\<exists>V. neighborhood_of x X TX V \<and>
+                 top1_compact_on (closure_on X TX V) (subspace_topology X TX (closure_on X TX V))
+                 \<and> closure_on X TX V \<subseteq> U))"
+      by (rule Theorem_29_2[OF hH])
+    have hRhs:
+      "(\<forall>x\<in>X. \<forall>U. neighborhood_of x X TX U \<longrightarrow>
+            (\<exists>V. neighborhood_of x X TX V \<and>
+                 top1_compact_on (closure_on X TX V) (subspace_topology X TX (closure_on X TX V))
+                 \<and> closure_on X TX V \<subseteq> U))"
+      by (rule iffD1[OF hEq hLC])
+    show ?thesis
+      by (rule hRhs)
+  qed
+
+  show "closedin_on X TX A \<longrightarrow> top1_locally_compact_on A (subspace_topology X TX A)"
+  proof (intro impI)
+    assume hAcl: "closedin_on X TX A"
+    show "top1_locally_compact_on A ?TA"
+      unfolding top1_locally_compact_on_def
+    proof (intro conjI)
+      show "is_topology_on A ?TA"
+        by (rule hTopA)
+      show "\<forall>x\<in>A. \<exists>U. neighborhood_of x A ?TA U \<and> U \<subseteq> A
+        \<and> top1_compact_on (closure_on A ?TA U) (subspace_topology A ?TA (closure_on A ?TA U))"
+      proof (intro ballI)
+        fix x
+        assume hxA: "x \<in> A"
+        have hxX: "x \<in> X"
+          using hAX hxA by blast
+
+        obtain U0 where hU0: "neighborhood_of x X TX U0"
+          and hU0X: "U0 \<subseteq> X"
+          and hK0comp: "top1_compact_on (closure_on X TX U0) (subspace_topology X TX (closure_on X TX U0))"
+          using hLC hxX unfolding top1_locally_compact_on_def by blast
+
+        define V where "V = A \<inter> U0"
+
+        have hVnb: "neighborhood_of x A ?TA V"
+        proof -
+          have hU0T: "U0 \<in> TX"
+            using hU0 unfolding neighborhood_of_def by blast
+          have hxU0: "x \<in> U0"
+            using hU0 unfolding neighborhood_of_def by blast
+          have hVT: "V \<in> ?TA"
+            unfolding V_def subspace_topology_def
+            apply (rule CollectI)
+            apply (rule exI[where x=U0])
+            apply (intro conjI)
+             apply (rule refl)
+            apply (rule hU0T)
+            done
+          have hxV: "x \<in> V"
+            unfolding V_def using hxA hxU0 by blast
+          show ?thesis
+            unfolding neighborhood_of_def
+            by (intro conjI, rule hVT, rule hxV)
+        qed
+
+        have hVA: "V \<subseteq> A"
+          unfolding V_def by blast
+
+        have hVX: "V \<subseteq> X"
+          by (rule subset_trans[OF hVA hAX])
+
+        have hclV_subA: "closure_on X TX V \<subseteq> A"
+          by (rule closure_on_subset_of_closed[OF hAcl hVA])
+
+        have hclV_eq: "closure_on A ?TA V = closure_on X TX V"
+        proof -
+          have hclV_subA': "closure_on X TX V \<inter> A = closure_on X TX V"
+            using hclV_subA by blast
+          have hcl_subspace: "closure_on A ?TA V = closure_on X TX V \<inter> A"
+            by (rule Theorem_17_4[OF hTX hVA hAX])
+          show ?thesis
+            unfolding hcl_subspace hclV_subA' by simp
+        qed
+
+        have hclV_sub_clU0: "closure_on X TX V \<subseteq> closure_on X TX U0"
+        proof -
+          have hVsub: "V \<subseteq> U0"
+            unfolding V_def by blast
+          show ?thesis
+            by (rule closure_on_mono[OF hVsub])
+        qed
+
+        have hclV_closed_X: "closedin_on X TX (closure_on X TX V)"
+          by (rule closure_on_closed[OF hTX hVX])
+
+        have hK0X: "closure_on X TX U0 \<subseteq> X"
+          by (rule closure_on_subset_carrier[OF hTX hU0X])
+
+        have hclV_closed_K0: "closedin_on (closure_on X TX U0) (subspace_topology X TX (closure_on X TX U0)) (closure_on X TX V)"
+        proof -
+          have hEq: "closure_on X TX V = closure_on X TX V \<inter> closure_on X TX U0"
+            using hclV_sub_clU0 by blast
+          have hClosed:
+            "\<exists>C. closedin_on X TX C \<and> closure_on X TX V = C \<inter> closure_on X TX U0"
+            apply (rule exI[where x="closure_on X TX V"])
+            apply (intro conjI)
+             apply (rule hclV_closed_X)
+            apply (subst hEq)
+            apply (rule refl)
+            done
+          have hIff:
+            "closedin_on (closure_on X TX U0) (subspace_topology X TX (closure_on X TX U0)) (closure_on X TX V)
+              \<longleftrightarrow> (\<exists>C. closedin_on X TX C \<and> closure_on X TX V = C \<inter> closure_on X TX U0)"
+            by (rule Theorem_17_2[OF hTX hK0X])
+          show ?thesis
+            by (rule iffD2[OF hIff hClosed])
+        qed
+
+        have hclV_compact:
+          "top1_compact_on (closure_on X TX V) (subspace_topology X TX (closure_on X TX V))"
+        proof -
+          have hcomp':
+            "top1_compact_on (closure_on X TX V)
+              (subspace_topology (closure_on X TX U0) (subspace_topology X TX (closure_on X TX U0)) (closure_on X TX V))"
+            by (rule Theorem_26_2[OF hK0comp hclV_closed_K0])
+          have hTopEq:
+            "subspace_topology (closure_on X TX U0) (subspace_topology X TX (closure_on X TX U0)) (closure_on X TX V)
+              = subspace_topology X TX (closure_on X TX V)"
+            by (rule subspace_topology_trans[OF hclV_sub_clU0])
+          show ?thesis
+            using hcomp' unfolding hTopEq by simp
+        qed
+
+        have hTopEqA:
+          "subspace_topology A ?TA (closure_on A ?TA V) = subspace_topology X TX (closure_on X TX V)"
+        proof -
+          have hsub: "closure_on X TX V \<subseteq> A"
+            by (rule hclV_subA)
+          have hTopEq:
+            "subspace_topology A (subspace_topology X TX A) (closure_on X TX V) = subspace_topology X TX (closure_on X TX V)"
+            by (rule subspace_topology_trans[OF hsub])
+          show ?thesis
+            unfolding hclV_eq hTopEq by simp
+        qed
+        have hTopEqA':
+          "subspace_topology A ?TA (closure_on X TX V) = subspace_topology X TX (closure_on X TX V)"
+          by (subst hclV_eq[symmetric], rule hTopEqA)
+
+        show "\<exists>U. neighborhood_of x A ?TA U \<and> U \<subseteq> A
+          \<and> top1_compact_on (closure_on A ?TA U) (subspace_topology A ?TA (closure_on A ?TA U))"
+          apply (rule exI[where x=V])
+          apply (intro conjI)
+            apply (rule hVnb)
+           apply (rule hVA)
+          apply (subst hclV_eq)
+          apply (subst hclV_eq)
+          apply (subst hTopEqA')
+          apply (rule hclV_compact)
+          done
+      qed
+    qed
+  qed
+
+  show "A \<in> TX \<longrightarrow> top1_locally_compact_on A (subspace_topology X TX A)"
+  proof (intro impI)
+    assume hAopen: "A \<in> TX"
+    show "top1_locally_compact_on A ?TA"
+      unfolding top1_locally_compact_on_def
+    proof (intro conjI)
+      show "is_topology_on A ?TA"
+        by (rule hTopA)
+      show "\<forall>x\<in>A. \<exists>U. neighborhood_of x A ?TA U \<and> U \<subseteq> A
+        \<and> top1_compact_on (closure_on A ?TA U) (subspace_topology A ?TA (closure_on A ?TA U))"
+      proof (intro ballI)
+        fix x
+        assume hxA: "x \<in> A"
+        have hxX: "x \<in> X"
+          using hAX hxA by blast
+        have hnbA: "neighborhood_of x X TX A"
+          unfolding neighborhood_of_def using hAopen hxA by blast
+        obtain V where hV: "neighborhood_of x X TX V"
+          and hVcomp: "top1_compact_on (closure_on X TX V) (subspace_topology X TX (closure_on X TX V))"
+          and hclVsubA: "closure_on X TX V \<subseteq> A"
+          using hPropX hxX hnbA by blast
+
+        have hVsubA: "V \<subseteq> A"
+          apply (rule subset_trans)
+           apply (rule subset_closure_on)
+          apply (rule hclVsubA)
+          done
+
+	        have hVnbA: "neighborhood_of x A ?TA V"
+	        proof -
+	          have hVT: "V \<in> TX"
+	            using hV unfolding neighborhood_of_def by blast
+	          have hxV: "x \<in> V"
+	            using hV unfolding neighborhood_of_def by blast
+		          have hVeq: "V = A \<inter> V"
+		          proof (rule equalityI)
+		            show "V \<subseteq> A \<inter> V"
+		            proof
+		              fix y
+		              assume hyV: "y \<in> V"
+		              have hyA: "y \<in> A"
+		                by (rule subsetD[OF hVsubA hyV])
+		              show "y \<in> A \<inter> V"
+		                by (rule IntI[OF hyA hyV])
+		            qed
+		            show "A \<inter> V \<subseteq> V"
+		              by (rule Int_lower2)
+		          qed
+	          have hVTA: "V \<in> ?TA"
+	            unfolding subspace_topology_def
+	            apply (rule CollectI)
+	            apply (rule exI[where x=V])
+	            apply (intro conjI)
+	             apply (rule hVeq)
+	            apply (rule hVT)
+	            done
+	          show ?thesis
+	            unfolding neighborhood_of_def
+	            by (intro conjI, rule hVTA, rule hxV)
+	        qed
+
+        have hclV_eq: "closure_on A ?TA V = closure_on X TX V"
+        proof -
+          have hcl_subspace: "closure_on A ?TA V = closure_on X TX V \<inter> A"
+            by (rule Theorem_17_4[OF hTX hVsubA hAX])
+          have hEq: "closure_on X TX V \<inter> A = closure_on X TX V"
+            using hclVsubA by blast
+          show ?thesis
+            unfolding hcl_subspace hEq by simp
+        qed
+
+	        have hTopEqA:
+	          "subspace_topology A ?TA (closure_on A ?TA V) = subspace_topology X TX (closure_on X TX V)"
+	        proof -
+	          have hTopEq:
+	            "subspace_topology A (subspace_topology X TX A) (closure_on X TX V) = subspace_topology X TX (closure_on X TX V)"
+	            by (rule subspace_topology_trans[OF hclVsubA])
+	          show ?thesis
+	            unfolding hclV_eq hTopEq by simp
+	        qed
+	        have hTopEqA':
+	          "subspace_topology A ?TA (closure_on X TX V) = subspace_topology X TX (closure_on X TX V)"
+	          by (subst hclV_eq[symmetric], rule hTopEqA)
+
+	        show "\<exists>U. neighborhood_of x A ?TA U \<and> U \<subseteq> A
+	          \<and> top1_compact_on (closure_on A ?TA U) (subspace_topology A ?TA (closure_on A ?TA U))"
+	          apply (rule exI[where x=V])
+	          apply (intro conjI)
+	            apply (rule hVnbA)
+	           apply (rule hVsubA)
+	          apply (subst hclV_eq)
+	          apply (subst hclV_eq)
+	          apply (subst hTopEqA')
+	          apply (rule hVcomp)
+	          done
+	      qed
+	    qed
+	  qed
+	qed
 
 (** from \S29 Corollary 29.4 [top1.tex:3775] **)
 corollary Corollary_29_4:
