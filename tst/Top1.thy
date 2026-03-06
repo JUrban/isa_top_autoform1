@@ -20673,49 +20673,6 @@ proof -
   qed
 qed
 
-(** from \S31 Theorem 31.2 (Hausdorff/regular: subspaces and products) [top1.tex:4075] **)
-theorem Theorem_31_2:
-  shows "(\<forall>X TX Y. is_hausdorff_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> is_hausdorff_on Y (subspace_topology X TX Y))"
-    and "(\<forall>X TX Y TY. is_hausdorff_on X TX \<and> is_hausdorff_on Y TY
-            \<longrightarrow> is_hausdorff_on (X \<times> Y) (product_topology_on TX TY))"
-    and "(\<forall>X TX Y. top1_regular_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> top1_regular_on Y (subspace_topology X TX Y))"
-    and "(\<forall>X TX Y TY. top1_regular_on X TX \<and> top1_regular_on Y TY
-            \<longrightarrow> top1_regular_on (X \<times> Y) (product_topology_on TX TY))"
-proof -
-  have hHausdProd:
-    "\<forall>X1 T1 X2 T2.
-      is_hausdorff_on X1 T1 \<and> is_hausdorff_on X2 T2 \<longrightarrow>
-      is_hausdorff_on (X1 \<times> X2) (product_topology_on T1 T2)"
-    using Theorem_17_11 by blast
-  have hHausdSub:
-    "\<forall>X T Y. is_hausdorff_on X T \<and> Y \<subseteq> X \<longrightarrow> is_hausdorff_on Y (subspace_topology X T Y)"
-    using Theorem_17_11 by blast
-
-  show "(\<forall>X TX Y. is_hausdorff_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> is_hausdorff_on Y (subspace_topology X TX Y))"
-    by (rule hHausdSub)
-  show "(\<forall>X TX Y TY. is_hausdorff_on X TX \<and> is_hausdorff_on Y TY
-            \<longrightarrow> is_hausdorff_on (X \<times> Y) (product_topology_on TX TY))"
-    by (rule hHausdProd)
-  show "(\<forall>X TX Y. top1_regular_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> top1_regular_on Y (subspace_topology X TX Y))"
-  proof (intro allI impI)
-    fix X TX Y
-    assume h: "top1_regular_on X TX \<and> Y \<subseteq> X"
-    have hR: "top1_regular_on X TX"
-      using h by blast
-    have hYX: "Y \<subseteq> X"
-      using h by blast
-    show "top1_regular_on Y (subspace_topology X TX Y)"
-      by (rule Theorem_31_2_regular_subspace[OF hR hYX])
-  qed
-  show "(\<forall>X TX Y TY. top1_regular_on X TX \<and> top1_regular_on Y TY
-            \<longrightarrow> top1_regular_on (X \<times> Y) (product_topology_on TX TY))"
-    sorry
-qed
-
 (** Regularity yields the standard "point shrinking" lemma:
     if x lies in an open set U, there exists an open neighborhood V of x whose closure is still inside U. **)
 lemma regular_refine_point_into_open:
@@ -20831,6 +20788,406 @@ proof -
      apply (rule hxV)
     apply (rule hclV_sub_U)
     done
+qed
+
+(** Closure of a rectangle is contained in the product of closures (for the product topology). **)
+lemma closure_on_product_rect_subset_prod_closure:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hAX: "A \<subseteq> X"
+  assumes hBY: "B \<subseteq> Y"
+  shows "closure_on (X \<times> Y) (product_topology_on TX TY) (A \<times> B)
+          \<subseteq> (closure_on X TX A) \<times> (closure_on Y TY B)"
+proof (rule subsetI)
+  let ?TP = "product_topology_on TX TY"
+  fix p
+  assume hp: "p \<in> closure_on (X \<times> Y) ?TP (A \<times> B)"
+
+  have hTopXY: "is_topology_on (X \<times> Y) ?TP"
+    by (rule product_topology_on_is_topology_on[OF hTX hTY])
+
+  have hcont1: "top1_continuous_map_on (X \<times> Y) ?TP X TX pi1"
+    by (rule top1_continuous_pi1[OF hTX hTY])
+  have hcont2: "top1_continuous_map_on (X \<times> Y) ?TP Y TY pi2"
+    by (rule top1_continuous_pi2[OF hTX hTY])
+
+  have hABsubXY: "A \<times> B \<subseteq> X \<times> Y"
+    using hAX hBY by blast
+
+  have hpi1_cl: "\<forall>S. S \<subseteq> X \<times> Y \<longrightarrow> pi1 ` closure_on (X \<times> Y) ?TP S \<subseteq> closure_on X TX (pi1 ` S)"
+  proof -
+    have hEq:
+      "top1_continuous_map_on (X \<times> Y) ?TP X TX pi1 \<longleftrightarrow>
+        ((\<forall>q\<in>X \<times> Y. pi1 q \<in> X) \<and>
+         (\<forall>S. S \<subseteq> X \<times> Y \<longrightarrow> pi1 ` closure_on (X \<times> Y) ?TP S \<subseteq> closure_on X TX (pi1 ` S)))"
+      by (rule Theorem_18_1(1)[OF hTopXY hTX, of pi1])
+    have hMapCl:
+      "(\<forall>q\<in>X \<times> Y. pi1 q \<in> X) \<and>
+       (\<forall>S. S \<subseteq> X \<times> Y \<longrightarrow> pi1 ` closure_on (X \<times> Y) ?TP S \<subseteq> closure_on X TX (pi1 ` S))"
+      by (rule iffD1[OF hEq hcont1])
+    show ?thesis
+      by (rule conjunct2[OF hMapCl])
+  qed
+
+  have hpi2_cl: "\<forall>S. S \<subseteq> X \<times> Y \<longrightarrow> pi2 ` closure_on (X \<times> Y) ?TP S \<subseteq> closure_on Y TY (pi2 ` S)"
+  proof -
+    have hEq:
+      "top1_continuous_map_on (X \<times> Y) ?TP Y TY pi2 \<longleftrightarrow>
+        ((\<forall>q\<in>X \<times> Y. pi2 q \<in> Y) \<and>
+         (\<forall>S. S \<subseteq> X \<times> Y \<longrightarrow> pi2 ` closure_on (X \<times> Y) ?TP S \<subseteq> closure_on Y TY (pi2 ` S)))"
+      by (rule Theorem_18_1(1)[OF hTopXY hTY, of pi2])
+    have hMapCl:
+      "(\<forall>q\<in>X \<times> Y. pi2 q \<in> Y) \<and>
+       (\<forall>S. S \<subseteq> X \<times> Y \<longrightarrow> pi2 ` closure_on (X \<times> Y) ?TP S \<subseteq> closure_on Y TY (pi2 ` S))"
+      by (rule iffD1[OF hEq hcont2])
+    show ?thesis
+      by (rule conjunct2[OF hMapCl])
+  qed
+
+  have hpi1_img_cl:
+    "pi1 ` closure_on (X \<times> Y) ?TP (A \<times> B) \<subseteq> closure_on X TX (pi1 ` (A \<times> B))"
+  proof -
+    have hImp:
+      "A \<times> B \<subseteq> X \<times> Y \<longrightarrow>
+        pi1 ` closure_on (X \<times> Y) ?TP (A \<times> B) \<subseteq> closure_on X TX (pi1 ` (A \<times> B))"
+      by (rule spec[where x="A \<times> B", OF hpi1_cl])
+    show ?thesis
+      by (rule mp[OF hImp hABsubXY])
+  qed
+
+  have hpi2_img_cl:
+    "pi2 ` closure_on (X \<times> Y) ?TP (A \<times> B) \<subseteq> closure_on Y TY (pi2 ` (A \<times> B))"
+  proof -
+    have hImp:
+      "A \<times> B \<subseteq> X \<times> Y \<longrightarrow>
+        pi2 ` closure_on (X \<times> Y) ?TP (A \<times> B) \<subseteq> closure_on Y TY (pi2 ` (A \<times> B))"
+      by (rule spec[where x="A \<times> B", OF hpi2_cl])
+    show ?thesis
+      by (rule mp[OF hImp hABsubXY])
+  qed
+
+  have hpi1p_clAB: "pi1 p \<in> closure_on X TX (pi1 ` (A \<times> B))"
+  proof -
+    have hpi1p_img: "pi1 p \<in> pi1 ` closure_on (X \<times> Y) ?TP (A \<times> B)"
+      by (rule imageI[OF hp])
+    show ?thesis
+      by (rule subsetD[OF hpi1_img_cl hpi1p_img])
+  qed
+
+  have hpi2p_clAB: "pi2 p \<in> closure_on Y TY (pi2 ` (A \<times> B))"
+  proof -
+    have hpi2p_img: "pi2 p \<in> pi2 ` closure_on (X \<times> Y) ?TP (A \<times> B)"
+      by (rule imageI[OF hp])
+    show ?thesis
+      by (rule subsetD[OF hpi2_img_cl hpi2p_img])
+  qed
+
+  have hpi1_subA: "pi1 ` (A \<times> B) \<subseteq> A"
+  proof (rule subsetI)
+    fix x
+    assume hx: "x \<in> pi1 ` (A \<times> B)"
+    obtain q where hqAB: "q \<in> A \<times> B" and hxq: "pi1 q = x"
+      using hx by blast
+    obtain a b where hqab: "q = (a, b)"
+      by (cases q, simp)
+    have haA: "a \<in> A"
+      using hqAB hqab by simp
+    have hxfst: "x = a"
+      using hxq hqab unfolding pi1_def by simp
+    show "x \<in> A"
+      using haA hxfst by simp
+  qed
+
+  have hpi2_subB: "pi2 ` (A \<times> B) \<subseteq> B"
+  proof (rule subsetI)
+    fix y0
+    assume hy0: "y0 \<in> pi2 ` (A \<times> B)"
+    obtain q where hqAB: "q \<in> A \<times> B" and hyq: "pi2 q = y0"
+      using hy0 by blast
+    obtain a b where hqab: "q = (a, b)"
+      by (cases q, simp)
+    have hbB: "b \<in> B"
+      using hqAB hqab by simp
+    have hyb: "y0 = b"
+      using hyq hqab unfolding pi2_def by simp
+    show "y0 \<in> B"
+      using hbB hyb by simp
+  qed
+
+  have hcl_pi1AB_sub: "closure_on X TX (pi1 ` (A \<times> B)) \<subseteq> closure_on X TX A"
+    by (rule closure_on_mono[OF hpi1_subA])
+  have hcl_pi2AB_sub: "closure_on Y TY (pi2 ` (A \<times> B)) \<subseteq> closure_on Y TY B"
+    by (rule closure_on_mono[OF hpi2_subB])
+
+  have hpi1p_clA: "pi1 p \<in> closure_on X TX A"
+    by (rule subsetD[OF hcl_pi1AB_sub hpi1p_clAB])
+  have hpi2p_clB: "pi2 p \<in> closure_on Y TY B"
+    by (rule subsetD[OF hcl_pi2AB_sub hpi2p_clAB])
+
+  show "p \<in> (closure_on X TX A) \<times> (closure_on Y TY B)"
+    using hpi1p_clA hpi2p_clB unfolding pi1_def pi2_def by (cases p, simp)
+qed
+
+(** from \S31 Theorem 31.2 (Hausdorff/regular: subspaces and products) [top1.tex:4075] **)
+theorem Theorem_31_2:
+  shows "(\<forall>X TX Y. is_hausdorff_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> is_hausdorff_on Y (subspace_topology X TX Y))"
+    and "(\<forall>X TX Y TY. is_hausdorff_on X TX \<and> is_hausdorff_on Y TY
+            \<longrightarrow> is_hausdorff_on (X \<times> Y) (product_topology_on TX TY))"
+    and "(\<forall>X TX Y. top1_regular_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_regular_on Y (subspace_topology X TX Y))"
+    and "(\<forall>X TX Y TY. top1_regular_on X TX \<and> top1_regular_on Y TY
+            \<longrightarrow> top1_regular_on (X \<times> Y) (product_topology_on TX TY))"
+proof -
+  have hHausdProd:
+    "\<forall>X1 T1 X2 T2.
+      is_hausdorff_on X1 T1 \<and> is_hausdorff_on X2 T2 \<longrightarrow>
+      is_hausdorff_on (X1 \<times> X2) (product_topology_on T1 T2)"
+    using Theorem_17_11 by blast
+  have hHausdSub:
+    "\<forall>X T Y. is_hausdorff_on X T \<and> Y \<subseteq> X \<longrightarrow> is_hausdorff_on Y (subspace_topology X T Y)"
+    using Theorem_17_11 by blast
+
+  show "(\<forall>X TX Y. is_hausdorff_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> is_hausdorff_on Y (subspace_topology X TX Y))"
+    by (rule hHausdSub)
+  show "(\<forall>X TX Y TY. is_hausdorff_on X TX \<and> is_hausdorff_on Y TY
+            \<longrightarrow> is_hausdorff_on (X \<times> Y) (product_topology_on TX TY))"
+    by (rule hHausdProd)
+  show "(\<forall>X TX Y. top1_regular_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_regular_on Y (subspace_topology X TX Y))"
+  proof (intro allI impI)
+    fix X TX Y
+    assume h: "top1_regular_on X TX \<and> Y \<subseteq> X"
+    have hR: "top1_regular_on X TX"
+      using h by blast
+    have hYX: "Y \<subseteq> X"
+      using h by blast
+    show "top1_regular_on Y (subspace_topology X TX Y)"
+      by (rule Theorem_31_2_regular_subspace[OF hR hYX])
+  qed
+  show "(\<forall>X TX Y TY. top1_regular_on X TX \<and> top1_regular_on Y TY
+            \<longrightarrow> top1_regular_on (X \<times> Y) (product_topology_on TX TY))"
+  proof (intro allI impI)
+    fix X TX Y TY
+    assume h: "top1_regular_on X TX \<and> top1_regular_on Y TY"
+    have hRX: "top1_regular_on X TX" and hRY: "top1_regular_on Y TY"
+      using h by blast+
+
+    have hT1X: "top1_T1_on X TX"
+      using hRX unfolding top1_regular_on_def by (rule conjunct1)
+    have hT1Y: "top1_T1_on Y TY"
+      using hRY unfolding top1_regular_on_def by (rule conjunct1)
+
+    have hTopX: "is_topology_on X TX"
+      using hT1X unfolding top1_T1_on_def by (rule conjunct1)
+    have hTopY: "is_topology_on Y TY"
+      using hT1Y unfolding top1_T1_on_def by (rule conjunct1)
+
+    have hX_TX: "X \<in> TX"
+      by (rule conjunct1[OF conjunct2[OF hTopX[unfolded is_topology_on_def]]])
+    have hY_TY: "Y \<in> TY"
+      by (rule conjunct1[OF conjunct2[OF hTopY[unfolded is_topology_on_def]]])
+
+    let ?TP = "product_topology_on TX TY"
+    have hTopXY: "is_topology_on (X \<times> Y) ?TP"
+      by (rule product_topology_on_is_topology_on[OF hTopX hTopY])
+
+    have hHausdX: "is_hausdorff_on X TX"
+      by (rule regular_imp_hausdorff_on[OF hRX])
+    have hHausdY: "is_hausdorff_on Y TY"
+      by (rule regular_imp_hausdorff_on[OF hRY])
+
+    have hHausdXY: "is_hausdorff_on (X \<times> Y) ?TP"
+    proof -
+      have hImp: "is_hausdorff_on X TX \<and> is_hausdorff_on Y TY \<longrightarrow> is_hausdorff_on (X \<times> Y) ?TP"
+      proof -
+        have h1:
+          "\<forall>T1 X2 T2. is_hausdorff_on X T1 \<and> is_hausdorff_on X2 T2
+            \<longrightarrow> is_hausdorff_on (X \<times> X2) (product_topology_on T1 T2)"
+          using hHausdProd by (rule spec[where x=X])
+        have h2:
+          "\<forall>X2 T2. is_hausdorff_on X TX \<and> is_hausdorff_on X2 T2
+            \<longrightarrow> is_hausdorff_on (X \<times> X2) (product_topology_on TX T2)"
+          using h1 by (rule spec[where x=TX])
+        have h3:
+          "\<forall>T2. is_hausdorff_on X TX \<and> is_hausdorff_on Y T2
+            \<longrightarrow> is_hausdorff_on (X \<times> Y) (product_topology_on TX T2)"
+          using h2 by (rule spec[where x=Y])
+        have h4:
+          "is_hausdorff_on X TX \<and> is_hausdorff_on Y TY
+            \<longrightarrow> is_hausdorff_on (X \<times> Y) (product_topology_on TX TY)"
+          using h3 by (rule spec[where x=TY])
+        show ?thesis
+          using h4 by simp
+      qed
+      show ?thesis
+        apply (rule mp[OF hImp])
+        apply (intro conjI)
+         apply (rule hHausdX)
+        apply (rule hHausdY)
+        done
+    qed
+
+    have hT1XY: "top1_T1_on (X \<times> Y) ?TP"
+      by (rule hausdorff_imp_T1_on[OF hHausdXY])
+
+    show "top1_regular_on (X \<times> Y) ?TP"
+      unfolding top1_regular_on_def
+    proof (intro conjI)
+      show "top1_T1_on (X \<times> Y) ?TP"
+        by (rule hT1XY)
+      show "\<forall>p\<in>X \<times> Y. \<forall>C. closedin_on (X \<times> Y) ?TP C \<and> p \<notin> C \<longrightarrow>
+        (\<exists>U V. neighborhood_of p (X \<times> Y) ?TP U \<and> V \<in> ?TP \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+      proof (intro ballI allI impI)
+        fix p C
+        assume hpXY: "p \<in> X \<times> Y"
+        assume hC: "closedin_on (X \<times> Y) ?TP C \<and> p \<notin> C"
+        have hCcl: "closedin_on (X \<times> Y) ?TP C"
+          using hC by blast
+        have hpnotC: "p \<notin> C"
+          using hC by blast
+
+        have hCsubXY: "C \<subseteq> X \<times> Y"
+          by (rule closedin_sub[OF hCcl])
+
+        let ?W = "(X \<times> Y) - C"
+        have hWopen: "?W \<in> ?TP"
+          by (rule closedin_diff_open[OF hCcl])
+        have hpW: "p \<in> ?W"
+          using hpXY hpnotC by blast
+
+        obtain U0 V0 where hU0: "U0 \<in> TX" and hV0: "V0 \<in> TY"
+            and hpU0V0: "p \<in> U0 \<times> V0" and hrect_sub: "U0 \<times> V0 \<subseteq> ?W"
+          by (rule top1_product_open_contains_rect[OF hWopen hpW])
+
+        obtain x0 y0 where hp_def: "p = (x0, y0)"
+          by (cases p, simp)
+        have hx0X: "x0 \<in> X" and hy0Y: "y0 \<in> Y"
+          using hpXY hp_def by simp_all
+
+        have hx0U0: "x0 \<in> U0" and hy0V0: "y0 \<in> V0"
+          using hpU0V0 hp_def by simp_all
+
+        let ?Ux = "U0 \<inter> X"
+        let ?Uy = "V0 \<inter> Y"
+
+        have hUx: "?Ux \<in> TX"
+          by (rule topology_inter2[OF hTopX hU0 hX_TX])
+        have hUy: "?Uy \<in> TY"
+          by (rule topology_inter2[OF hTopY hV0 hY_TY])
+        have hUx_subX: "?Ux \<subseteq> X" by blast
+        have hUy_subY: "?Uy \<subseteq> Y" by blast
+
+        have hx0Ux: "x0 \<in> ?Ux" using hx0U0 hx0X by blast
+        have hy0Uy: "y0 \<in> ?Uy" using hy0V0 hy0Y by blast
+
+        have hUxUy_sub: "?Ux \<times> ?Uy \<subseteq> ?W"
+        proof -
+          have hsub1: "?Ux \<times> ?Uy \<subseteq> U0 \<times> V0"
+            by blast
+          show ?thesis
+            by (rule subset_trans[OF hsub1 hrect_sub])
+        qed
+
+        have exVx: "\<exists>Vx. Vx \<in> TX \<and> Vx \<subseteq> X \<and> x0 \<in> Vx \<and> closure_on X TX Vx \<subseteq> ?Ux"
+          by (rule regular_refine_point_into_open[OF hRX hx0X hUx hUx_subX hx0Ux])
+        obtain Vx where hVx: "Vx \<in> TX" and hVx_subX: "Vx \<subseteq> X" and hx0Vx: "x0 \<in> Vx"
+            and hclVx: "closure_on X TX Vx \<subseteq> ?Ux"
+          using exVx by blast
+
+        have exVy: "\<exists>Vy. Vy \<in> TY \<and> Vy \<subseteq> Y \<and> y0 \<in> Vy \<and> closure_on Y TY Vy \<subseteq> ?Uy"
+          by (rule regular_refine_point_into_open[OF hRY hy0Y hUy hUy_subY hy0Uy])
+        obtain Vy where hVy: "Vy \<in> TY" and hVy_subY: "Vy \<subseteq> Y" and hy0Vy: "y0 \<in> Vy"
+            and hclVy: "closure_on Y TY Vy \<subseteq> ?Uy"
+          using exVy by blast
+
+        let ?U = "Vx \<times> Vy"
+        have hUopen: "?U \<in> ?TP"
+          by (rule product_rect_open[OF hVx hVy])
+        have hpU: "p \<in> ?U"
+          using hp_def hx0Vx hy0Vy by simp
+
+        have hUsubXY: "?U \<subseteq> X \<times> Y"
+          using hVx_subX hVy_subY by blast
+
+        have hclU_sub:
+          "closure_on (X \<times> Y) ?TP ?U
+            \<subseteq> (closure_on X TX Vx) \<times> (closure_on Y TY Vy)"
+          by (rule closure_on_product_rect_subset_prod_closure[OF hTopX hTopY hVx_subX hVy_subY])
+        have hcl_prod_sub_W: "closure_on (X \<times> Y) ?TP ?U \<subseteq> ?W"
+        proof -
+          have hprod_sub_UxUy:
+            "(closure_on X TX Vx) \<times> (closure_on Y TY Vy) \<subseteq> ?Ux \<times> ?Uy"
+            using hclVx hclVy by blast
+          have hcl_sub_UxUy:
+            "closure_on (X \<times> Y) ?TP ?U \<subseteq> ?Ux \<times> ?Uy"
+            by (rule subset_trans[OF hclU_sub hprod_sub_UxUy])
+          show ?thesis
+            by (rule subset_trans[OF hcl_sub_UxUy hUxUy_sub])
+        qed
+
+        have hclU_closed: "closedin_on (X \<times> Y) ?TP (closure_on (X \<times> Y) ?TP ?U)"
+          by (rule closure_on_closed[OF hTopXY hUsubXY])
+        have hVopen: "(X \<times> Y) - closure_on (X \<times> Y) ?TP ?U \<in> ?TP"
+          by (rule closedin_diff_open[OF hclU_closed])
+
+        let ?V = "(X \<times> Y) - closure_on (X \<times> Y) ?TP ?U"
+
+        have hC_sub_V: "C \<subseteq> ?V"
+        proof (rule subsetI)
+          fix c
+          assume hc: "c \<in> C"
+          have hcXY: "c \<in> X \<times> Y"
+            using hCsubXY hc by blast
+          show "c \<in> ?V"
+          proof (rule DiffI)
+            show "c \<in> X \<times> Y" by (rule hcXY)
+            show "c \<notin> closure_on (X \<times> Y) ?TP ?U"
+            proof
+              assume hccl: "c \<in> closure_on (X \<times> Y) ?TP ?U"
+              have "c \<in> (X \<times> Y) - C"
+                using hcl_prod_sub_W hccl by blast
+              thus False
+                using hc by blast
+            qed
+          qed
+        qed
+
+        have hUsub_clU: "?U \<subseteq> closure_on (X \<times> Y) ?TP ?U"
+          by (rule subset_closure_on)
+        have hdisj: "?U \<inter> ?V = {}"
+        proof (rule equalityI)
+          show "?U \<inter> ?V \<subseteq> {}"
+          proof (rule subsetI)
+            fix z
+            assume hz: "z \<in> ?U \<inter> ?V"
+            have hzU: "z \<in> ?U" and hznot: "z \<notin> closure_on (X \<times> Y) ?TP ?U"
+              using hz by blast+
+            have "z \<in> closure_on (X \<times> Y) ?TP ?U"
+              by (rule subsetD[OF hUsub_clU hzU])
+            thus "z \<in> {}"
+              using hznot by blast
+          qed
+          show "{} \<subseteq> ?U \<inter> ?V" by blast
+        qed
+
+        have hnbhd: "neighborhood_of p (X \<times> Y) ?TP ?U"
+          unfolding neighborhood_of_def
+          by (intro conjI hUopen hpU)
+
+        show "\<exists>U V. neighborhood_of p (X \<times> Y) ?TP U \<and> V \<in> ?TP \<and> C \<subseteq> V \<and> U \<inter> V = {}"
+          apply (rule exI[where x="?U"])
+          apply (rule exI[where x="?V"])
+          apply (intro conjI)
+             apply (rule hnbhd)
+            apply (rule hVopen)
+           apply (rule hC_sub_V)
+          apply (rule hdisj)
+          done
+      qed
+    qed
+  qed
 qed
 
 (** from \S31 Lemma 31.1(a) [top1.tex:~4065] **)
