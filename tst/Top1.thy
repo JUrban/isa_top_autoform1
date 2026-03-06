@@ -20910,11 +20910,11 @@ proof -
       have hBX: "B \<subseteq> X" by (rule closedin_sub[OF hBcl])
 
       show "\<exists>U V. U \<in> TX \<and> V \<in> TX \<and> A \<subseteq> U \<and> B \<subseteq> V \<and> U \<inter> V = {}"
-      proof (cases "A = {} \<or> B = {}")
-        case True
-        show ?thesis
-        proof (cases "A = {}")
-          case True
+	      proof (cases "A = {} \<or> B = {}")
+	        case True
+	        show ?thesis
+	        proof (cases "A = {}")
+	          case True
           show ?thesis
             apply (rule exI[where x="{}"])
             apply (rule exI[where x=X])
@@ -21189,9 +21189,1166 @@ proof -
 qed
 
 (** from \S32 Theorem 32.4 (Every well-ordered set is normal in the order topology) [top1.tex:4230] **)
+text \<open>
+  For a well-ordered type, we follow the proof in @{file \<open>top1.tex\<close>}:
+  in the order topology, half-open intervals \<open>(x,y]\<close> are open; using such intervals
+  one can separate disjoint closed sets.
+\<close>
+
+lemma wellorder_Least_le_all:
+  fixes a0 :: "'a::wellorder"
+  defines "a0 \<equiv> (LEAST a. True)"
+  shows "\<forall>x. a0 \<le> x"
+proof (intro allI)
+  fix x
+  have "True" by simp
+  thus "a0 \<le> x"
+    unfolding a0_def
+    by (rule Least_le)
+qed
+
+lemma wellorder_min_lt_if_ne:
+  fixes a0 :: "'a::wellorder"
+  assumes ha0: "\<forall>x. a0 \<le> x"
+  assumes hne: "x \<noteq> a0"
+  shows "a0 < x"
+proof -
+  have "a0 \<le> x"
+    by (rule spec[OF ha0])
+  thus ?thesis
+    using hne by simp
+qed
+
+lemma wellorder_Ioc_open_in_order_topology:
+  fixes x y :: "'a::wellorder"
+  assumes hxy: "x < y"
+  shows "{x <.. y} \<in> (order_topology_on_UNIV::'a set set)"
+proof (cases "\<exists>z. y < z")
+  case True
+  define s where "s = (LEAST z. y < z)"
+  have hys: "y < s"
+    unfolding s_def by (rule LeastI_ex[OF True])
+  have hLeast: "\<And>t. y < t \<Longrightarrow> s \<le> t"
+    unfolding s_def by (rule Least_le)
+
+  have hEq: "{x <.. y} = open_interval x s"
+  proof (rule set_eqI)
+    fix t
+    show "t \<in> {x <.. y} \<longleftrightarrow> t \<in> open_interval x s"
+    proof (rule iffI)
+      assume ht: "t \<in> {x <.. y}"
+      have hxt: "x < t"
+        using ht by simp
+      have hty: "t \<le> y"
+        using ht by simp
+      have hts: "t < s"
+        by (rule le_less_trans[OF hty hys])
+      show "t \<in> open_interval x s"
+        unfolding open_interval_def using hxt hts by simp
+    next
+      assume ht: "t \<in> open_interval x s"
+      have hxt: "x < t" and hts: "t < s"
+        using ht unfolding open_interval_def by simp_all
+      have hty: "t \<le> y"
+      proof (rule ccontr)
+        assume hnot: "\<not> t \<le> y"
+        have hylt: "y < t"
+          using hnot by simp
+        have hsle: "s \<le> t"
+          by (rule hLeast[OF hylt])
+        show False
+          using hts hsle by simp
+      qed
+      show "t \<in> {x <.. y}"
+        using hxt hty by simp
+    qed
+  qed
+
+  have hxs: "x < s"
+    by (rule less_trans[OF hxy hys])
+  have "open_interval x s \<in> (order_topology_on_UNIV::'a set set)"
+    by (rule open_interval_in_order_topology[OF hxs])
+  thus ?thesis
+    unfolding hEq .
+next
+  case False
+  have hTop: "\<forall>t. t \<le> y"
+  proof (intro allI)
+    fix t
+    show "t \<le> y"
+    proof (rule ccontr)
+      assume hnot: "\<not> t \<le> y"
+      have "y < t"
+        using hnot by simp
+      thus False
+        using False by blast
+    qed
+  qed
+
+  have hEq: "{x <.. y} = open_ray_gt x"
+  proof (rule set_eqI)
+    fix t
+    show "t \<in> {x <.. y} \<longleftrightarrow> t \<in> open_ray_gt x"
+    proof (rule iffI)
+      assume ht: "t \<in> {x <.. y}"
+      have hxt: "x < t" using ht by simp
+      show "t \<in> open_ray_gt x"
+        unfolding open_ray_gt_def using hxt by simp
+	    next
+	      assume ht: "t \<in> open_ray_gt x"
+	      have hxt: "x < t"
+	        using ht unfolding open_ray_gt_def by simp
+	      have hty: "t \<le> y"
+	        by (rule spec[OF hTop])
+	      show "t \<in> {x <.. y}"
+	        using hxt hty by simp
+	    qed
+	  qed
+
+  have "open_ray_gt x \<in> (order_topology_on_UNIV::'a set set)"
+    by (rule open_ray_gt_in_order_topology)
+  thus ?thesis
+    unfolding hEq .
+qed
+
+lemma wellorder_basis_refine_Ioc:
+  fixes a :: "'a::wellorder"
+  fixes a0 :: "'a"
+  assumes ha0: "\<forall>x. a0 \<le> x"
+  assumes hne: "a \<noteq> a0"
+  assumes hb: "b \<in> basis_order_topology"
+  assumes hab: "a \<in> b"
+  shows "\<exists>x<a. {x <.. a} \<subseteq> b"
+proof -
+  have ha0lt: "a0 < a"
+    by (rule wellorder_min_lt_if_ne[OF ha0 hne])
+  have ha0le: "a0 \<le> a"
+    using ha0 by simp
+
+  from hb have hbU:
+    "b \<in> {open_interval u v | u v. u < v}
+     \<or> b \<in> {open_ray_gt u | u. True}
+     \<or> b \<in> {open_ray_lt u | u. True}
+     \<or> b = (UNIV::'a set)"
+    unfolding basis_order_topology_def by blast
+
+  show ?thesis
+  proof (rule disjE[OF hbU])
+    assume h1: "b \<in> {open_interval u v | u v. u < v}"
+    then obtain u v where huv: "u < v" and hbeq: "b = open_interval u v"
+      by blast
+    have hua: "u < a" and hav: "a < v"
+      using hab unfolding hbeq open_interval_def by simp_all
+    show "\<exists>x<a. {x <.. a} \<subseteq> b"
+    proof (rule exI[where x=u], intro conjI)
+      show "u < a" by (rule hua)
+      show "{u <.. a} \<subseteq> b"
+      proof (rule subsetI)
+        fix t assume ht: "t \<in> {u <.. a}"
+        have hut: "u < t"
+          using ht by simp
+        have hta: "t \<le> a"
+          using ht by simp
+        have htv: "t < v"
+          by (rule le_less_trans[OF hta hav])
+        show "t \<in> b"
+          unfolding hbeq open_interval_def using hut htv by simp
+      qed
+    qed
+  next
+    assume hrest: "b \<in> {open_ray_gt u | u. True}
+      \<or> b \<in> {open_ray_lt u | u. True}
+      \<or> b = (UNIV::'a set)"
+    show ?thesis
+    proof (rule disjE[OF hrest])
+      assume h2: "b \<in> {open_ray_gt u | u. True}"
+      then obtain u where hbeq: "b = open_ray_gt u" by blast
+      have hua: "u < a"
+        using hab unfolding hbeq open_ray_gt_def by simp
+	      show "\<exists>x<a. {x <.. a} \<subseteq> b"
+	      proof (rule exI[where x=u], intro conjI)
+	        show "u < a" by (rule hua)
+	        show "{u <.. a} \<subseteq> b"
+	        proof (rule subsetI)
+	          fix t assume ht: "t \<in> {u <.. a}"
+	          have "u < t"
+	            using ht by simp
+	          thus "t \<in> b"
+	            unfolding hbeq open_ray_gt_def by simp
+	        qed
+	      qed
+	    next
+	      assume hrest2: "b \<in> {open_ray_lt u | u. True} \<or> b = (UNIV::'a set)"
+	      show ?thesis
+      proof (rule disjE[OF hrest2])
+        assume h3: "b \<in> {open_ray_lt u | u. True}"
+        then obtain u where hbeq: "b = open_ray_lt u" by blast
+        have hau: "a < u"
+          using hab unfolding hbeq open_ray_lt_def by simp
+	        show "\<exists>x<a. {x <.. a} \<subseteq> b"
+	        proof (rule exI[where x=a0], intro conjI)
+	          show "a0 < a" by (rule ha0lt)
+	          show "{a0 <.. a} \<subseteq> b"
+	          proof (rule subsetI)
+	            fix t assume ht: "t \<in> {a0 <.. a}"
+	            have hta: "t \<le> a"
+	              using ht by simp
+	            have htu: "t < u"
+	              by (rule le_less_trans[OF hta hau])
+	            show "t \<in> b"
+	              unfolding hbeq open_ray_lt_def using htu by simp
+	          qed
+	        qed
+	      next
+	        assume h4: "b = (UNIV::'a set)"
+        show "\<exists>x<a. {x <.. a} \<subseteq> b"
+        proof (rule exI[where x=a0], intro conjI)
+          show "a0 < a" by (rule ha0lt)
+          show "{a0 <.. a} \<subseteq> b"
+            unfolding h4 by simp
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma wellorder_open_refine_Ioc:
+  fixes a :: "'a::wellorder"
+  fixes a0 :: "'a"
+  assumes ha0: "\<forall>x. a0 \<le> x"
+  assumes hne: "a \<noteq> a0"
+  assumes hU: "U \<in> (order_topology_on_UNIV::'a set set)"
+  assumes haU: "a \<in> U"
+  shows "\<exists>x<a. {x <.. a} \<subseteq> U"
+proof -
+  have hgen:
+    "U \<in> topology_generated_by_basis (UNIV::'a set) basis_order_topology"
+    using hU unfolding order_topology_on_UNIV_def by simp
+  have hcov:
+    "\<exists>b\<in>basis_order_topology. a \<in> b \<and> b \<subseteq> U"
+    using hgen haU unfolding topology_generated_by_basis_def by blast
+  then obtain b where hb: "b \<in> basis_order_topology" and hab: "a \<in> b" and hbsub: "b \<subseteq> U"
+    by blast
+  obtain x where hxa: "x < a" and hxsub: "{x <.. a} \<subseteq> b"
+    using wellorder_basis_refine_Ioc[OF ha0 hne hb hab] by blast
+  have "{x <.. a} \<subseteq> U"
+    by (rule subset_trans[OF hxsub hbsub])
+  show ?thesis
+    by (rule exI[where x=x], intro conjI, rule hxa, rule \<open>{x <.. a} \<subseteq> U\<close>)
+qed
+
+lemma wellorder_min_singleton_open:
+  fixes a0 :: "'a::wellorder"
+  defines "a0 \<equiv> (LEAST a. True)"
+  shows "{a0} \<in> (order_topology_on_UNIV::'a set set)"
+proof (cases "\<exists>z. a0 < z")
+  case True
+  define s where "s = (LEAST z. a0 < z)"
+  have ha0s: "a0 < s"
+    unfolding s_def by (rule LeastI_ex[OF True])
+  have hLeast: "\<And>t. a0 < t \<Longrightarrow> s \<le> t"
+    unfolding s_def by (rule Least_le)
+
+  have ha0le: "\<forall>x. a0 \<le> x"
+    unfolding a0_def by (rule wellorder_Least_le_all)
+
+  have hEq: "{a0} = open_ray_lt s"
+  proof (rule set_eqI)
+    fix t
+    show "t \<in> {a0} \<longleftrightarrow> t \<in> open_ray_lt s"
+    proof (rule iffI)
+      assume ht: "t \<in> {a0}"
+      have "t = a0" using ht by simp
+      hence "t < s" using ha0s by simp
+      thus "t \<in> open_ray_lt s"
+        unfolding open_ray_lt_def by simp
+    next
+      assume ht: "t \<in> open_ray_lt s"
+      have hts: "t < s"
+        using ht unfolding open_ray_lt_def by simp
+      have "t \<le> a0"
+      proof (rule ccontr)
+        assume hnot: "\<not> t \<le> a0"
+        have ha0t: "a0 < t"
+          using hnot by simp
+        have hsle: "s \<le> t"
+          by (rule hLeast[OF ha0t])
+        show False
+          using hts hsle by simp
+      qed
+      have hta0: "t = a0"
+      proof -
+        have ha0t: "a0 \<le> t"
+          by (rule spec[OF ha0le])
+        show ?thesis
+          using ha0t \<open>t \<le> a0\<close> by simp
+      qed
+      show "t \<in> {a0}"
+        using hta0 by simp
+    qed
+  qed
+
+  have "open_ray_lt s \<in> (order_topology_on_UNIV::'a set set)"
+    by (rule open_ray_lt_in_order_topology)
+  thus ?thesis
+    unfolding hEq by simp
+next
+  case False
+  have hTop: "is_topology_on (UNIV::'a set) (order_topology_on_UNIV::'a set set)"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hAll: "\<forall>t. t = a0"
+  proof (intro allI)
+    fix t
+    have "a0 \<le> t"
+      unfolding a0_def by (rule Least_le, simp)
+    moreover have "t \<le> a0"
+    proof (rule ccontr)
+      assume hnot: "\<not> t \<le> a0"
+      have "a0 < t" using hnot by simp
+      thus False using False by blast
+    qed
+    ultimately show "t = a0" by simp
+  qed
+  have hUNIV: "UNIV = ({a0}::'a set)"
+    by (rule set_eqI, simp add: hAll)
+  have "UNIV \<in> (order_topology_on_UNIV::'a set set)"
+    by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+  thus ?thesis
+    unfolding hUNIV by simp
+qed
+
 theorem Theorem_32_4:
   shows "top1_normal_on (UNIV::'a::wellorder set) (order_topology_on_UNIV::'a set set)"
-  sorry
+proof -
+  let ?X = "(UNIV::'a set)"
+  let ?T = "(order_topology_on_UNIV::'a set set)"
+
+  have hHaus: "is_hausdorff_on ?X ?T"
+    by (rule conjunct1[OF Theorem_17_11])
+  have hT1: "top1_T1_on ?X ?T"
+    by (rule hausdorff_imp_T1_on[OF hHaus])
+  have hTop: "is_topology_on ?X ?T"
+    using hT1 unfolding top1_T1_on_def by blast
+
+	  have union_T: "\<And>U. U \<subseteq> ?T \<Longrightarrow> (\<Union>U) \<in> ?T"
+	  proof -
+	    fix U assume hU: "U \<subseteq> ?T"
+	    have hUnion: "\<forall>U'. U' \<subseteq> ?T \<longrightarrow> (\<Union>U') \<in> ?T"
+	      by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTop[unfolded is_topology_on_def]]]])
+	    have hImp: "U \<subseteq> ?T \<longrightarrow> (\<Union>U) \<in> ?T"
+	      by (rule spec[OF hUnion])
+	    show "(\<Union>U) \<in> ?T"
+	      by (rule mp[OF hImp hU])
+	  qed
+
+  define a0 :: 'a where "a0 = (LEAST a. True)"
+  have ha0: "\<forall>x. a0 \<le> x"
+    unfolding a0_def by (rule wellorder_Least_le_all)
+
+  show ?thesis
+    unfolding top1_normal_on_def
+  proof (intro conjI)
+    show "top1_T1_on ?X ?T" by (rule hT1)
+    show "\<forall>A B. closedin_on ?X ?T A \<and> closedin_on ?X ?T B \<and> A \<inter> B = {}
+        \<longrightarrow> (\<exists>U V. U \<in> ?T \<and> V \<in> ?T \<and> A \<subseteq> U \<and> B \<subseteq> V \<and> U \<inter> V = {})"
+    proof (intro allI impI)
+      fix A B
+      assume hAB: "closedin_on ?X ?T A \<and> closedin_on ?X ?T B \<and> A \<inter> B = {}"
+      have hAcl: "closedin_on ?X ?T A" and hBcl: "closedin_on ?X ?T B" and hdisj: "A \<inter> B = {}"
+        using hAB by blast+
+
+      show "\<exists>U V. U \<in> ?T \<and> V \<in> ?T \<and> A \<subseteq> U \<and> B \<subseteq> V \<and> U \<inter> V = {}"
+      proof (cases "A = {} \<or> B = {}")
+        case True
+        show ?thesis
+	        proof (cases "A = {}")
+	          case True
+	          have "({}::'a set) \<in> ?T"
+	            by (rule conjunct1[OF hTop[unfolded is_topology_on_def]])
+	          moreover have "UNIV \<in> ?T"
+	            by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+	          then have hempty: "({}::'a set) \<in> ?T" and huniv: "UNIV \<in> ?T"
+	            using calculation by blast+
+	          show ?thesis
+	          proof (rule exI[where x="{}"])
+	            show "\<exists>V. {} \<in> ?T \<and> V \<in> ?T \<and> A \<subseteq> {} \<and> B \<subseteq> V \<and> {} \<inter> V = {}"
+	            proof (rule exI[where x=UNIV], intro conjI)
+	              show "{} \<in> ?T" by (rule hempty)
+	              show "UNIV \<in> ?T" by (rule huniv)
+	              show "A \<subseteq> {}" using True by simp
+	              show "B \<subseteq> UNIV" by simp
+	              show "{} \<inter> UNIV = {}" by simp
+	            qed
+	          qed
+	        next
+	          case False
+	          have hBemp: "B = {}" using True False by blast
+	          have "UNIV \<in> ?T"
+	            by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+	          moreover have "({}::'a set) \<in> ?T"
+	            by (rule conjunct1[OF hTop[unfolded is_topology_on_def]])
+	          then have huniv: "UNIV \<in> ?T" and hempty: "({}::'a set) \<in> ?T"
+	            using calculation by blast+
+	          show ?thesis
+	          proof (rule exI[where x=UNIV])
+	            show "\<exists>V. UNIV \<in> ?T \<and> V \<in> ?T \<and> A \<subseteq> UNIV \<and> B \<subseteq> V \<and> UNIV \<inter> V = {}"
+	            proof (rule exI[where x="{}"], intro conjI)
+	              show "UNIV \<in> ?T" by (rule huniv)
+	              show "{} \<in> ?T" by (rule hempty)
+	              show "A \<subseteq> UNIV" by simp
+	              show "B \<subseteq> {}" using hBemp by simp
+	              show "UNIV \<inter> {} = {}" by simp
+	            qed
+	          qed
+	        qed
+      next
+        case False
+
+        have hA0: "a0 \<notin> A \<or> a0 \<in> A" by blast
+        show ?thesis
+        proof (cases "a0 \<in> A")
+          case True
+          have ha0B: "a0 \<notin> B"
+          proof
+            assume ha0B: "a0 \<in> B"
+            have "a0 \<in> A \<inter> B" using True ha0B by blast
+            thus False using hdisj by blast
+          qed
+
+          have hsing_open: "{a0} \<in> ?T"
+            unfolding a0_def by (rule wellorder_min_singleton_open)
+
+          (* choose intervals for points of A - {a0} disjoint from B *)
+	          have hexA: "\<forall>a\<in>A - {a0}. \<exists>x<a. {x <.. a} \<subseteq> ?X - B"
+	          proof (intro ballI)
+	            fix a assume ha: "a \<in> A - {a0}"
+	            have haA: "a \<in> A" and hne: "a \<noteq> a0" using ha by blast+
+	            have haX: "a \<in> ?X" by simp
+            have haB: "a \<notin> B"
+            proof
+              assume haB: "a \<in> B"
+              have "a \<in> A \<inter> B" using haA haB by blast
+              thus False using hdisj by blast
+            qed
+	            have hUopen: "?X - B \<in> ?T"
+	              by (rule closedin_diff_open[OF hBcl])
+	            have hnbd: "a \<in> ?X - B" using haX haB by blast
+	            show "\<exists>x<a. {x <.. a} \<subseteq> ?X - B"
+	              by (rule wellorder_open_refine_Ioc[OF ha0 hne hUopen hnbd])
+	          qed
+	          obtain xA where hxA: "\<forall>a\<in>A - {a0}. xA a < a \<and> {xA a <.. a} \<subseteq> ?X - B"
+	            using bchoice[OF hexA] by blast
+
+	          have hexB: "\<forall>b\<in>B. \<exists>y<b. {y <.. b} \<subseteq> ?X - A"
+	          proof (intro ballI)
+	            fix b assume hb: "b \<in> B"
+	            have hbX: "b \<in> ?X" by simp
+            have hbA: "b \<notin> A"
+            proof
+              assume hbA: "b \<in> A"
+              have "b \<in> A \<inter> B" using hbA hb by blast
+              thus False using hdisj by blast
+            qed
+            have hne: "b \<noteq> a0"
+              using hb ha0B by blast
+	            have hUopen: "?X - A \<in> ?T"
+	              by (rule closedin_diff_open[OF hAcl])
+	            have hnbd: "b \<in> ?X - A" using hbX hbA by blast
+	            show "\<exists>y<b. {y <.. b} \<subseteq> ?X - A"
+	              by (rule wellorder_open_refine_Ioc[OF ha0 hne hUopen hnbd])
+	          qed
+	          obtain yB where hyB: "\<forall>b\<in>B. yB b < b \<and> {yB b <.. b} \<subseteq> ?X - A"
+	            using bchoice[OF hexB] by blast
+
+	          define U where "U = {a0} \<union> (\<Union>a\<in>A - {a0}. {xA a <.. a})"
+	          define V where "V = (\<Union>b\<in>B. {yB b <.. b})"
+
+          have hUopen: "U \<in> ?T"
+          proof -
+	            have hFam: "{{xA a <.. a} | a. a \<in> A - {a0}} \<subseteq> ?T"
+	            proof (rule subsetI)
+	              fix W assume hW: "W \<in> {{xA a <.. a} | a. a \<in> A - {a0}}"
+	              then obtain a where ha: "a \<in> A - {a0}" and hWeq: "W = {xA a <.. a}"
+	                by blast
+	              have hxa: "xA a < a"
+	                using hxA ha by blast
+	              have "{xA a <.. a} \<in> ?T"
+	                by (rule wellorder_Ioc_open_in_order_topology[OF hxa])
+	              thus "W \<in> ?T"
+	                using hWeq by simp
+	            qed
+	            have hUnion: "(\<Union>{{xA a <.. a} | a. a \<in> A - {a0}}) \<in> ?T"
+	              by (rule union_T[OF hFam])
+	            have hEq: "(\<Union>{{xA a <.. a} | a. a \<in> A - {a0}}) = (\<Union>a\<in>A - {a0}. {xA a <.. a})"
+	              by blast
+	            have hPart: "(\<Union>a\<in>A - {a0}. {xA a <.. a}) \<in> ?T"
+	              using hUnion unfolding hEq by simp
+	            have hsub: "{ {a0}, (\<Union>a\<in>A - {a0}. {xA a <.. a}) } \<subseteq> ?T"
+	              using hsing_open hPart by simp
+	            have "(\<Union>{ {a0}, (\<Union>a\<in>A - {a0}. {xA a <.. a}) }) \<in> ?T"
+	              by (rule union_T[OF hsub])
+	            thus ?thesis
+	              unfolding U_def by simp
+	          qed
+
+	          have hVopen: "V \<in> ?T"
+	          proof -
+	            have hFam: "{{yB b <.. b} | b. b \<in> B} \<subseteq> ?T"
+	            proof (rule subsetI)
+	              fix W assume hW: "W \<in> {{yB b <.. b} | b. b \<in> B}"
+	              then obtain b where hb: "b \<in> B" and hWeq: "W = {yB b <.. b}"
+	                by blast
+	              have hyb: "yB b < b"
+	                using hyB hb by blast
+	              have "{yB b <.. b} \<in> ?T"
+	                by (rule wellorder_Ioc_open_in_order_topology[OF hyb])
+	              thus "W \<in> ?T"
+	                using hWeq by simp
+	            qed
+	            have hUnion: "(\<Union>{{yB b <.. b} | b. b \<in> B}) \<in> ?T"
+	              by (rule union_T[OF hFam])
+	            have hEq: "(\<Union>{{yB b <.. b} | b. b \<in> B}) = (\<Union>b\<in>B. {yB b <.. b})"
+	              by blast
+	            show ?thesis
+	              unfolding V_def using hUnion hEq by simp
+	          qed
+
+          have hA_sub: "A \<subseteq> U"
+          proof (rule subsetI)
+            fix a assume haA: "a \<in> A"
+            show "a \<in> U"
+            proof (cases "a = a0")
+              case True
+              show ?thesis
+                unfolding U_def using True by simp
+            next
+              case False
+	              have ha: "a \<in> A - {a0}"
+	                using haA False by blast
+	              have hxa: "xA a < a"
+	                using hxA ha by blast
+	              have "a \<in> {xA a <.. a}"
+	                using hxa by simp
+	              thus ?thesis
+	                unfolding U_def using ha by blast
+	            qed
+	          qed
+
+          have hB_sub: "B \<subseteq> V"
+          proof (rule subsetI)
+	            fix b assume hbB: "b \<in> B"
+	            have hyb: "yB b < b"
+	              using hyB hbB by blast
+	            have "b \<in> {yB b <.. b}"
+	              using hyb by simp
+	            thus "b \<in> V"
+	              unfolding V_def using hbB by blast
+	          qed
+
+          have hUV_disj: "U \<inter> V = {}"
+          proof (rule equalityI)
+            show "U \<inter> V \<subseteq> {}"
+            proof (rule subsetI)
+              fix z assume hz: "z \<in> U \<inter> V"
+              have hzU: "z \<in> U" and hzV: "z \<in> V" using hz by blast+
+
+	              have hzA0: "z = a0 \<or> z \<in> (\<Union>a\<in>A - {a0}. {xA a <.. a})"
+	                using hzU unfolding U_def by blast
+              show "z \<in> {}"
+	              proof (cases "z = a0")
+	                case True
+	                have "z \<notin> V"
+		                proof
+		                  assume hzVin: "z \<in> V"
+		                  then obtain b where hbB: "b \<in> B" and hzI: "z \<in> {yB b <.. b}"
+		                    unfolding V_def by blast
+		                  have hybz: "yB b < z"
+		                    using hzI by simp
+		                  have ha0yb: "a0 \<le> yB b"
+		                    by (rule spec[OF ha0])
+		                  have "a0 < z"
+		                    by (rule le_less_trans[OF ha0yb hybz])
+		                  thus False
+		                    using True by simp
+	                qed
+	                thus ?thesis using hzV by blast
+		              next
+		                case False
+		                then obtain a where ha: "a \<in> A - {a0}" and hzIa: "z \<in> {xA a <.. a}"
+		                  using hzA0 unfolding Union_eq by blast
+		                have haA: "a \<in> A"
+		                  using ha by simp
+		                have ha0ne: "a \<noteq> a0"
+		                  using ha by blast
+		                have hzIa': "z \<in> {xA a <.. a}"
+		                  by (rule hzIa)
+		                obtain b where hbB: "b \<in> B" and hzIb: "z \<in> {yB b <.. b}"
+		                  using hzV unfolding V_def by blast
+                have haB: "a \<notin> B"
+                proof
+                  assume "a \<in> B"
+                  have "a \<in> A \<inter> B" using haA \<open>a \<in> B\<close> by blast
+                  thus False using hdisj by blast
+                qed
+                have hneab: "a \<noteq> b"
+                  using haA haB hbB by blast
+                have hcase: "a < b \<or> b < a"
+                  using hneab neq_iff by blast
+                show ?thesis
+	                proof (rule disjE[OF hcase])
+	                  assume hablt: "a < b"
+	                  have hbprop: "{yB b <.. b} \<subseteq> ?X - A"
+	                    using hyB hbB by blast
+	                  have hyb: "yB b < b"
+	                    using hyB hbB by blast
+	                  have hzb1: "z \<le> a"
+	                    using hzIa' by simp
+	                  have hzb2: "yB b < z"
+	                    using hzIb by simp
+                  show "z \<in> {}"
+	                  proof (cases "a \<le> yB b")
+	                    case True
+	                    have "z \<le> yB b"
+	                      by (rule order_trans[OF hzb1 True])
+	                    have "yB b < yB b"
+	                      by (rule less_le_trans[OF hzb2 \<open>z \<le> yB b\<close>])
+	                    thus ?thesis by simp
+	                  next
+	                    case False
+		                    have hyb_a: "yB b < a"
+		                      using False by simp
+	                    have "a \<le> b"
+	                      using hablt by simp
+	                    have "a \<in> {yB b <.. b}"
+	                      using hyb_a \<open>a \<le> b\<close> by simp
+		                    hence "a \<in> ?X - A"
+		                      by (rule subsetD[OF hbprop])
+		                    have False using haA \<open>a \<in> ?X - A\<close> by simp
+		                    thus ?thesis by simp
+		                  qed
+		              next
+		                assume hbalt: "b < a"
+		                  have hxAa: "xA a < a \<and> {xA a <.. a} \<subseteq> ?X - B"
+		                    by (rule bspec[OF hxA ha])
+		                  have haprop: "{xA a <.. a} \<subseteq> ?X - B"
+		                    by (rule conjunct2[OF hxAa])
+		                  have hxa: "xA a < a"
+		                    by (rule conjunct1[OF hxAa])
+		                  have hzb1: "z \<le> b"
+		                    using hzIb by simp
+		                  have hzb2: "xA a < z"
+		                    using hzIa' by simp
+	                  show "z \<in> {}"
+	                  proof (cases "b \<le> xA a")
+	                    case True
+	                    have "z \<le> xA a"
+	                      by (rule order_trans[OF hzb1 True])
+	                    have "xA a < xA a"
+	                      by (rule less_le_trans[OF hzb2 \<open>z \<le> xA a\<close>])
+	                    thus ?thesis by simp
+	                  next
+	                    case False
+		                    have hxa_b: "xA a < b"
+		                      using False by simp
+	                    have "b \<le> a"
+	                      using hbalt by simp
+	                    have "b \<in> {xA a <.. a}"
+	                      using hxa_b \<open>b \<le> a\<close> by simp
+		                    hence "b \<in> ?X - B"
+		                      by (rule subsetD[OF haprop])
+		                    have False using hbB \<open>b \<in> ?X - B\<close> by simp
+		                    thus ?thesis by simp
+		                  qed
+	                qed
+	              qed
+            qed
+            show "{} \<subseteq> U \<inter> V" by simp
+          qed
+
+          show ?thesis
+            apply (rule exI[where x=U])
+            apply (rule exI[where x=V])
+            using hUopen hVopen hA_sub hB_sub hUV_disj by blast
+	        next
+	          case False
+	          show ?thesis
+	          proof (cases "a0 \<in> B")
+	            case True
+	            (* symmetric to the previous case: construct neighborhoods with {a0} on the B-side *)
+	            have ha0A: "a0 \<notin> A"
+	              using \<open>a0 \<notin> A\<close> .
+	            have ha0B: "a0 \<in> B"
+	              using True .
+
+	            have hsing_open: "{a0} \<in> ?T"
+	              unfolding a0_def by (rule wellorder_min_singleton_open)
+
+	            have hexB: "\<forall>b\<in>B - {a0}. \<exists>x<b. {x <.. b} \<subseteq> ?X - A"
+	            proof (intro ballI)
+	              fix b assume hb: "b \<in> B - {a0}"
+	              have hbB: "b \<in> B" and hne: "b \<noteq> a0"
+	                using hb by blast+
+	              have hbX: "b \<in> ?X" by simp
+	              have hbA: "b \<notin> A"
+	              proof
+	                assume hbA: "b \<in> A"
+	                have "b \<in> A \<inter> B" using hbA hbB by blast
+	                thus False using hdisj by blast
+	              qed
+	              have hUopen: "?X - A \<in> ?T"
+	                by (rule closedin_diff_open[OF hAcl])
+	              have hnbd: "b \<in> ?X - A"
+	                using hbX hbA by blast
+	              show "\<exists>x<b. {x <.. b} \<subseteq> ?X - A"
+	                by (rule wellorder_open_refine_Ioc[OF ha0 hne hUopen hnbd])
+	            qed
+	            obtain xB where hxB: "\<forall>b\<in>B - {a0}. xB b < b \<and> {xB b <.. b} \<subseteq> ?X - A"
+	              using bchoice[OF hexB] by blast
+
+	            have hexA: "\<forall>a\<in>A. \<exists>y<a. {y <.. a} \<subseteq> ?X - B"
+	            proof (intro ballI)
+	              fix a assume haA': "a \<in> A"
+	              have hne: "a \<noteq> a0"
+	                using ha0A haA' by blast
+	              have haX: "a \<in> ?X" by simp
+	              have haB: "a \<notin> B"
+	              proof
+	                assume haB: "a \<in> B"
+	                have "a \<in> A \<inter> B" using haA' haB by blast
+	                thus False using hdisj by blast
+	              qed
+	              have hUopen: "?X - B \<in> ?T"
+	                by (rule closedin_diff_open[OF hBcl])
+	              have hnbd: "a \<in> ?X - B"
+	                using haX haB by blast
+	              show "\<exists>y<a. {y <.. a} \<subseteq> ?X - B"
+	                by (rule wellorder_open_refine_Ioc[OF ha0 hne hUopen hnbd])
+	            qed
+	            obtain yA where hyA: "\<forall>a\<in>A. yA a < a \<and> {yA a <.. a} \<subseteq> ?X - B"
+	              using bchoice[OF hexA] by blast
+
+	            define U where "U = {a0} \<union> (\<Union>b\<in>B - {a0}. {xB b <.. b})"
+	            define V where "V = (\<Union>a\<in>A. {yA a <.. a})"
+
+	            have hUopen: "U \<in> ?T"
+	            proof -
+	              have hFam: "{{xB b <.. b} | b. b \<in> B - {a0}} \<subseteq> ?T"
+	              proof (rule subsetI)
+	                fix W assume hW: "W \<in> {{xB b <.. b} | b. b \<in> B - {a0}}"
+	                then obtain b where hb: "b \<in> B - {a0}" and hWeq: "W = {xB b <.. b}"
+	                  by blast
+	                have hxb: "xB b < b"
+	                  using hxB hb by blast
+	                have "{xB b <.. b} \<in> ?T"
+	                  by (rule wellorder_Ioc_open_in_order_topology[OF hxb])
+	                thus "W \<in> ?T"
+	                  using hWeq by simp
+	              qed
+	              have hUnion: "(\<Union>{{xB b <.. b} | b. b \<in> B - {a0}}) \<in> ?T"
+	                by (rule union_T[OF hFam])
+	              have hEq: "(\<Union>{{xB b <.. b} | b. b \<in> B - {a0}}) = (\<Union>b\<in>B - {a0}. {xB b <.. b})"
+	                by blast
+	              have hPart: "(\<Union>b\<in>B - {a0}. {xB b <.. b}) \<in> ?T"
+	                using hUnion unfolding hEq by simp
+	              have hsub: "{ {a0}, (\<Union>b\<in>B - {a0}. {xB b <.. b}) } \<subseteq> ?T"
+	                using hsing_open hPart by simp
+	              have "(\<Union>{ {a0}, (\<Union>b\<in>B - {a0}. {xB b <.. b}) }) \<in> ?T"
+	                by (rule union_T[OF hsub])
+	              thus ?thesis
+	                unfolding U_def by simp
+	            qed
+
+	            have hVopen: "V \<in> ?T"
+	            proof -
+	              have hFam: "{{yA a <.. a} | a. a \<in> A} \<subseteq> ?T"
+	              proof (rule subsetI)
+	                fix W assume hW: "W \<in> {{yA a <.. a} | a. a \<in> A}"
+	                then obtain a where ha: "a \<in> A" and hWeq: "W = {yA a <.. a}"
+	                  by blast
+	                have hya: "yA a < a"
+	                  using hyA ha by blast
+	                have "{yA a <.. a} \<in> ?T"
+	                  by (rule wellorder_Ioc_open_in_order_topology[OF hya])
+	                thus "W \<in> ?T"
+	                  using hWeq by simp
+	              qed
+	              have hUnion: "(\<Union>{{yA a <.. a} | a. a \<in> A}) \<in> ?T"
+	                by (rule union_T[OF hFam])
+	              have hEq: "(\<Union>{{yA a <.. a} | a. a \<in> A}) = (\<Union>a\<in>A. {yA a <.. a})"
+	                by blast
+	              show ?thesis
+	                unfolding V_def using hUnion hEq by simp
+	            qed
+
+	            have hB_sub: "B \<subseteq> U"
+	            proof (rule subsetI)
+	              fix b assume hbB: "b \<in> B"
+	              show "b \<in> U"
+	              proof (cases "b = a0")
+	                case True
+	                show ?thesis unfolding U_def using True by simp
+	              next
+	                case False
+	                have hb: "b \<in> B - {a0}"
+	                  using hbB False by blast
+	                have hxb: "xB b < b"
+	                  using hxB hb by blast
+	                have "b \<in> {xB b <.. b}"
+	                  using hxb by simp
+	                thus ?thesis
+	                  unfolding U_def using hb by blast
+	              qed
+	            qed
+
+	            have hA_sub: "A \<subseteq> V"
+	            proof (rule subsetI)
+	              fix a assume haA': "a \<in> A"
+	              have hya: "yA a < a"
+	                using hyA haA' by blast
+	              have "a \<in> {yA a <.. a}"
+	                using hya by simp
+	              thus "a \<in> V"
+	                unfolding V_def using haA' by blast
+	            qed
+
+	            have hUV_disj: "U \<inter> V = {}"
+	            proof (rule equalityI)
+	              show "U \<inter> V \<subseteq> {}"
+	              proof (rule subsetI)
+	                fix z assume hz: "z \<in> U \<inter> V"
+	                have hzU: "z \<in> U" and hzV: "z \<in> V" using hz by blast+
+	                have hzA0: "z = a0 \<or> z \<in> (\<Union>b\<in>B - {a0}. {xB b <.. b})"
+	                  using hzU unfolding U_def by blast
+	                show "z \<in> {}"
+	                proof (cases "z = a0")
+	                  case True
+	                  have "z \<notin> V"
+	                  proof
+	                    assume hzVin: "z \<in> V"
+	                    then obtain a where haA': "a \<in> A" and hzI: "z \<in> {yA a <.. a}"
+	                      unfolding V_def by blast
+	                    have hyaz: "yA a < z"
+	                      using hzI by simp
+	                    have ha0ya: "a0 \<le> yA a"
+	                      by (rule spec[OF ha0])
+	                    have "a0 < z"
+	                      by (rule le_less_trans[OF ha0ya hyaz])
+	                    thus False
+	                      using True by simp
+	                  qed
+	                  thus ?thesis using hzV by blast
+	                next
+	                  case False
+	                  then obtain b where hb: "b \<in> B - {a0}" and hzIb: "z \<in> {xB b <.. b}"
+	                    using hzA0 by blast
+	                  obtain a where haA': "a \<in> A" and hzIa: "z \<in> {yA a <.. a}"
+	                    using hzV unfolding V_def by blast
+	                  have haB: "a \<notin> B"
+	                  proof
+	                    assume "a \<in> B"
+	                    have "a \<in> A \<inter> B" using haA' \<open>a \<in> B\<close> by blast
+	                    thus False using hdisj by blast
+	                  qed
+	                  have hbB: "b \<in> B"
+	                    using hb by blast
+	                  have hbA: "b \<notin> A"
+	                  proof
+	                    assume "b \<in> A"
+	                    have "b \<in> A \<inter> B" using \<open>b \<in> A\<close> hbB by blast
+	                    thus False using hdisj by blast
+	                  qed
+	                  have hneab: "a \<noteq> b"
+	                    using haA' hbA hbB by blast
+	                  have hcase: "a < b \<or> b < a"
+	                    using hneab neq_iff by blast
+	                  show ?thesis
+	                  proof (rule disjE[OF hcase])
+	                    assume hablt: "a < b"
+	                    have hxBb: "xB b < b \<and> {xB b <.. b} \<subseteq> ?X - A"
+	                      by (rule bspec[OF hxB hb])
+	                    have hxbb: "xB b < b"
+	                      by (rule conjunct1[OF hxBb])
+	                    have hbprop: "{xB b <.. b} \<subseteq> ?X - A"
+	                      by (rule conjunct2[OF hxBb])
+	                    have hzb1: "z \<le> a"
+	                      using hzIa by simp
+	                    have hzb2: "xB b < z"
+	                      using hzIb by simp
+	                    show "z \<in> {}"
+	                    proof (cases "a \<le> xB b")
+	                      case True
+	                      have "z \<le> xB b"
+	                        by (rule order_trans[OF hzb1 True])
+	                      have "xB b < xB b"
+	                        by (rule less_le_trans[OF hzb2 \<open>z \<le> xB b\<close>])
+	                      thus ?thesis by simp
+	                    next
+	                      case False
+	                      have hxba: "xB b < a"
+	                        using False by simp
+	                      have "a \<le> b"
+	                        using hablt by simp
+	                      have "a \<in> {xB b <.. b}"
+	                        using hxba \<open>a \<le> b\<close> by simp
+	                      hence "a \<in> ?X - A"
+	                        by (rule subsetD[OF hbprop])
+	                      have False using haA' \<open>a \<in> ?X - A\<close> by simp
+	                      thus ?thesis by simp
+	                    qed
+	                  next
+	                    assume hbalt: "b < a"
+	                    have hyAa: "yA a < a \<and> {yA a <.. a} \<subseteq> ?X - B"
+	                      by (rule bspec[OF hyA haA'])
+	                    have hyya: "yA a < a"
+	                      by (rule conjunct1[OF hyAa])
+	                    have haprop: "{yA a <.. a} \<subseteq> ?X - B"
+	                      by (rule conjunct2[OF hyAa])
+	                    have hzb1: "z \<le> b"
+	                      using hzIb by simp
+	                    have hzb2: "yA a < z"
+	                      using hzIa by simp
+	                    show "z \<in> {}"
+	                    proof (cases "b \<le> yA a")
+	                      case True
+	                      have "z \<le> yA a"
+	                        by (rule order_trans[OF hzb1 True])
+	                      have "yA a < yA a"
+	                        by (rule less_le_trans[OF hzb2 \<open>z \<le> yA a\<close>])
+	                      thus ?thesis by simp
+	                    next
+	                      case False
+	                      have hyab: "yA a < b"
+	                        using False by simp
+	                      have "b \<le> a"
+	                        using hbalt by simp
+	                      have "b \<in> {yA a <.. a}"
+	                        using hyab \<open>b \<le> a\<close> by simp
+	                      hence "b \<in> ?X - B"
+	                        by (rule subsetD[OF haprop])
+	                      have False using hbB \<open>b \<in> ?X - B\<close> by simp
+	                      thus ?thesis by simp
+	                    qed
+	                  qed
+	                qed
+	              qed
+	              show "{} \<subseteq> U \<inter> V" by simp
+	            qed
+
+		            show ?thesis
+		              apply (rule exI[where x=V])
+		              apply (rule exI[where x=U])
+		              using hUopen hVopen hB_sub hA_sub hUV_disj by (simp add: Int_commute)
+		          next
+	            case False
+	            (* main case: a0 not in A and not in B *)
+	            have ha0A: "a0 \<notin> A" using \<open>a0 \<notin> A\<close> .
+	            have ha0B: "a0 \<notin> B" using False .
+
+	            have hexA: "\<forall>a\<in>A. \<exists>x<a. {x <.. a} \<subseteq> ?X - B"
+	            proof (intro ballI)
+	              fix a assume haA: "a \<in> A"
+	              have hne: "a \<noteq> a0"
+	                using ha0A haA by blast
+              have haB: "a \<notin> B"
+              proof
+                assume haB: "a \<in> B"
+                have "a \<in> A \<inter> B" using haA haB by blast
+                thus False using hdisj by blast
+              qed
+	              have hUopen: "?X - B \<in> ?T"
+	                by (rule closedin_diff_open[OF hBcl])
+	              have hnbd: "a \<in> ?X - B" using haB by simp
+	              show "\<exists>x<a. {x <.. a} \<subseteq> ?X - B"
+	                by (rule wellorder_open_refine_Ioc[OF ha0 hne hUopen hnbd])
+	            qed
+	            obtain xA where hxA: "\<forall>a\<in>A. xA a < a \<and> {xA a <.. a} \<subseteq> ?X - B"
+	              using bchoice[OF hexA] by blast
+
+	            have hexB: "\<forall>b\<in>B. \<exists>y<b. {y <.. b} \<subseteq> ?X - A"
+	            proof (intro ballI)
+	              fix b assume hbB: "b \<in> B"
+              have hne: "b \<noteq> a0"
+                using ha0B hbB by blast
+              have hbA: "b \<notin> A"
+              proof
+                assume hbA: "b \<in> A"
+                have "b \<in> A \<inter> B" using hbA hbB by blast
+                thus False using hdisj by blast
+              qed
+	              have hUopen: "?X - A \<in> ?T"
+	                by (rule closedin_diff_open[OF hAcl])
+	              have hnbd: "b \<in> ?X - A" using hbA by simp
+	              show "\<exists>y<b. {y <.. b} \<subseteq> ?X - A"
+	                by (rule wellorder_open_refine_Ioc[OF ha0 hne hUopen hnbd])
+	            qed
+	            obtain yB where hyB: "\<forall>b\<in>B. yB b < b \<and> {yB b <.. b} \<subseteq> ?X - A"
+	              using bchoice[OF hexB] by blast
+
+	            define U where "U = (\<Union>a\<in>A. {xA a <.. a})"
+	            define V where "V = (\<Union>b\<in>B. {yB b <.. b})"
+
+            have hUopen: "U \<in> ?T"
+            proof -
+	              have hFam: "{{xA a <.. a} | a. a \<in> A} \<subseteq> ?T"
+	              proof (rule subsetI)
+	                fix W assume hW: "W \<in> {{xA a <.. a} | a. a \<in> A}"
+	                then obtain a where haA: "a \<in> A" and hWeq: "W = {xA a <.. a}"
+	                  by blast
+	                have hxa: "xA a < a"
+	                  using hxA haA by blast
+	                have "{xA a <.. a} \<in> ?T"
+	                  by (rule wellorder_Ioc_open_in_order_topology[OF hxa])
+	                thus "W \<in> ?T"
+	                  using hWeq by simp
+	              qed
+	              have hUnion: "(\<Union>{{xA a <.. a} | a. a \<in> A}) \<in> ?T"
+	                by (rule union_T[OF hFam])
+	              have hEq: "(\<Union>{{xA a <.. a} | a. a \<in> A}) = (\<Union>a\<in>A. {xA a <.. a})"
+	                by blast
+	              show ?thesis
+	                unfolding U_def using hUnion hEq by simp
+	            qed
+
+            have hVopen: "V \<in> ?T"
+            proof -
+	              have hFam: "{{yB b <.. b} | b. b \<in> B} \<subseteq> ?T"
+	              proof (rule subsetI)
+	                fix W assume hW: "W \<in> {{yB b <.. b} | b. b \<in> B}"
+	                then obtain b where hbB: "b \<in> B" and hWeq: "W = {yB b <.. b}"
+	                  by blast
+	                have hyb: "yB b < b"
+	                  using hyB hbB by blast
+	                have "{yB b <.. b} \<in> ?T"
+	                  by (rule wellorder_Ioc_open_in_order_topology[OF hyb])
+	                thus "W \<in> ?T"
+	                  using hWeq by simp
+	              qed
+	              have hUnion: "(\<Union>{{yB b <.. b} | b. b \<in> B}) \<in> ?T"
+	                by (rule union_T[OF hFam])
+	              have hEq: "(\<Union>{{yB b <.. b} | b. b \<in> B}) = (\<Union>b\<in>B. {yB b <.. b})"
+	                by blast
+	              show ?thesis
+	                unfolding V_def using hUnion hEq by simp
+	            qed
+
+            have hA_sub: "A \<subseteq> U"
+            proof (rule subsetI)
+	              fix a assume haA: "a \<in> A"
+	              have hxa: "xA a < a"
+	                using hxA haA by blast
+	              have "a \<in> {xA a <.. a}"
+	                using hxa by simp
+	              thus "a \<in> U"
+	                unfolding U_def using haA by blast
+	            qed
+
+            have hB_sub: "B \<subseteq> V"
+            proof (rule subsetI)
+	              fix b assume hbB: "b \<in> B"
+	              have hyb: "yB b < b"
+	                using hyB hbB by blast
+	              have "b \<in> {yB b <.. b}"
+	                using hyb by simp
+	              thus "b \<in> V"
+	                unfolding V_def using hbB by blast
+	            qed
+
+            have hUV_disj: "U \<inter> V = {}"
+            proof (rule equalityI)
+              show "U \<inter> V \<subseteq> {}"
+              proof (rule subsetI)
+	                fix z assume hz: "z \<in> U \<inter> V"
+	                have hzU: "z \<in> U" and hzV: "z \<in> V" using hz by blast+
+	                obtain a where haA: "a \<in> A" and hzIa: "z \<in> {xA a <.. a}"
+	                  using hzU unfolding U_def by blast
+	                obtain b where hbB: "b \<in> B" and hzIb: "z \<in> {yB b <.. b}"
+	                  using hzV unfolding V_def by blast
+
+                have haB: "a \<notin> B"
+                proof
+                  assume "a \<in> B"
+                  have "a \<in> A \<inter> B" using haA \<open>a \<in> B\<close> by blast
+                  thus False using hdisj by blast
+                qed
+                have hneab: "a \<noteq> b"
+                  using haA haB hbB by blast
+                have hcase: "a < b \<or> b < a"
+                  using hneab neq_iff by blast
+
+                show "z \<in> {}"
+	                proof (rule disjE[OF hcase])
+	                  assume hablt: "a < b"
+	                  have hbprop: "{yB b <.. b} \<subseteq> ?X - A"
+	                    using hyB hbB by blast
+	                  have hzb1: "z \<le> a" using hzIa by simp
+	                  have hzb2: "yB b < z" using hzIb by simp
+                  show ?thesis
+	                  proof (cases "a \<le> yB b")
+	                    case True
+	                    have "z \<le> yB b"
+	                      by (rule order_trans[OF hzb1 True])
+	                    have "yB b < yB b"
+	                      by (rule less_le_trans[OF hzb2 \<open>z \<le> yB b\<close>])
+	                    thus ?thesis by simp
+	                  next
+	                    case False
+		                    have hyb_a: "yB b < a"
+		                      using False by simp
+	                    have "a \<le> b"
+	                      using hablt by simp
+		                    have "a \<in> {yB b <.. b}"
+		                      using hyb_a \<open>a \<le> b\<close> by simp
+		                    hence "a \<in> ?X - A"
+		                      by (rule subsetD[OF hbprop])
+		                    have False using haA \<open>a \<in> ?X - A\<close> by simp
+		                    thus ?thesis by simp
+		                  qed
+		                next
+		                  assume hbalt: "b < a"
+		                  have hxAa: "xA a < a \<and> {xA a <.. a} \<subseteq> ?X - B"
+		                    by (rule bspec[OF hxA haA])
+		                  have haprop: "{xA a <.. a} \<subseteq> ?X - B"
+		                    by (rule conjunct2[OF hxAa])
+		                  have hxa: "xA a < a"
+		                    by (rule conjunct1[OF hxAa])
+		                  have hzb1: "z \<le> b" using hzIb by simp
+		                  have hzb2: "xA a < z" using hzIa by simp
+	                  show ?thesis
+	                  proof (cases "b \<le> xA a")
+	                    case True
+	                    have "z \<le> xA a"
+	                      by (rule order_trans[OF hzb1 True])
+	                    have "xA a < xA a"
+	                      by (rule less_le_trans[OF hzb2 \<open>z \<le> xA a\<close>])
+	                    thus ?thesis by simp
+	                  next
+	                    case False
+		                    have hxa_b: "xA a < b"
+		                      using False by simp
+	                    have "b \<le> a"
+	                      using hbalt by simp
+		                    have "b \<in> {xA a <.. a}"
+		                      using hxa_b \<open>b \<le> a\<close> by simp
+		                    hence "b \<in> ?X - B"
+		                      by (rule subsetD[OF haprop])
+		                    have False using hbB \<open>b \<in> ?X - B\<close> by simp
+		                    thus ?thesis by simp
+		                  qed
+		                qed
+              qed
+              show "{} \<subseteq> U \<inter> V" by simp
+            qed
+
+            show ?thesis
+              apply (rule exI[where x=U])
+              apply (rule exI[where x=V])
+              using hUopen hVopen hA_sub hB_sub hUV_disj by blast
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
 
 section \<open>\<S>33 The Urysohn Lemma\<close>
 
