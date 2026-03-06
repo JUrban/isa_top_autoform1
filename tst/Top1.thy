@@ -19732,6 +19732,323 @@ proof -
 qed
 
 (** from \S30 Theorem 30.1 (First countability and sequences) [top1.tex:3911] **)
+lemma seq_converges_to_on_in_set_imp_closure:
+  assumes hTX: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  assumes hsA: "\<forall>n. s n \<in> A"
+  assumes hsconv: "seq_converges_to_on s x X TX"
+  shows "x \<in> closure_on X TX A"
+proof -
+  have hxX: "x \<in> X"
+    using hsconv unfolding seq_converges_to_on_def by blast
+
+  have hchar: "x \<in> closure_on X TX A \<longleftrightarrow> (\<forall>U. neighborhood_of x X TX U \<longrightarrow> intersects U A)"
+    by (rule Theorem_17_5a[OF hTX hxX hAX])
+
+  have hnb: "\<forall>U. neighborhood_of x X TX U \<longrightarrow> intersects U A"
+  proof (intro allI impI)
+    fix U
+    assume hU: "neighborhood_of x X TX U"
+    obtain N where hN: "\<forall>n\<ge>N. s n \<in> U"
+      using hsconv hU unfolding seq_converges_to_on_def by blast
+    have hsNU: "s N \<in> U"
+      using hN by simp
+    have hsNA: "s N \<in> A"
+      using hsA by simp
+    have "s N \<in> U \<inter> A"
+      by (rule IntI[OF hsNU hsNA])
+    hence "U \<inter> A \<noteq> {}"
+      by blast
+    thus "intersects U A"
+      unfolding intersects_def by simp
+  qed
+
+  show ?thesis
+    by (rule iffD2[OF hchar hnb])
+qed
+
+lemma first_countable_closure_imp_seq:
+  assumes hTX: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  assumes h1st: "top1_first_countable_on X TX"
+  assumes hxcl: "x \<in> closure_on X TX A"
+  shows "\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX"
+proof -
+  have hclsub: "closure_on X TX A \<subseteq> X"
+    by (rule closure_on_subset_carrier[OF hTX hAX])
+  have hxX: "x \<in> X"
+    by (rule subsetD[OF hclsub hxcl])
+
+  have hnbA:
+    "\<forall>U. neighborhood_of x X TX U \<longrightarrow> intersects U A"
+  proof -
+    have hchar: "x \<in> closure_on X TX A \<longleftrightarrow> (\<forall>U. neighborhood_of x X TX U \<longrightarrow> intersects U A)"
+      by (rule Theorem_17_5a[OF hTX hxX hAX])
+    show ?thesis
+      by (rule iffD1[OF hchar hxcl])
+  qed
+
+  have hx_basis: "top1_countable_neighborhood_basis_at X TX x"
+    using h1st hxX unfolding top1_first_countable_on_def by blast
+
+  obtain B where hBcnt: "top1_countable B"
+    and hBnb: "\<forall>U\<in>B. neighborhood_of x X TX U"
+    and hBref: "\<forall>V. neighborhood_of x X TX V \<longrightarrow> (\<exists>U\<in>B. U \<subseteq> V)"
+    using hx_basis unfolding top1_countable_neighborhood_basis_at_def by blast
+
+  obtain f :: "'a set \<Rightarrow> nat" where hf: "inj_on f B"
+    using hBcnt unfolding top1_countable_def by blast
+
+  define S where "S n = {b \<in> B. f b \<le> n}" for n
+
+  have inter_TX: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> TX \<longrightarrow> \<Inter>F \<in> TX"
+    by (rule conjunct2[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+  have X_TX: "X \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF hTX[unfolded is_topology_on_def]]])
+
+  have hXnb: "neighborhood_of x X TX X"
+    unfolding neighborhood_of_def by (intro conjI, rule X_TX, rule hxX)
+
+  obtain b0 where hb0B: "b0 \<in> B" and hb0subX: "b0 \<subseteq> X"
+    using hBref hXnb by blast
+
+  have hnb0: "neighborhood_of x X TX b0"
+    using hBnb hb0B by blast
+  have hxb0: "x \<in> b0"
+    using hnb0 unfolding neighborhood_of_def by blast
+  have hb0TX: "b0 \<in> TX"
+    using hnb0 unfolding neighborhood_of_def by blast
+
+  define U where "U n = \<Inter>(insert b0 (S n))" for n
+
+  have hSsubB: "\<And>n. S n \<subseteq> B"
+    unfolding S_def by blast
+
+	  have hSinj: "\<And>n. inj_on f (S n)"
+	  proof -
+	    fix n
+	    have "S n \<subseteq> B"
+	      by (rule hSsubB)
+	    show "inj_on f (S n)"
+	      apply (rule inj_on_subset[OF hf])
+	      apply (rule hSsubB)
+	      done
+	  qed
+
+	  have hSfinite: "\<And>n. finite (S n)"
+	  proof -
+	    fix n
+	    have himgsub: "f ` (S n) \<subseteq> {0..n}"
+	    proof (rule subsetI)
+	      fix k
+	      assume hk: "k \<in> f ` (S n)"
+	      obtain b where hb: "b \<in> S n" and hkf: "k = f b"
+	        using hk by blast
+	      have "f b \<le> n"
+	        using hb unfolding S_def by blast
+	      thus "k \<in> {0..n}"
+	        using hkf by simp
+	    qed
+	    have hfinimg: "finite (f ` (S n))"
+	      by (rule finite_subset[OF himgsub], simp)
+    have "finite (f ` (S n)) \<longleftrightarrow> finite (S n)"
+      by (rule finite_image_iff[OF hSinj])
+    show "finite (S n)"
+      by (rule iffD1[OF \<open>finite (f ` S n) \<longleftrightarrow> finite (S n)\<close> hfinimg])
+  qed
+
+  have hSsubTX: "\<And>n. S n \<subseteq> TX"
+  proof (rule subsetI)
+    fix n b
+    assume hb: "b \<in> S n"
+    have hbB: "b \<in> B"
+      using hb unfolding S_def by blast
+    have hnb: "neighborhood_of x X TX b"
+      using hBnb hbB by blast
+    show "b \<in> TX"
+      using hnb unfolding neighborhood_of_def by blast
+  qed
+
+  have hU_open: "\<And>n. U n \<in> TX"
+  proof -
+    fix n
+    have hfin: "finite (insert b0 (S n))"
+      by (simp add: hSfinite)
+    have hne: "insert b0 (S n) \<noteq> {}"
+      by simp
+    have hsub: "insert b0 (S n) \<subseteq> TX"
+      using hb0TX hSsubTX by blast
+    have "\<Inter>(insert b0 (S n)) \<in> TX"
+    proof -
+      have "finite (insert b0 (S n)) \<and> insert b0 (S n) \<noteq> {} \<and> insert b0 (S n) \<subseteq> TX"
+        using hfin hne hsub by blast
+      thus ?thesis
+        using inter_TX by blast
+    qed
+    thus "U n \<in> TX"
+      unfolding U_def by simp
+  qed
+
+  have hU_mem: "\<And>n. x \<in> U n"
+  proof -
+    fix n
+    have hxInAll: "\<forall>b\<in>S n. x \<in> b"
+    proof (intro ballI)
+      fix b assume hb: "b \<in> S n"
+      have hbB: "b \<in> B"
+        using hb unfolding S_def by blast
+      have hnb: "neighborhood_of x X TX b"
+        using hBnb hbB by blast
+      show "x \<in> b"
+        using hnb unfolding neighborhood_of_def by blast
+    qed
+    have hxInAll': "\<forall>b\<in>insert b0 (S n). x \<in> b"
+    proof (intro ballI)
+      fix b
+      assume hb: "b \<in> insert b0 (S n)"
+      show "x \<in> b"
+      proof (cases "b = b0")
+        case True
+        show ?thesis using True hxb0 by simp
+      next
+        case False
+        have "b \<in> S n"
+          using hb False by blast
+        thus ?thesis
+          using hxInAll by blast
+      qed
+	    qed
+	    have "x \<in> \<Inter>(insert b0 (S n))"
+	    proof (rule InterI)
+	      fix b
+	      assume hb: "b \<in> insert b0 (S n)"
+	      show "x \<in> b"
+	        using hxInAll' hb by blast
+	    qed
+	    thus "x \<in> U n"
+	      unfolding U_def by simp
+	  qed
+
+  have hU_nb: "\<And>n. neighborhood_of x X TX (U n)"
+    unfolding neighborhood_of_def
+    by (intro conjI, rule hU_open, rule hU_mem)
+
+  have hU_mono: "\<And>m n. n \<le> m \<Longrightarrow> U m \<subseteq> U n"
+  proof -
+	    fix m n :: nat
+	    assume hnm: "n \<le> m"
+	    have hSnSm: "S n \<subseteq> S m"
+	    proof (rule subsetI)
+	      fix b
+	      assume hb: "b \<in> S n"
+	      have hbB: "b \<in> B" and hfb: "f b \<le> n"
+	        using hb unfolding S_def by blast+
+	      have "f b \<le> m"
+	        using hfb hnm by simp
+	      show "b \<in> S m"
+	        unfolding S_def using hbB \<open>f b \<le> m\<close> by blast
+	    qed
+    have hins: "insert b0 (S n) \<subseteq> insert b0 (S m)"
+      using hSnSm by blast
+    have "\<Inter>(insert b0 (S m)) \<subseteq> \<Inter>(insert b0 (S n))"
+      by (rule Inter_anti_mono[OF hins])
+    thus "U m \<subseteq> U n"
+      unfolding U_def by simp
+  qed
+
+  have hU_ref: "\<forall>V. neighborhood_of x X TX V \<longrightarrow> (\<exists>N. U N \<subseteq> V)"
+  proof (intro allI impI)
+    fix V
+    assume hV: "neighborhood_of x X TX V"
+    obtain b where hbb: "b \<in> B" and hbV: "b \<subseteq> V"
+      using hBref hV by blast
+    define N where "N = f b"
+    have hbSN: "b \<in> S N"
+      unfolding S_def N_def using hbb by simp
+    have hbins: "b \<in> insert b0 (S N)"
+      using hbSN by blast
+	    have hInter_sub: "\<Inter>(insert b0 (S N)) \<subseteq> b"
+	      by (rule Inter_lower[OF hbins])
+	    have hUNb: "U N \<subseteq> b"
+	      unfolding U_def by (rule hInter_sub)
+	    have hUNV: "U N \<subseteq> V"
+	      by (rule subset_trans[OF hUNb hbV])
+	    show "\<exists>N. U N \<subseteq> V"
+	      by (rule exI[where x=N], rule hUNV)
+	  qed
+
+  have hU_intersects: "\<And>n. intersects (U n) A"
+    using hU_nb hnbA by blast
+
+  define s where "s n = (SOME a. a \<in> A \<and> a \<in> U n)" for n
+
+  have hsA: "\<forall>n. s n \<in> A"
+  proof (intro allI)
+    fix n
+    have hnonempty: "\<exists>a. a \<in> A \<and> a \<in> U n"
+    proof -
+      have "U n \<inter> A \<noteq> {}"
+        using hU_intersects[of n] unfolding intersects_def by simp
+      then obtain a where ha: "a \<in> U n \<inter> A"
+        by blast
+      show ?thesis
+        using ha by blast
+    qed
+    have "s n \<in> A \<and> s n \<in> U n"
+      unfolding s_def by (rule someI_ex[OF hnonempty])
+    thus "s n \<in> A"
+      by simp
+  qed
+
+  have hsU: "\<forall>n. s n \<in> U n"
+  proof (intro allI)
+    fix n
+    have hnonempty: "\<exists>a. a \<in> A \<and> a \<in> U n"
+    proof -
+      have "U n \<inter> A \<noteq> {}"
+        using hU_intersects[of n] unfolding intersects_def by simp
+      then obtain a where ha: "a \<in> U n \<inter> A"
+        by blast
+      show ?thesis
+        using ha by blast
+    qed
+    have "s n \<in> A \<and> s n \<in> U n"
+      unfolding s_def by (rule someI_ex[OF hnonempty])
+    thus "s n \<in> U n"
+      by simp
+  qed
+
+  have hsconv: "seq_converges_to_on s x X TX"
+    unfolding seq_converges_to_on_def
+  proof (intro conjI allI impI)
+    show "x \<in> X"
+      by (rule hxX)
+    fix V
+    assume hV: "neighborhood_of x X TX V"
+    obtain N where hUNV: "U N \<subseteq> V"
+      using hU_ref hV by blast
+    show "\<exists>N. \<forall>n\<ge>N. s n \<in> V"
+    proof (rule exI[where x=N])
+      show "\<forall>n\<ge>N. s n \<in> V"
+      proof (intro allI impI)
+        fix n
+        assume hn: "n \<ge> N"
+        have hUn: "U n \<subseteq> U N"
+          by (rule hU_mono[OF hn])
+        have hsnUn: "s n \<in> U n"
+          using hsU by simp
+        have "s n \<in> U N"
+          using hsnUn hUn by blast
+        thus "s n \<in> V"
+          using hUNV by blast
+      qed
+    qed
+  qed
+
+  show ?thesis
+    by (rule exI[where x=s], intro conjI, rule hsA, rule hsconv)
+qed
+
 theorem Theorem_30_1:
   assumes hTX: "is_topology_on X TX"
   assumes hTY: "is_topology_on Y TY"
@@ -19749,7 +20066,60 @@ theorem Theorem_30_1:
             \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
                     \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
             \<longrightarrow> top1_continuous_map_on X TX Y TY f)))"
-  sorry
+proof -
+  show "(\<forall>A x. A \<subseteq> X \<longrightarrow>
+        ((\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX) \<longrightarrow> x \<in> closure_on X TX A)
+      \<and> (top1_first_countable_on X TX \<longrightarrow> x \<in> closure_on X TX A
+            \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)))"
+  proof (intro allI)
+    fix A x
+    show "A \<subseteq> X \<longrightarrow>
+        ((\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX) \<longrightarrow> x \<in> closure_on X TX A)
+      \<and> (top1_first_countable_on X TX \<longrightarrow> x \<in> closure_on X TX A
+            \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX))"
+    proof (intro impI)
+      assume hAX: "A \<subseteq> X"
+      show "((\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)
+            \<longrightarrow> x \<in> closure_on X TX A)
+        \<and> (top1_first_countable_on X TX \<longrightarrow> x \<in> closure_on X TX A
+              \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX))"
+      proof (intro conjI)
+        show "(\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX) \<longrightarrow>
+              x \<in> closure_on X TX A"
+        proof
+          assume hex: "\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX"
+          obtain s where hsA: "\<forall>n. s n \<in> A" and hsconv: "seq_converges_to_on s x X TX"
+            using hex by blast
+          show "x \<in> closure_on X TX A"
+            by (rule seq_converges_to_on_in_set_imp_closure[OF hTX hAX hsA hsconv])
+        qed
+
+        show "top1_first_countable_on X TX \<longrightarrow> x \<in> closure_on X TX A
+              \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)"
+        proof
+          assume h1st: "top1_first_countable_on X TX"
+          show "x \<in> closure_on X TX A
+                \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)"
+          proof
+            assume hxcl: "x \<in> closure_on X TX A"
+            show "\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX"
+              by (rule first_countable_closure_imp_seq[OF hTX hAX h1st hxcl])
+          qed
+        qed
+      qed
+    qed
+  qed
+
+  show "(\<forall>f. (\<forall>x\<in>X. f x \<in> Y) \<longrightarrow>
+        ((top1_continuous_map_on X TX Y TY f
+            \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                    \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY))
+        \<and> (top1_first_countable_on X TX
+            \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                    \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
+            \<longrightarrow> top1_continuous_map_on X TX Y TY f)))"
+    sorry
+qed
 
 (** from \S30 Theorem 30.2 (Subspaces and countable products) [top1.tex:3934] **)
 theorem Theorem_30_2:
@@ -22396,7 +22766,7 @@ qed
 
 (** from \S32 Theorem 32.4 (Every well-ordered set is normal in the order topology) [top1.tex:4230] **)
 text \<open>
-  For a well-ordered type, we follow the proof in @{file \<open>top1.tex\<close>}:
+  For a well-ordered type, we follow the proof in @{file \<open>/project/top1.tex\<close>}:
   in the order topology, half-open intervals \<open>(x,y]\<close> are open; using such intervals
   one can separate disjoint closed sets.
 \<close>
