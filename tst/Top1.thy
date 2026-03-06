@@ -6947,6 +6947,25 @@ lemma top1_product_topology_on_is_topology_on:
   unfolding top1_product_topology_on_def
   by (rule topology_generated_by_basis_is_topology_on[OF top1_product_basis_is_basis_on[OF hTop]])
 
+(** from \S19 Theorem 19.1 (Comparison of the box and product topologies) [top1.tex:1382] **)
+theorem Theorem_19_1:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  shows "basis_for (top1_PiE I X) (top1_box_basis_on I X T) (top1_box_topology_on I X T)"
+    and "basis_for (top1_PiE I X) (top1_product_basis_on I X T) (top1_product_topology_on I X T)"
+proof -
+  have hBoxBasis: "is_basis_on (top1_PiE I X) (top1_box_basis_on I X T)"
+    by (rule top1_box_basis_is_basis_on[OF hTop])
+  have hProdBasis: "is_basis_on (top1_PiE I X) (top1_product_basis_on I X T)"
+    by (rule top1_product_basis_is_basis_on[OF hTop])
+
+  show "basis_for (top1_PiE I X) (top1_box_basis_on I X T) (top1_box_topology_on I X T)"
+    unfolding basis_for_def top1_box_topology_on_def
+    using hBoxBasis by simp
+  show "basis_for (top1_PiE I X) (top1_product_basis_on I X T) (top1_product_topology_on I X T)"
+    unfolding basis_for_def top1_product_topology_on_def
+    using hProdBasis by simp
+qed
+
 lemma top1_product_basis_eq_box_basis_if_finite:
   assumes hfinI: "finite I"
   shows "top1_product_basis_on I X T = top1_box_basis_on I X T"
@@ -9627,6 +9646,70 @@ proof (rule equalityI)
   qed
 qed
 
+(** Convenience wrappers so theorem numbers from \<open>top1.tex\<close> exist verbatim. **)
+
+theorem Theorem_19_2:
+  assumes hB: "\<forall>i\<in>I. basis_for (X i) (B i) (T i)"
+  shows "basis_for (top1_PiE I X)
+           {top1_PiE I U | U. \<forall>i\<in>I. U i \<in> B i}
+           (top1_box_topology_on I X T)"
+    and "basis_for (top1_PiE I X)
+           {top1_PiE I U | U. (\<forall>i\<in>I. U i = X i \<or> U i \<in> B i) \<and> finite {i \<in> I. U i \<noteq> X i}}
+           (top1_product_topology_on I X T)"
+proof -
+  show "basis_for (top1_PiE I X)
+           {top1_PiE I U | U. \<forall>i\<in>I. U i \<in> B i}
+           (top1_box_topology_on I X T)"
+    by (rule Theorem_19_2_box[OF hB])
+  show "basis_for (top1_PiE I X)
+           {top1_PiE I U | U. (\<forall>i\<in>I. U i = X i \<or> U i \<in> B i) \<and> finite {i \<in> I. U i \<noteq> X i}}
+           (top1_product_topology_on I X T)"
+    by (rule Theorem_19_2_product[OF hB])
+qed
+
+theorem Theorem_19_3:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  assumes hA: "\<forall>i\<in>I. A i \<subseteq> X i"
+  shows "top1_box_topology_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
+           = subspace_topology (top1_PiE I X) (top1_box_topology_on I X T) (top1_PiE I A)"
+    and "top1_product_topology_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
+           = subspace_topology (top1_PiE I X) (top1_product_topology_on I X T) (top1_PiE I A)"
+proof -
+  show "top1_box_topology_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
+           = subspace_topology (top1_PiE I X) (top1_box_topology_on I X T) (top1_PiE I A)"
+    by (rule Theorem_19_3_box[OF hTop hA])
+  show "top1_product_topology_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
+           = subspace_topology (top1_PiE I X) (top1_product_topology_on I X T) (top1_PiE I A)"
+    by (rule Theorem_19_3_product[OF hTop hA])
+qed
+
+theorem Theorem_19_4:
+  assumes hH: "\<forall>i\<in>I. is_hausdorff_on (X i) (T i)"
+  shows "is_hausdorff_on (top1_PiE I X) (top1_box_topology_on I X T)"
+    and "is_hausdorff_on (top1_PiE I X) (top1_product_topology_on I X T)"
+proof -
+  show "is_hausdorff_on (top1_PiE I X) (top1_box_topology_on I X T)"
+    by (rule Theorem_19_4_box[OF hH])
+  show "is_hausdorff_on (top1_PiE I X) (top1_product_topology_on I X T)"
+    by (rule Theorem_19_4_product[OF hH])
+qed
+
+theorem Theorem_19_5:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  assumes hA: "\<forall>i\<in>I. A i \<subseteq> X i"
+  shows "closure_on (top1_PiE I X) (top1_box_topology_on I X T) (top1_PiE I A)
+          = top1_PiE I (\<lambda>i. closure_on (X i) (T i) (A i))"
+    and "closure_on (top1_PiE I X) (top1_product_topology_on I X T) (top1_PiE I A)
+          = top1_PiE I (\<lambda>i. closure_on (X i) (T i) (A i))"
+proof -
+  show "closure_on (top1_PiE I X) (top1_box_topology_on I X T) (top1_PiE I A)
+          = top1_PiE I (\<lambda>i. closure_on (X i) (T i) (A i))"
+    by (rule Theorem_19_5_box[OF hTop hA])
+  show "closure_on (top1_PiE I X) (top1_product_topology_on I X T) (top1_PiE I A)
+          = top1_PiE I (\<lambda>i. closure_on (X i) (T i) (A i))"
+    by (rule Theorem_19_5_product[OF hTop hA])
+qed
+
 section \<open>\<S>20 The Metric Topology\<close>
 
 (** from \S20 Definition (Metric) [top1.tex:~1512] **)
@@ -10412,8 +10495,51 @@ proof -
     by (rule exI[where x=s], intro conjI, rule hsA', rule hconv)
 qed
 
+(** from \S21 Lemma 21.2 (The sequence lemma) [top1.tex:2002] **)
+theorem Lemma_21_2:
+  assumes hTX: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  shows "(\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)
+          \<longrightarrow> x \<in> closure_on X TX A"
+    and "top1_metrizable_on X TX
+          \<longrightarrow> x \<in> closure_on X TX A
+          \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)"
+proof -
+  show "(\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)
+          \<longrightarrow> x \<in> closure_on X TX A"
+  proof
+    assume hex: "\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX"
+    obtain s where hsA: "\<forall>n. s n \<in> A" and hsconv: "seq_converges_to_on s x X TX"
+      using hex by blast
+    show "x \<in> closure_on X TX A"
+      by (rule Lemma_21_2_sequence[OF hTX hsconv hsA hAX])
+  qed
+
+  show "top1_metrizable_on X TX
+          \<longrightarrow> x \<in> closure_on X TX A
+          \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)"
+  proof (intro impI)
+    assume hmet: "top1_metrizable_on X TX"
+    assume hxcl: "x \<in> closure_on X TX A"
+    obtain d where hd: "top1_metric_on X d" and hTXeq: "TX = top1_metric_topology_on X d"
+      using hmet unfolding top1_metrizable_on_def by blast
+    have hxcl': "x \<in> closure_on X (top1_metric_topology_on X d) A"
+      unfolding hTXeq[symmetric] by (rule hxcl)
+    obtain s where hsA: "\<forall>n. s n \<in> A"
+        and hsconv: "seq_converges_to_on s x X (top1_metric_topology_on X d)"
+      using Lemma_21_2_sequence_converse[OF hd hxcl' hAX] by blast
+    show "\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX"
+      apply (rule exI[where x=s])
+      apply (intro conjI)
+       apply (rule hsA)
+      unfolding hTXeq
+      apply (rule hsconv)
+      done
+  qed
+qed
+
 (** from \S21 Theorem 21.3 (Sequential characterization of continuity) [top1.tex:2006] **)
-theorem Theorem_21_3:
+theorem Theorem_21_3_forward:
   assumes hTX: "is_topology_on X TX"
   assumes hTY: "is_topology_on Y TY"
   assumes hcont: "top1_continuous_map_on X TX Y TY f"
@@ -10456,7 +10582,7 @@ proof -
   qed
 qed
 
-theorem Theorem_21_3_converse:
+theorem Theorem_21_3_converse_metric:
   assumes hd: "top1_metric_on X d"
   assumes hTY: "is_topology_on Y TY"
   assumes hmap: "\<forall>x\<in>X. f x \<in> Y"
@@ -10510,6 +10636,63 @@ proof -
     by (rule Theorem_18_1(1)[OF hTX hTY])
   thus ?thesis
     using hmap hclosure by blast
+qed
+
+(** from \S21 Theorem 21.3 (combined statement, with metrizable converse). **)
+theorem Theorem_21_3:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  assumes hmap: "\<forall>x\<in>X. f x \<in> Y"
+  shows "top1_continuous_map_on X TX Y TY f
+          \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                 \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)"
+    and "top1_metrizable_on X TX
+          \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                 \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
+          \<longrightarrow> top1_continuous_map_on X TX Y TY f"
+proof -
+  show "top1_continuous_map_on X TX Y TY f
+          \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                 \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)"
+  proof
+    assume hcont: "top1_continuous_map_on X TX Y TY f"
+    show "\<forall>s x. seq_converges_to_on s x X TX
+            \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+    proof (intro allI impI)
+      fix s x
+      assume hx: "seq_converges_to_on s x X TX"
+      show "seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+        by (rule Theorem_21_3_forward[OF hTX hTY hcont hx])
+    qed
+  qed
+
+  show "top1_metrizable_on X TX
+          \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                 \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
+          \<longrightarrow> top1_continuous_map_on X TX Y TY f"
+  proof (intro impI)
+    assume hmet: "top1_metrizable_on X TX"
+    assume hseq:
+      "\<forall>s x. seq_converges_to_on s x X TX
+            \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+    obtain d where hd: "top1_metric_on X d" and hTXeq: "TX = top1_metric_topology_on X d"
+      using hmet unfolding top1_metrizable_on_def by blast
+    have hseq': "\<forall>s x. seq_converges_to_on s x X (top1_metric_topology_on X d)
+            \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+    proof (intro allI impI)
+      fix s x
+      assume hs: "seq_converges_to_on s x X (top1_metric_topology_on X d)"
+      have hsTX: "seq_converges_to_on s x X TX"
+        unfolding hTXeq by (rule hs)
+      show "seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+        using hseq hsTX by blast
+    qed
+    have hcont:
+      "top1_continuous_map_on X (top1_metric_topology_on X d) Y TY f"
+      by (rule Theorem_21_3_converse_metric[OF hd hTY hmap hseq'])
+    show "top1_continuous_map_on X TX Y TY f"
+      unfolding hTXeq using hcont by simp
+  qed
 qed
 
 section \<open>\<S>22 The Quotient Topology\<close>
@@ -18976,6 +19159,29 @@ proof -
     by (rule exI[where x=D], intro conjI, rule hDcnt, rule hDsubX, rule hDdense)
 qed
 
+(** from \S30 Theorem 30.3 (Second-countable \(\Longrightarrow\) Lindelöf and separable) [top1.tex:~3944] **)
+theorem Theorem_30_3:
+  assumes h2nd: "top1_second_countable_on X T"
+  shows "\<forall>Uc. Uc \<subseteq> T \<and> X \<subseteq> \<Union>Uc
+           \<longrightarrow> (\<exists>V. top1_countable V \<and> V \<subseteq> Uc \<and> X \<subseteq> \<Union>V)"
+    and "\<exists>D. top1_countable D \<and> D \<subseteq> X \<and> closure_on X T D = X"
+proof -
+  show "\<forall>Uc. Uc \<subseteq> T \<and> X \<subseteq> \<Union>Uc
+           \<longrightarrow> (\<exists>V. top1_countable V \<and> V \<subseteq> Uc \<and> X \<subseteq> \<Union>V)"
+  proof (intro allI impI)
+    fix Uc
+    assume hUc: "Uc \<subseteq> T \<and> X \<subseteq> \<Union>Uc"
+    have hUcsub: "Uc \<subseteq> T"
+      using hUc by blast
+    have hcov: "X \<subseteq> \<Union>Uc"
+      using hUc by blast
+    show "\<exists>V. top1_countable V \<and> V \<subseteq> Uc \<and> X \<subseteq> \<Union>V"
+      by (rule Theorem_30_3a[OF h2nd hUcsub hcov])
+  qed
+  show "\<exists>D. top1_countable D \<and> D \<subseteq> X \<and> closure_on X T D = X"
+    by (rule Theorem_30_3b[OF h2nd])
+qed
+
 section \<open>\<S>31 The Separation Axioms\<close>
 
 definition top1_T1_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
@@ -20780,6 +20986,29 @@ next
             intro conjI, rule hV, rule hW, rule hCV, rule hDsubW, rule hdisjUV)
     qed
   qed
+qed
+
+(** Lemma 31.1 as a single combined statement (parts (a) and (b)). **)
+theorem Lemma_31_1:
+  shows "top1_regular_on X T \<longleftrightarrow>
+           (top1_T1_on X T \<and>
+            (\<forall>x\<in>X. \<forall>U. U \<in> T \<and> U \<subseteq> X \<and> x \<in> U
+               \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U)))"
+    and "top1_normal_on X T \<longleftrightarrow>
+           (top1_T1_on X T \<and>
+            (\<forall>A U. closedin_on X T A \<and> U \<in> T \<and> U \<subseteq> X \<and> A \<subseteq> U
+               \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> A \<subseteq> V \<and> closure_on X T V \<subseteq> U)))"
+proof -
+  show "top1_regular_on X T \<longleftrightarrow>
+           (top1_T1_on X T \<and>
+            (\<forall>x\<in>X. \<forall>U. U \<in> T \<and> U \<subseteq> X \<and> x \<in> U
+               \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> x \<in> V \<and> closure_on X T V \<subseteq> U)))"
+    by (rule Lemma_31_1a)
+  show "top1_normal_on X T \<longleftrightarrow>
+           (top1_T1_on X T \<and>
+            (\<forall>A U. closedin_on X T A \<and> U \<in> T \<and> U \<subseteq> X \<and> A \<subseteq> U
+               \<longrightarrow> (\<exists>V. V \<in> T \<and> V \<subseteq> X \<and> A \<subseteq> V \<and> closure_on X T V \<subseteq> U)))"
+    by (rule Lemma_31_1b)
 qed
 
 (** Insertion lemma: in a normal space, one can fit an open set between an open set and
@@ -25244,6 +25473,40 @@ proof -
         apply (rule hFA0)
         done
     qed
+  qed
+qed
+
+(** from \S33 Theorem 33.2 (Complete regularity: subspaces and products) [top1.tex:4542] **)
+theorem Theorem_33_2:
+  shows "(\<forall>X TX Y. top1_completely_regular_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_completely_regular_on Y (subspace_topology X TX Y))"
+    and "(\<forall>X TX Y TY. top1_completely_regular_on X TX \<and> top1_completely_regular_on Y TY
+            \<longrightarrow> top1_completely_regular_on (X \<times> Y) (product_topology_on TX TY))"
+proof -
+  show "(\<forall>X TX Y. top1_completely_regular_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_completely_regular_on Y (subspace_topology X TX Y))"
+  proof (intro allI impI)
+    fix X TX Y
+    assume h: "top1_completely_regular_on X TX \<and> Y \<subseteq> X"
+    have hCR: "top1_completely_regular_on X TX"
+      using h by blast
+    have hYX: "Y \<subseteq> X"
+      using h by blast
+    show "top1_completely_regular_on Y (subspace_topology X TX Y)"
+      by (rule Theorem_33_2_subspace[OF hCR hYX])
+  qed
+
+  show "(\<forall>X TX Y TY. top1_completely_regular_on X TX \<and> top1_completely_regular_on Y TY
+            \<longrightarrow> top1_completely_regular_on (X \<times> Y) (product_topology_on TX TY))"
+  proof (intro allI impI)
+    fix X TX Y TY
+    assume h: "top1_completely_regular_on X TX \<and> top1_completely_regular_on Y TY"
+    have hCRX: "top1_completely_regular_on X TX"
+      using h by blast
+    have hCRY: "top1_completely_regular_on Y TY"
+      using h by blast
+    show "top1_completely_regular_on (X \<times> Y) (product_topology_on TX TY)"
+      by (rule Theorem_33_2_product[OF hCRX hCRY])
   qed
 qed
 
