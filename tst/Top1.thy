@@ -19268,66 +19268,6 @@ proof -
     by (rule exI[where x=f], rule hA)
 qed
 
-(** from \S30 Definition (Countable neighborhood basis at a point) [top1.tex:~3903] **)
-definition top1_countable_neighborhood_basis_at ::
-  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a \<Rightarrow> bool" where
-  "top1_countable_neighborhood_basis_at X T x \<longleftrightarrow>
-     (\<exists>B. top1_countable B
-        \<and> (\<forall>U\<in>B. neighborhood_of x X T U)
-        \<and> (\<forall>V. neighborhood_of x X T V \<longrightarrow> (\<exists>U\<in>B. U \<subseteq> V)))"
-
-definition top1_first_countable_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
-  "top1_first_countable_on X T \<longleftrightarrow> (\<forall>x\<in>X. top1_countable_neighborhood_basis_at X T x)"
-
-(** from \S30 Definition (Second countability axiom) [top1.tex:~3903] **)
-definition top1_second_countable_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
-  "top1_second_countable_on X T \<longleftrightarrow> (\<exists>B. top1_countable B \<and> basis_for X B T)"
-
-(** from \S30 Theorem 30.1 (First countability and sequences) [top1.tex:3911] **)
-theorem Theorem_30_1:
-  assumes hTX: "is_topology_on X TX"
-  assumes hTY: "is_topology_on Y TY"
-  shows
-    "(\<forall>A x. A \<subseteq> X \<longrightarrow>
-        ((\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX) \<longrightarrow> x \<in> closure_on X TX A)
-      \<and> (top1_first_countable_on X TX \<longrightarrow> x \<in> closure_on X TX A
-            \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)))"
-    and
-    "(\<forall>f. (\<forall>x\<in>X. f x \<in> Y) \<longrightarrow>
-        ((top1_continuous_map_on X TX Y TY f
-            \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
-                    \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY))
-        \<and> (top1_first_countable_on X TX
-            \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
-                    \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
-            \<longrightarrow> top1_continuous_map_on X TX Y TY f)))"
-  sorry
-
-(** from \S30 Theorem 30.2 (Subspaces and countable products) [top1.tex:3934] **)
-theorem Theorem_30_2:
-  shows "(\<forall>X TX Y. top1_first_countable_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> top1_first_countable_on Y (subspace_topology X TX Y))"
-    and "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_first_countable_on (X i) (T i))
-            \<longrightarrow> top1_first_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
-    and "(\<forall>X TX Y. top1_second_countable_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> top1_second_countable_on Y (subspace_topology X TX Y))"
-    and "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_second_countable_on (X i) (T i))
-            \<longrightarrow> top1_second_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
-proof -
-  show "(\<forall>X TX Y. top1_first_countable_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> top1_first_countable_on Y (subspace_topology X TX Y))"
-    sorry
-  show "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_first_countable_on (X i) (T i))
-            \<longrightarrow> top1_first_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
-    sorry
-  show "(\<forall>X TX Y. top1_second_countable_on X TX \<and> Y \<subseteq> X
-            \<longrightarrow> top1_second_countable_on Y (subspace_topology X TX Y))"
-    sorry
-  show "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_second_countable_on (X i) (T i))
-            \<longrightarrow> top1_second_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
-    sorry
-qed
-
 (** Images of countable sets are countable (in the sense of \<open>top1_countable\<close>). **)
 lemma top1_countable_image:
   assumes hS: "top1_countable S"
@@ -19379,6 +19319,119 @@ proof -
     by (rule exI[where x=h], rule hinj)
 qed
 
+(** from \S30 Definition (Countable neighborhood basis at a point) [top1.tex:~3903] **)
+definition top1_countable_neighborhood_basis_at ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a \<Rightarrow> bool" where
+  "top1_countable_neighborhood_basis_at X T x \<longleftrightarrow>
+     (\<exists>B. top1_countable B
+        \<and> (\<forall>U\<in>B. neighborhood_of x X T U)
+        \<and> (\<forall>V. neighborhood_of x X T V \<longrightarrow> (\<exists>U\<in>B. U \<subseteq> V)))"
+
+definition top1_first_countable_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_first_countable_on X T \<longleftrightarrow> (\<forall>x\<in>X. top1_countable_neighborhood_basis_at X T x)"
+
+(** from \S30 Definition (Second countability axiom) [top1.tex:~3903] **)
+definition top1_second_countable_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
+  "top1_second_countable_on X T \<longleftrightarrow> (\<exists>B. top1_countable B \<and> basis_for X B T)"
+
+(** from \S30 Theorem 30.2 (Subspaces of first-countable spaces) [top1.tex:~3934] **)
+theorem Theorem_30_2_first_countable_subspace:
+  assumes h1st: "top1_first_countable_on X T"
+  assumes hYX: "Y \<subseteq> X"
+  shows "top1_first_countable_on Y (subspace_topology X T Y)"
+proof -
+  let ?TY = "subspace_topology X T Y"
+
+  show ?thesis
+    unfolding top1_first_countable_on_def top1_countable_neighborhood_basis_at_def
+  proof (intro ballI)
+    fix x
+    assume hxY: "x \<in> Y"
+    have hxX: "x \<in> X"
+      using hYX hxY by blast
+
+    have hx_basis: "top1_countable_neighborhood_basis_at X T x"
+      using h1st hxX unfolding top1_first_countable_on_def by blast
+
+    obtain B where hBcnt: "top1_countable B"
+      and hBnb: "\<forall>U\<in>B. neighborhood_of x X T U"
+      and hBref: "\<forall>V. neighborhood_of x X T V \<longrightarrow> (\<exists>U\<in>B. U \<subseteq> V)"
+      using hx_basis unfolding top1_countable_neighborhood_basis_at_def by blast
+
+    define B' where "B' = (\<lambda>U. U \<inter> Y) ` B"
+
+    have hB'cnt: "top1_countable B'"
+      unfolding B'_def
+      by (rule top1_countable_image[OF hBcnt])
+
+    have hB'nb: "\<forall>U\<in>B'. neighborhood_of x Y ?TY U"
+    proof (intro ballI)
+      fix U assume hU: "U \<in> B'"
+      obtain V where hV: "V \<in> B" and hUeq: "U = V \<inter> Y"
+        using hU unfolding B'_def by blast
+      have hVnb: "neighborhood_of x X T V"
+        using hBnb hV by blast
+      have hVT: "V \<in> T"
+        using hVnb unfolding neighborhood_of_def by blast
+      have hxV: "x \<in> V"
+        using hVnb unfolding neighborhood_of_def by blast
+      have hUTY: "U \<in> ?TY"
+      proof -
+        have hUeq': "U = Y \<inter> V"
+          using hUeq by (simp add: Int_commute)
+        show ?thesis
+          unfolding subspace_topology_def hUeq'
+          using hVT by blast
+      qed
+      have hxU: "x \<in> U"
+        unfolding hUeq using hxY hxV by blast
+      show "neighborhood_of x Y ?TY U"
+        unfolding neighborhood_of_def
+        by (intro conjI, rule hUTY, rule hxU)
+    qed
+
+    have hBref': "\<forall>V. neighborhood_of x Y ?TY V \<longrightarrow> (\<exists>U\<in>B'. U \<subseteq> V)"
+    proof (intro allI impI)
+      fix V
+      assume hVnb: "neighborhood_of x Y ?TY V"
+      have hVTY: "V \<in> ?TY"
+        using hVnb unfolding neighborhood_of_def by blast
+      obtain W where hW: "W \<in> T" and hVeq: "V = Y \<inter> W"
+        using hVTY unfolding subspace_topology_def by blast
+      have hxV: "x \<in> V"
+        using hVnb unfolding neighborhood_of_def by blast
+      have hxW: "x \<in> W"
+        using hxV hxY unfolding hVeq by blast
+      have hWnb: "neighborhood_of x X T W"
+        unfolding neighborhood_of_def using hW hxW by blast
+
+      obtain U0 where hU0: "U0 \<in> B" and hU0sub: "U0 \<subseteq> W"
+        using hBref hWnb by blast
+
+      have hU0' : "U0 \<inter> Y \<in> B'"
+        unfolding B'_def by (rule imageI[OF hU0])
+      have hU0'sub: "U0 \<inter> Y \<subseteq> V"
+        unfolding hVeq using hU0sub by blast
+
+      show "\<exists>U\<in>B'. U \<subseteq> V"
+      proof -
+        have "\<exists>U. U \<in> B' \<and> U \<subseteq> V"
+          apply (rule exI[where x="U0 \<inter> Y"])
+          apply (intro conjI)
+           apply (rule hU0')
+          apply (rule hU0'sub)
+          done
+        thus ?thesis
+          by blast
+      qed
+    qed
+
+    show "\<exists>B. top1_countable B \<and> (\<forall>U\<in>B. neighborhood_of x Y ?TY U)
+        \<and> (\<forall>V. neighborhood_of x Y ?TY V \<longrightarrow> (\<exists>U\<in>B. U \<subseteq> V))"
+      by (rule exI[where x=B'], intro conjI, rule hB'cnt, rule hB'nb, rule hBref')
+  qed
+qed
+
 (** from \S30 Theorem 30.2 (Subspaces of second-countable spaces) [top1.tex:~3990] **)
 theorem Theorem_30_2_second_countable_subspace:
   assumes h2nd: "top1_second_countable_on X T"
@@ -19406,6 +19459,69 @@ proof -
      apply (rule hBYcnt)
     apply (rule hBYbasis)
     done
+qed
+
+(** from \S30 Theorem 30.1 (First countability and sequences) [top1.tex:3911] **)
+theorem Theorem_30_1:
+  assumes hTX: "is_topology_on X TX"
+  assumes hTY: "is_topology_on Y TY"
+  shows
+    "(\<forall>A x. A \<subseteq> X \<longrightarrow>
+        ((\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX) \<longrightarrow> x \<in> closure_on X TX A)
+      \<and> (top1_first_countable_on X TX \<longrightarrow> x \<in> closure_on X TX A
+            \<longrightarrow> (\<exists>s. (\<forall>n. s n \<in> A) \<and> seq_converges_to_on s x X TX)))"
+    and
+    "(\<forall>f. (\<forall>x\<in>X. f x \<in> Y) \<longrightarrow>
+        ((top1_continuous_map_on X TX Y TY f
+            \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                    \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY))
+        \<and> (top1_first_countable_on X TX
+            \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                    \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
+            \<longrightarrow> top1_continuous_map_on X TX Y TY f)))"
+  sorry
+
+(** from \S30 Theorem 30.2 (Subspaces and countable products) [top1.tex:3934] **)
+theorem Theorem_30_2:
+  shows "(\<forall>X TX Y. top1_first_countable_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_first_countable_on Y (subspace_topology X TX Y))"
+    and "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_first_countable_on (X i) (T i))
+            \<longrightarrow> top1_first_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
+    and "(\<forall>X TX Y. top1_second_countable_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_second_countable_on Y (subspace_topology X TX Y))"
+    and "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_second_countable_on (X i) (T i))
+            \<longrightarrow> top1_second_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
+proof -
+  show "(\<forall>X TX Y. top1_first_countable_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_first_countable_on Y (subspace_topology X TX Y))"
+  proof (intro allI impI)
+    fix X TX Y
+    assume h: "top1_first_countable_on X TX \<and> Y \<subseteq> X"
+    have h1st: "top1_first_countable_on X TX"
+      using h by blast
+    have hYX: "Y \<subseteq> X"
+      using h by blast
+    show "top1_first_countable_on Y (subspace_topology X TX Y)"
+      by (rule Theorem_30_2_first_countable_subspace[OF h1st hYX])
+  qed
+  show "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_first_countable_on (X i) (T i))
+            \<longrightarrow> top1_first_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
+    sorry
+  show "(\<forall>X TX Y. top1_second_countable_on X TX \<and> Y \<subseteq> X
+            \<longrightarrow> top1_second_countable_on Y (subspace_topology X TX Y))"
+  proof (intro allI impI)
+    fix X TX Y
+    assume h: "top1_second_countable_on X TX \<and> Y \<subseteq> X"
+    have h2nd: "top1_second_countable_on X TX"
+      using h by blast
+    have hYX: "Y \<subseteq> X"
+      using h by blast
+    show "top1_second_countable_on Y (subspace_topology X TX Y)"
+      by (rule Theorem_30_2_second_countable_subspace[OF h2nd hYX])
+  qed
+  show "(\<forall>I X T. top1_countable I \<and> (\<forall>i\<in>I. top1_second_countable_on (X i) (T i))
+            \<longrightarrow> top1_second_countable_on (top1_PiE I X) (top1_product_topology_on I X T))"
+    sorry
 qed
 
 (** from \S30 Theorem 30.3(a) (Second-countable \<Longrightarrow> Lindelöf) [top1.tex:~4020] **)
