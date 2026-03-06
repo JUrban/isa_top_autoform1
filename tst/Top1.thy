@@ -14217,7 +14217,238 @@ theorem Theorem_24_3:
   assumes hb: "b \<in> X"
   assumes hr: "(f a \<le> r \<and> r \<le> f b) \<or> (f b \<le> r \<and> r \<le> f a)"
   shows "\<exists>c\<in>X. f c = r"
-  sorry
+proof -
+  have hNoSep:
+    "\<nexists>U V. U \<in> TX \<and> V \<in> TX \<and> U \<noteq> {} \<and> V \<noteq> {} \<and> U \<inter> V = {} \<and> U \<union> V = X"
+    using hconn unfolding top1_connected_on_def by blast
+
+  have hpre:
+    "\<forall>V\<in>(order_topology_on_UNIV::'b set set). {x\<in>X. f x \<in> V} \<in> TX"
+    using hcont unfolding top1_continuous_map_on_def by (rule conjunct2)
+
+  have hUopen: "{x\<in>X. f x \<in> open_ray_lt r} \<in> TX"
+    by (rule bspec[OF hpre open_ray_lt_in_order_topology])
+  have hVopen: "{x\<in>X. f x \<in> open_ray_gt r} \<in> TX"
+    by (rule bspec[OF hpre open_ray_gt_in_order_topology])
+
+  have hDisj: "{x\<in>X. f x \<in> open_ray_lt r} \<inter> {x\<in>X. f x \<in> open_ray_gt r} = {}"
+  proof (rule subset_antisym)
+    show "{x\<in>X. f x \<in> open_ray_lt r} \<inter> {x\<in>X. f x \<in> open_ray_gt r} \<subseteq> {}"
+    proof (rule subsetI)
+      fix x
+      assume hx: "x \<in> {x\<in>X. f x \<in> open_ray_lt r} \<inter> {x\<in>X. f x \<in> open_ray_gt r}"
+      have hxX: "x \<in> X"
+        using hx by simp
+      have hlt: "f x < r"
+        using hx unfolding open_ray_lt_def by simp
+      have hgt: "r < f x"
+        using hx unfolding open_ray_gt_def by simp
+      have fxlt: "f x < f x"
+        by (rule less_trans[OF hlt hgt])
+      have hnir: "\<not> (f x < f x)"
+        by (rule less_irrefl)
+      show "x \<in> {}"
+        using fxlt hnir by blast
+    qed
+    show "{} \<subseteq> {x\<in>X. f x \<in> open_ray_lt r} \<inter> {x\<in>X. f x \<in> open_ray_gt r}"
+      by simp
+  qed
+
+  show "\<exists>c\<in>X. f c = r"
+  proof (rule ccontr)
+    assume hNone: "\<not> (\<exists>c\<in>X. f c = r)"
+    have hNoHit: "\<forall>x\<in>X. f x \<noteq> r"
+      using hNone by blast
+
+    have hCover: "{x\<in>X. f x \<in> open_ray_lt r} \<union> {x\<in>X. f x \<in> open_ray_gt r} = X"
+    proof (rule subset_antisym)
+      show "{x\<in>X. f x \<in> open_ray_lt r} \<union> {x\<in>X. f x \<in> open_ray_gt r} \<subseteq> X"
+        by blast
+      show "X \<subseteq> {x\<in>X. f x \<in> open_ray_lt r} \<union> {x\<in>X. f x \<in> open_ray_gt r}"
+      proof (rule subsetI)
+        fix x
+        assume hxX: "x \<in> X"
+        have hneq: "f x \<noteq> r"
+          using hNoHit hxX by blast
+        show "x \<in> {x\<in>X. f x \<in> open_ray_lt r} \<union> {x\<in>X. f x \<in> open_ray_gt r}"
+        proof (cases "f x < r")
+          case True
+          have "f x \<in> open_ray_lt r"
+            unfolding open_ray_lt_def using True by simp
+          thus ?thesis
+            using hxX by blast
+	        next
+	          case False
+	          have hrle: "r \<le> f x"
+	            using False by (simp add: not_less)
+	          have hsplit: "r < f x \<or> r = f x"
+	            using hrle by (simp add: le_less)
+	          have hneq': "r \<noteq> f x"
+	            using hneq by simp
+	          have hrlt: "r < f x"
+	          proof -
+	            from hsplit show ?thesis
+	            proof
+	              assume "r < f x"
+	              thus ?thesis .
+	            next
+	              assume "r = f x"
+	              thus ?thesis using hneq' by simp
+	            qed
+	          qed
+	          have "f x \<in> open_ray_gt r"
+	            unfolding open_ray_gt_def using hrlt by simp
+	          thus ?thesis
+	            using hxX by blast
+        qed
+      qed
+    qed
+
+    have hU_ne: "{x\<in>X. f x \<in> open_ray_lt r} \<noteq> {}"
+    proof -
+      from hr show ?thesis
+      proof
+        assume hab: "f a \<le> r \<and> r \<le> f b"
+        show "{x\<in>X. f x \<in> open_ray_lt r} \<noteq> {}"
+        proof (cases "f a = r")
+          case True
+          have False
+            using hNoHit ha True by blast
+          thus ?thesis
+            by blast
+	        next
+	          case False
+	          have hsplit: "f a < r \<or> f a = r"
+	            using conjunct1[OF hab] by (simp add: le_less)
+	          have "f a < r"
+	          proof -
+	            from hsplit show ?thesis
+	            proof
+	              assume "f a < r"
+	              thus ?thesis .
+	            next
+	              assume "f a = r"
+	              thus ?thesis using False by simp
+	            qed
+	          qed
+	          hence "a \<in> {x\<in>X. f x \<in> open_ray_lt r}"
+	            using ha unfolding open_ray_lt_def by simp
+	          thus ?thesis
+	            by blast
+        qed
+      next
+        assume hba: "f b \<le> r \<and> r \<le> f a"
+        show "{x\<in>X. f x \<in> open_ray_lt r} \<noteq> {}"
+        proof (cases "f b = r")
+          case True
+          have False
+            using hNoHit hb True by blast
+          thus ?thesis
+            by blast
+	        next
+	          case False
+	          have hsplit: "f b < r \<or> f b = r"
+	            using conjunct1[OF hba] by (simp add: le_less)
+	          have "f b < r"
+	          proof -
+	            from hsplit show ?thesis
+	            proof
+	              assume "f b < r"
+	              thus ?thesis .
+	            next
+	              assume "f b = r"
+	              thus ?thesis using False by simp
+	            qed
+	          qed
+	          hence "b \<in> {x\<in>X. f x \<in> open_ray_lt r}"
+	            using hb unfolding open_ray_lt_def by simp
+	          thus ?thesis
+	            by blast
+        qed
+      qed
+    qed
+
+    have hV_ne: "{x\<in>X. f x \<in> open_ray_gt r} \<noteq> {}"
+    proof -
+      from hr show ?thesis
+      proof
+        assume hab: "f a \<le> r \<and> r \<le> f b"
+        show "{x\<in>X. f x \<in> open_ray_gt r} \<noteq> {}"
+        proof (cases "f b = r")
+          case True
+          have False
+            using hNoHit hb True by blast
+          thus ?thesis
+            by blast
+	        next
+	          case False
+	          have hsplit: "r < f b \<or> r = f b"
+	            using conjunct2[OF hab] by (simp add: le_less)
+	          have "r < f b"
+	          proof -
+	            from hsplit show ?thesis
+	            proof
+	              assume "r < f b"
+	              thus ?thesis .
+	            next
+	              assume "r = f b"
+	              thus ?thesis using False by simp
+	            qed
+	          qed
+	          hence "b \<in> {x\<in>X. f x \<in> open_ray_gt r}"
+	            using hb unfolding open_ray_gt_def by simp
+	          thus ?thesis
+	            by blast
+        qed
+      next
+        assume hba: "f b \<le> r \<and> r \<le> f a"
+        show "{x\<in>X. f x \<in> open_ray_gt r} \<noteq> {}"
+        proof (cases "f a = r")
+          case True
+          have False
+            using hNoHit ha True by blast
+          thus ?thesis
+            by blast
+	        next
+	          case False
+	          have hsplit: "r < f a \<or> r = f a"
+	            using conjunct2[OF hba] by (simp add: le_less)
+	          have "r < f a"
+	          proof -
+	            from hsplit show ?thesis
+	            proof
+	              assume "r < f a"
+	              thus ?thesis .
+	            next
+	              assume "r = f a"
+	              thus ?thesis using False by simp
+	            qed
+	          qed
+	          hence "a \<in> {x\<in>X. f x \<in> open_ray_gt r}"
+	            using ha unfolding open_ray_gt_def by simp
+	          thus ?thesis
+	            by blast
+        qed
+      qed
+    qed
+
+    have hSep:
+      "\<exists>U V. U \<in> TX \<and> V \<in> TX \<and> U \<noteq> {} \<and> V \<noteq> {} \<and> U \<inter> V = {} \<and> U \<union> V = X"
+      apply (rule exI[where x="{x\<in>X. f x \<in> open_ray_lt r}"])
+      apply (rule exI[where x="{x\<in>X. f x \<in> open_ray_gt r}"])
+      apply (intro conjI)
+           apply (rule hUopen)
+          apply (rule hVopen)
+         apply (rule hU_ne)
+        apply (rule hV_ne)
+       apply (rule hDisj)
+      apply (rule hCover)
+      done
+
+    show False
+      using hNoSep hSep by blast
+  qed
+qed
 
 section \<open>*\<S>25 Components and Local Connectedness\<close>
 
