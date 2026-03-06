@@ -11645,7 +11645,205 @@ theorem Theorem_21_6:
   assumes hunif: "top1_uniformly_convergent_on X Y dY fn f"
   assumes hmap: "\<forall>x\<in>X. f x \<in> Y"
   shows "top1_continuous_map_on X TX Y (top1_metric_topology_on Y dY) f"
-  sorry
+proof -
+  have union_TX: "\<forall>U. U \<subseteq> TX \<longrightarrow> (\<Union>U) \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF conjunct2[OF hTX[unfolded is_topology_on_def]]]])
+  have empty_TX: "{} \<in> TX"
+    using hTX unfolding is_topology_on_def by blast
+
+  have hBasisY: "basis_for Y (top1_metric_basis_on Y dY) (top1_metric_topology_on Y dY)"
+    unfolding basis_for_def top1_metric_topology_on_def
+    by (intro conjI, rule top1_metric_basis_is_basis_on[OF hdY], rule refl)
+
+  have hpre: "\<forall>b\<in>top1_metric_basis_on Y dY. {x\<in>X. f x \<in> b} \<in> TX"
+  proof (intro ballI)
+    fix b assume hb: "b \<in> top1_metric_basis_on Y dY"
+    obtain y0 e where hbdef: "b = top1_ball_on Y dY y0 e" and hy0: "y0 \<in> Y" and he: "0 < e"
+      using hb unfolding top1_metric_basis_on_def by blast
+
+    define P where "P = {x\<in>X. f x \<in> b}"
+    have hPsub: "P \<subseteq> X"
+      unfolding P_def by blast
+
+    have hlocal: "\<forall>x\<in>P. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> P"
+    proof (intro ballI)
+      fix x assume hxP: "x \<in> P"
+      have hxX: "x \<in> X" and hfxb: "f x \<in> b"
+        using hxP unfolding P_def by simp_all
+      have hfxY: "f x \<in> Y"
+        using hmap hxX by blast
+      have hdist_fx: "dY y0 (f x) < e"
+        using hfxb unfolding hbdef top1_ball_on_def by simp
+
+      define m where "m = e - dY y0 (f x)"
+      have hmpos: "0 < m"
+        using hdist_fx unfolding m_def by linarith
+      define eps where "eps = m / 3"
+      have hepspos: "0 < eps"
+        using hmpos unfolding eps_def by (simp add: divide_pos_pos)
+
+      obtain N where hN: "\<forall>n\<ge>N. \<forall>z\<in>X. dY (fn n z) (f z) < eps"
+        using hunif hepspos unfolding top1_uniformly_convergent_on_def by blast
+      have hNspec: "\<forall>z\<in>X. dY (fn N z) (f z) < eps"
+        using hN by simp
+
+      have hfnN: "top1_continuous_map_on X TX Y (top1_metric_topology_on Y dY) (fn N)"
+        using hfn by simp
+      have hfnN_map: "\<forall>z\<in>X. fn N z \<in> Y"
+        using hfnN unfolding top1_continuous_map_on_def by blast
+
+      have hfnNxY: "fn N x \<in> Y"
+        using hfnN_map hxX by blast
+
+      define W where "W = top1_ball_on Y dY (fn N x) eps"
+      have hW_open: "W \<in> top1_metric_topology_on Y dY"
+        unfolding W_def by (rule top1_ball_open_in_metric_topology[OF hdY hfnNxY hepspos])
+
+      define U where "U = {z\<in>X. fn N z \<in> W}"
+      have hU_TX: "U \<in> TX"
+      proof -
+        have hpreN: "\<forall>V\<in>top1_metric_topology_on Y dY. {z\<in>X. fn N z \<in> V} \<in> TX"
+          using hfnN unfolding top1_continuous_map_on_def by blast
+        show ?thesis
+          unfolding U_def using hpreN hW_open by blast
+      qed
+
+      have hxU: "x \<in> U"
+      proof -
+        have h0: "dY (fn N x) (fn N x) = 0"
+        proof -
+          have h0iff: "dY (fn N x) (fn N x) = 0 \<longleftrightarrow> (fn N x) = (fn N x)"
+            using hdY hfnNxY unfolding top1_metric_on_def by blast
+          show ?thesis
+            using h0iff by simp
+        qed
+        have hdist0: "dY (fn N x) (fn N x) < eps"
+          using hepspos h0 by simp
+        have hfnNxW: "fn N x \<in> W"
+          unfolding W_def top1_ball_on_def using hfnNxY hdist0 by simp
+        show ?thesis
+          unfolding U_def using hxX hfnNxW by simp
+      qed
+
+      have hUsubP: "U \<subseteq> P"
+      proof (rule subsetI)
+        fix u assume huU: "u \<in> U"
+        have huX: "u \<in> X" and hfnNuW: "fn N u \<in> W"
+          using huU unfolding U_def by simp_all
+        have hfuY: "f u \<in> Y"
+          using hmap huX by blast
+        have hfnNuY: "fn N u \<in> Y"
+          using hfnN_map huX by blast
+
+        have hdist_u: "dY (fn N u) (f u) < eps"
+          using hNspec huX by blast
+        have hdist_x: "dY (fn N x) (f x) < eps"
+          using hNspec hxX by blast
+        have hdist_fn: "dY (fn N x) (fn N u) < eps"
+          using hfnNuW unfolding W_def top1_ball_on_def by simp
+
+        have hsym_x: "dY (f x) (fn N x) = dY (fn N x) (f x)"
+          using hdY hfxY hfnNxY unfolding top1_metric_on_def by blast
+        have hsym_u: "dY (fn N u) (f u) = dY (f u) (fn N u)"
+          using hdY hfnNuY hfuY unfolding top1_metric_on_def by blast
+        have hsym_fn: "dY (fn N x) (fn N u) = dY (fn N u) (fn N x)"
+          using hdY hfnNxY hfnNuY unfolding top1_metric_on_def by blast
+
+        have htri_y0: "dY y0 (f u) \<le> dY y0 (f x) + dY (f x) (f u)"
+          using hdY hy0 hfxY hfuY unfolding top1_metric_on_def by blast
+        have htri_fx: "dY (f x) (f u) \<le> dY (f x) (fn N x) + dY (fn N x) (f u)"
+          using hdY hfxY hfnNxY hfuY unfolding top1_metric_on_def by blast
+        have htri_mid: "dY (fn N x) (f u) \<le> dY (fn N x) (fn N u) + dY (fn N u) (f u)"
+          using hdY hfnNxY hfnNuY hfuY unfolding top1_metric_on_def by blast
+
+	        have hbound_fx_fu: "dY (f x) (f u) < eps + eps + eps"
+	        proof -
+	          have h1: "dY (f x) (f u) \<le> dY (f x) (fn N x) + (dY (fn N x) (fn N u) + dY (fn N u) (f u))"
+	          proof -
+	            have "dY (f x) (f u) \<le> dY (f x) (fn N x) + dY (fn N x) (f u)"
+	              by (rule htri_fx)
+	            also have "... \<le> dY (f x) (fn N x) + (dY (fn N x) (fn N u) + dY (fn N u) (f u))"
+	              by (rule add_left_mono[OF htri_mid])
+	            finally show ?thesis
+	              by (simp add: add.assoc)
+	          qed
+	          have h2: "dY (f x) (fn N x) < eps"
+	            using hdist_x hsym_x by simp
+	          have h3: "dY (fn N x) (fn N u) < eps"
+	            using hdist_fn by simp
+	          have h4: "dY (fn N u) (f u) < eps"
+	            using hdist_u by simp
+	          have hsum: "dY (f x) (fn N x) + (dY (fn N x) (fn N u) + dY (fn N u) (f u)) < eps + eps + eps"
+	            using h2 h3 h4 by linarith
+	          show ?thesis
+	            by (rule le_less_trans[OF h1 hsum])
+	        qed
+
+	        have hdist_y0_fu: "dY y0 (f u) < e"
+	        proof -
+	          have hstep:
+	            "dY y0 (f x) + dY (f x) (f u) < dY y0 (f x) + (eps + eps + eps)"
+	            by (rule add_strict_left_mono[OF hbound_fx_fu])
+	          have "dY y0 (f u) < dY y0 (f x) + (eps + eps + eps)"
+	            by (rule le_less_trans[OF htri_y0 hstep])
+	          also have "... = dY y0 (f x) + m"
+	            unfolding eps_def by simp
+	          also have "... = e"
+	            unfolding m_def by simp
+	          finally show ?thesis .
+	        qed
+
+        have hfu_in_b: "f u \<in> b"
+          unfolding hbdef top1_ball_on_def using hfuY hdist_y0_fu by simp
+        show "u \<in> P"
+          unfolding P_def using huX hfu_in_b by simp
+	      qed
+	
+	      show "\<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> P"
+	      proof (rule bexI[where x=U])
+	        show "U \<in> TX"
+	          by (rule hU_TX)
+	        show "x \<in> U \<and> U \<subseteq> P"
+	          by (intro conjI, rule hxU, rule hUsubP)
+	      qed
+	    qed
+
+    define UP where "UP = {U. U \<in> TX \<and> U \<subseteq> P}"
+    have hUP_sub: "UP \<subseteq> TX"
+      unfolding UP_def by blast
+    have hUnionUP: "\<Union>UP \<in> TX"
+      using union_TX hUP_sub by blast
+
+    have hEq: "P = \<Union>UP"
+    proof (rule set_eqI)
+      fix x
+      show "x \<in> P \<longleftrightarrow> x \<in> \<Union>UP"
+      proof (rule iffI)
+        assume hxP: "x \<in> P"
+        obtain U where hU_TX: "U \<in> TX" and hxU: "x \<in> U" and hUsub: "U \<subseteq> P"
+          using hlocal hxP by blast
+        have hU_UP: "U \<in> UP"
+          unfolding UP_def using hU_TX hUsub by blast
+        show "x \<in> \<Union>UP"
+          by (rule UnionI[OF hU_UP hxU])
+      next
+        assume hx: "x \<in> \<Union>UP"
+        then obtain U where hU_UP: "U \<in> UP" and hxU: "x \<in> U"
+          by blast
+        have hUsub: "U \<subseteq> P"
+          using hU_UP unfolding UP_def by blast
+        show "x \<in> P"
+          using hUsub hxU by blast
+      qed
+    qed
+
+    show "{x\<in>X. f x \<in> b} \<in> TX"
+      unfolding P_def[symmetric] hEq using hUnionUP by simp
+  qed
+
+  show ?thesis
+    by (rule top1_continuous_map_on_generated_by_basis[OF hTX hBasisY hmap hpre])
+qed
 
 section \<open>\<S>22 The Quotient Topology\<close>
 
