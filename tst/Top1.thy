@@ -10205,6 +10205,65 @@ theorem Lemma_20_2:
     (\<forall>x\<in>X. \<forall>\<epsilon>>0. \<exists>\<delta>>0. top1_ball_on X d' x \<delta> \<subseteq> top1_ball_on X d x \<epsilon>)"
   sorry
 
+(** Metrics on products of reals used in \S20 of \<open>top1.tex\<close>. **)
+
+(** Standard bounded metric on \<open>\<real>\<close>: \<open>\<bar>d(a,b) = min(|a-b|,1)\<close>. **)
+definition top1_real_bounded_metric :: "real \<Rightarrow> real \<Rightarrow> real" where
+  "top1_real_bounded_metric a b = min (abs (a - b)) 1"
+
+(** Euclidean metric on finite products of reals, written on function-spaces \<open>top1_PiE I (\<lambda>_. UNIV)\<close>. **)
+definition top1_euclidean_metric_real_on :: "'i set \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> real" where
+  "top1_euclidean_metric_real_on I x y = sqrt (\<Sum>i\<in>I. (x i - y i)\<^sup>2)"
+
+(** Square/sup metric on finite products of reals: \<open>\<rho>(x,y) = sup_i |x_i-y_i|\<close>. **)
+definition top1_square_metric_real_on :: "'i set \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> real" where
+  "top1_square_metric_real_on I x y = Sup ((\<lambda>i. abs (x i - y i)) ` I)"
+
+(** Uniform metric on \<open>\<real>^J\<close>: \<open>\<bar>\<rho>(x,y) = sup_{\<alpha>\<in>J} \<bar>d(x_\alpha,y_\alpha)\<close>. **)
+definition top1_uniform_metric_real_on :: "'i set \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> real" where
+  "top1_uniform_metric_real_on I x y = Sup ((\<lambda>i. top1_real_bounded_metric (x i) (y i)) ` I)"
+
+(** Munkres' metric inducing the product topology on \<open>\<real>^\<omega>\<close>.  We use \<open>Suc n\<close> in the denominator
+    to match the intended indexing by the positive integers. **)
+definition top1_D_metric_real_omega :: "(nat \<Rightarrow> real) \<Rightarrow> (nat \<Rightarrow> real) \<Rightarrow> real" where
+  "top1_D_metric_real_omega x y =
+     Sup ((\<lambda>n. top1_real_bounded_metric (x n) (y n) / real (Suc n)) ` (UNIV::nat set))"
+
+(** from \S20 Theorem 20.3 [top1.tex:1684] **)
+theorem Theorem_20_3:
+  fixes I :: "'i set"
+  assumes hfin: "finite I"
+  assumes hne: "I \<noteq> {}"
+  defines "XR \<equiv> (\<lambda>_. (UNIV::real set))"
+  defines "TR \<equiv> (order_topology_on_UNIV::real set set)"
+  defines "X\<^sub>R \<equiv> top1_PiE I XR"
+  shows "top1_metric_topology_on X\<^sub>R (top1_euclidean_metric_real_on I) = top1_product_topology_on I XR (\<lambda>_. TR)"
+    and "top1_metric_topology_on X\<^sub>R (top1_square_metric_real_on I) = top1_product_topology_on I XR (\<lambda>_. TR)"
+  sorry
+
+(** from \S20 Theorem 20.4 [top1.tex:1761] **)
+theorem Theorem_20_4:
+  fixes I :: "'i set"
+  defines "XR \<equiv> (\<lambda>_. (UNIV::real set))"
+  defines "TR \<equiv> (order_topology_on_UNIV::real set set)"
+  defines "X\<^sub>R \<equiv> top1_PiE I XR"
+  defines "Tprod \<equiv> top1_product_topology_on I XR (\<lambda>_. TR)"
+  defines "Tbox \<equiv> top1_box_topology_on I XR (\<lambda>_. TR)"
+  defines "Tunif \<equiv> top1_metric_topology_on X\<^sub>R (top1_uniform_metric_real_on I)"
+  shows "Tprod \<subseteq> Tunif \<and> Tunif \<subseteq> Tbox"
+    and "infinite I \<longrightarrow> Tprod \<noteq> Tunif \<and> Tunif \<noteq> Tbox \<and> Tprod \<noteq> Tbox"
+  sorry
+
+(** from \S20 Theorem 20.5 [top1.tex:1776] **)
+theorem Theorem_20_5:
+  defines "XR \<equiv> (\<lambda>_. (UNIV::real set))"
+  defines "TR \<equiv> (order_topology_on_UNIV::real set set)"
+  defines "X\<omega> \<equiv> top1_PiE (UNIV::nat set) XR"
+  defines "Tprod \<equiv> top1_product_topology_on (UNIV::nat set) XR (\<lambda>_. TR)"
+  shows "top1_metric_on X\<omega> top1_D_metric_real_omega
+    \<and> top1_metric_topology_on X\<omega> top1_D_metric_real_omega = Tprod"
+  sorry
+
 section \<open>\<S>21 The Metric Topology (continued)\<close>
 
 text \<open>
@@ -12084,6 +12143,42 @@ proof -
     apply (rule hquot_equiv)
     done
 qed
+
+(** Quotient topology induced by a surjective map (used for Corollary 22.3). **)
+definition top1_quotient_topology_by_map_on ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'b set set" where
+  "top1_quotient_topology_by_map_on X TX Y p =
+     {V. V \<subseteq> Y \<and> {x\<in>X. p x \<in> V} \<in> TX}"
+
+(** Fiber partition determined by a map \<open>g\<close>: the collection \<open>{g^{-1}({z}) | z\<in>Z}\<close> (restricted to \<open>X\<close>). **)
+definition top1_fiber_partition_on :: "'a set \<Rightarrow> 'b set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a set set" where
+  "top1_fiber_partition_on X Z g = (\<lambda>z. {x\<in>X. g x = z}) ` Z"
+
+(** Projection to the fiber through \<open>x\<close>. **)
+definition top1_fiber_projection_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'a set" where
+  "top1_fiber_projection_on X g x = {u\<in>X. g u = g x}"
+
+(** from \S22 Corollary 22.3 [top1.tex:2448] **)
+corollary Corollary_22_3:
+  fixes X :: "'a set"
+  fixes TX :: "'a set set"
+  fixes Z :: "'b set"
+  fixes TZ :: "'b set set"
+  fixes g :: "'a \<Rightarrow> 'b"
+  defines "Xstar \<equiv> top1_fiber_partition_on X Z g"
+  defines "p \<equiv> top1_fiber_projection_on X g"
+  defines "Tstar \<equiv> top1_quotient_topology_by_map_on X TX Xstar p"
+  assumes hTX: "is_topology_on X TX"
+  assumes hTZ: "is_topology_on Z TZ"
+  assumes hcont: "top1_continuous_map_on X TX Z TZ g"
+  assumes hsurj: "g ` X = Z"
+  shows
+    "\<exists>f.
+      bij_betw f Xstar Z
+      \<and> top1_continuous_map_on Xstar Tstar Z TZ f
+      \<and> (top1_homeomorphism_on Xstar Tstar Z TZ f \<longleftrightarrow> top1_quotient_map_on X TX Z TZ g)"
+    and "is_hausdorff_on Z TZ \<longrightarrow> is_hausdorff_on Xstar Tstar"
+  sorry
 
 section \<open>\<S>23 Connected Spaces\<close>
 
@@ -14002,6 +14097,17 @@ proof -
   show "top1_connected_on {..<b} (subspace_topology UNIV top1_open_sets {..<b})"
     using h6 by (rule top1_connected_on_subspace_openI)
 qed
+
+(** from \S24 Theorem 24.3 (Intermediate value theorem) [top1.tex:2795] **)
+theorem Theorem_24_3:
+  fixes f :: "'a \<Rightarrow> 'b::linorder"
+  assumes hconn: "top1_connected_on X TX"
+  assumes hcont: "top1_continuous_map_on X TX (UNIV::'b set) (order_topology_on_UNIV::'b set set) f"
+  assumes ha: "a \<in> X"
+  assumes hb: "b \<in> X"
+  assumes hr: "(f a \<le> r \<and> r \<le> f b) \<or> (f b \<le> r \<and> r \<le> f a)"
+  shows "\<exists>c\<in>X. f c = r"
+  sorry
 
 section \<open>*\<S>25 Components and Local Connectedness\<close>
 
@@ -18179,6 +18285,13 @@ proof -
     by simp
 qed
 
+(** from \S27 Corollary 27.2 (Closed intervals in \<open>\<real>\<close> are compact) [top1.tex:3391] **)
+corollary Corollary_27_2:
+  fixes a b :: real
+  assumes hab: "a \<le> b"
+  shows "top1_compact_on {a..b} (subspace_topology (UNIV::real set) top1_open_sets {a..b})"
+  by (rule Theorem_27_1[OF hab])
+
 (** from \S27 Theorem 27.3 (Heine--Borel in \<open>\<real>^n\<close>) [top1.tex:3393] **)
 definition top1_bounded_set :: "'a::real_normed_vector set \<Rightarrow> bool" where
   "top1_bounded_set A \<longleftrightarrow> (\<exists>B\<ge>0. \<forall>x\<in>A. norm x \<le> B)"
@@ -18412,6 +18525,65 @@ proof -
   show ?thesis
     using hbridge hcompact_iff by simp
 qed
+
+(** from \S27 Theorem 27.4 (Extreme value theorem) [top1.tex:3429] **)
+theorem Theorem_27_4:
+  fixes f :: "'a \<Rightarrow> 'b::linorder"
+  assumes hXne: "X \<noteq> {}"
+  assumes hcomp: "top1_compact_on X TX"
+  assumes hcont: "top1_continuous_map_on X TX (UNIV::'b set) (order_topology_on_UNIV::'b set set) f"
+  shows "\<exists>c\<in>X. \<exists>d\<in>X. \<forall>x\<in>X. f c \<le> f x \<and> f x \<le> f d"
+  sorry
+
+(** Diameter of a set in a given "distance" function (used in Lemma 27.5). **)
+definition top1_diameter_on :: "('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'a set \<Rightarrow> real" where
+  "top1_diameter_on d A = Sup {d x y | x y. x \<in> A \<and> y \<in> A}"
+
+(** from \S27 Lemma 27.5 (Lebesgue number lemma) [top1.tex:3484] **)
+lemma Lemma_27_5:
+  assumes hd: "top1_metric_on X d"
+  assumes hcomp: "top1_compact_on X (top1_metric_topology_on X d)"
+  assumes hUc: "Uc \<subseteq> top1_metric_topology_on X d"
+  assumes hcov: "X \<subseteq> \<Union>Uc"
+  shows "\<exists>\<delta>>0. \<forall>A. A \<subseteq> X \<and> top1_diameter_on d A < \<delta> \<longrightarrow> (\<exists>U\<in>Uc. A \<subseteq> U)"
+  sorry
+
+(** Uniform continuity between metric spaces (restricted to the carriers). **)
+definition top1_uniformly_continuous_map_on ::
+  "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool"
+  where
+  "top1_uniformly_continuous_map_on X dX Y dY f \<longleftrightarrow>
+     (\<forall>x\<in>X. f x \<in> Y)
+     \<and> (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>x\<in>X. \<forall>x'\<in>X. dX x x' < \<delta> \<longrightarrow> dY (f x) (f x') < \<epsilon>)"
+
+(** from \S27 Theorem 27.6 (Uniform continuity theorem) [top1.tex:3511] **)
+theorem Theorem_27_6:
+  assumes hdX: "top1_metric_on X dX"
+  assumes hdY: "top1_metric_on Y dY"
+  assumes hcomp: "top1_compact_on X (top1_metric_topology_on X dX)"
+  assumes hcont: "top1_continuous_map_on X (top1_metric_topology_on X dX) Y (top1_metric_topology_on Y dY) f"
+  shows "top1_uniformly_continuous_map_on X dX Y dY f"
+  sorry
+
+(** Isolated points (used in Theorem 27.7). **)
+definition top1_isolated_point_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a \<Rightarrow> bool" where
+  "top1_isolated_point_on X TX x \<longleftrightarrow> x \<in> X \<and> {x} \<in> TX"
+
+(** from \S27 Theorem 27.7 [top1.tex:3519] **)
+theorem Theorem_27_7:
+  assumes hXne: "X \<noteq> {}"
+  assumes hcomp: "top1_compact_on X TX"
+  assumes hhaus: "is_hausdorff_on X TX"
+  assumes hnoi: "\<forall>x\<in>X. \<not> top1_isolated_point_on X TX x"
+  shows "\<not> countable X"
+  sorry
+
+(** from \S27 Corollary 27.8 [top1.tex:3543] **)
+corollary Corollary_27_8:
+  fixes a b :: real
+  assumes hab: "a < b"
+  shows "\<not> countable {a..b}"
+  sorry
 
 section \<open>\<S>28 Limit Point Compactness\<close>
 
@@ -18698,6 +18870,28 @@ definition top1_locally_compact_on :: "'a set \<Rightarrow> 'a set set \<Rightar
      is_topology_on X T \<and>
      (\<forall>x\<in>X. \<exists>U. neighborhood_of x X T U \<and> U \<subseteq> X
         \<and> top1_compact_on (closure_on X T U) (subspace_topology X T (closure_on X T U)))"
+
+(** One-point compactification (encoded on the carrier \<open>insert None (Some ` X)\<close>). **)
+definition top1_one_point_compactification_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> ('a option) set set \<Rightarrow> bool" where
+  "top1_one_point_compactification_on X TX TY \<longleftrightarrow>
+     (let Y = insert None (Some ` X) in
+        top1_homeomorphism_on X TX (Some ` X) (subspace_topology Y TY (Some ` X)) Some
+        \<and> top1_compact_on Y TY
+        \<and> is_hausdorff_on Y TY)"
+
+(** from \S29 Theorem 29.1 (One-point compactification) [top1.tex:3711] **)
+theorem Theorem_29_1:
+  assumes hTX: "is_topology_on X TX"
+  shows
+    "(top1_locally_compact_on X TX \<and> is_hausdorff_on X TX)
+      \<longleftrightarrow> (\<exists>TY. top1_one_point_compactification_on X TX TY)"
+    and
+    "(\<forall>TY TY'. top1_one_point_compactification_on X TX TY
+        \<and> top1_one_point_compactification_on X TX TY'
+        \<longrightarrow> (\<exists>h.
+              top1_homeomorphism_on (insert None (Some ` X)) TY (insert None (Some ` X)) TY' h
+              \<and> (\<forall>x\<in>X. h (Some x) = Some x)))"
+  sorry
 
 (** from \S29 Theorem 29.2 [top1.tex:3767] **)
 theorem Theorem_29_2:
@@ -19023,6 +19217,27 @@ proof -
     qed
   qed
 qed
+
+(** from \S29 Corollary 29.3 [top1.tex:3770] **)
+corollary Corollary_29_3:
+  assumes hLC: "top1_locally_compact_on X TX"
+  assumes hH: "is_hausdorff_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  shows "closedin_on X TX A \<longrightarrow> top1_locally_compact_on A (subspace_topology X TX A)"
+    and "A \<in> TX \<longrightarrow> top1_locally_compact_on A (subspace_topology X TX A)"
+  sorry
+
+(** from \S29 Corollary 29.4 [top1.tex:3775] **)
+corollary Corollary_29_4:
+  assumes hTX: "is_topology_on X TX"
+  shows
+    "(\<exists>Y TY f.
+        top1_compact_on Y TY
+        \<and> is_hausdorff_on Y TY
+        \<and> (f ` X) \<in> TY
+        \<and> top1_homeomorphism_on X TX (f ` X) (subspace_topology Y TY (f ` X)) f)
+      \<longleftrightarrow> (top1_locally_compact_on X TX \<and> is_hausdorff_on X TX)"
+  sorry
 
 section \<open>\<S>30 The Countability Axioms\<close>
 
