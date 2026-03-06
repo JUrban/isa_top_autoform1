@@ -20118,7 +20118,114 @@ proof -
             \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
                     \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
             \<longrightarrow> top1_continuous_map_on X TX Y TY f)))"
-    sorry
+  proof (intro allI impI)
+    fix f
+    assume hmap: "\<forall>x\<in>X. f x \<in> Y"
+
+    show "((top1_continuous_map_on X TX Y TY f
+             \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                     \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY))
+        \<and> (top1_first_countable_on X TX
+             \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+                     \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
+             \<longrightarrow> top1_continuous_map_on X TX Y TY f))"
+    proof (intro conjI)
+      show "top1_continuous_map_on X TX Y TY f
+        \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+          \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)"
+      proof (intro impI allI)
+        assume hcont: "top1_continuous_map_on X TX Y TY f"
+        fix s x
+        assume hs: "seq_converges_to_on s x X TX"
+        show "seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+          by (rule Theorem_21_3_forward[OF hTX hTY hcont hs])
+      qed
+
+      show "top1_first_countable_on X TX
+        \<longrightarrow> (\<forall>s x. seq_converges_to_on s x X TX
+          \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY)
+        \<longrightarrow> top1_continuous_map_on X TX Y TY f"
+      proof (intro impI)
+        assume h1st: "top1_first_countable_on X TX"
+        assume hseq:
+          "\<forall>s x. seq_converges_to_on s x X TX
+            \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+
+        have hclosure:
+          "\<forall>A. A \<subseteq> X \<longrightarrow> f ` (closure_on X TX A) \<subseteq> closure_on Y TY (f ` A)"
+        proof (intro allI impI)
+          fix A
+          assume hAX: "A \<subseteq> X"
+          show "f ` closure_on X TX A \<subseteq> closure_on Y TY (f ` A)"
+          proof (rule subsetI)
+            fix y
+            assume hy: "y \<in> f ` closure_on X TX A"
+            obtain x where hxcl: "x \<in> closure_on X TX A" and hyfx: "y = f x"
+              using hy by blast
+
+            obtain s where hsA: "\<forall>n. s n \<in> A" and hsconv: "seq_converges_to_on s x X TX"
+              using first_countable_closure_imp_seq[OF hTX hAX h1st hxcl] by blast
+
+            have hconvY: "seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+            proof -
+              have h1:
+                "\<forall>x0. seq_converges_to_on s x0 X TX
+                  \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x0) Y TY"
+                using hseq by (rule spec[where x=s])
+              have hImp:
+                "seq_converges_to_on s x X TX
+                  \<longrightarrow> seq_converges_to_on (\<lambda>n. f (s n)) (f x) Y TY"
+                using h1 by (rule spec[where x=x])
+              show ?thesis
+                by (rule mp[OF hImp hsconv])
+            qed
+
+            have himgsub: "f ` A \<subseteq> Y"
+            proof (rule subsetI)
+              fix z
+              assume hz: "z \<in> f ` A"
+              obtain a where haA: "a \<in> A" and hzfa: "z = f a"
+                using hz by blast
+              have haX: "a \<in> X"
+                using hAX haA by blast
+              have "f a \<in> Y"
+                using hmap haX by blast
+              show "z \<in> Y"
+                using hzfa \<open>f a \<in> Y\<close> by simp
+            qed
+
+            have hsimg: "\<forall>n. f (s n) \<in> f ` A"
+            proof (intro allI)
+              fix n
+              have "s n \<in> A"
+                using hsA by simp
+              thus "f (s n) \<in> f ` A"
+                by (rule imageI)
+            qed
+
+            have hfxcl: "f x \<in> closure_on Y TY (f ` A)"
+              by (rule seq_converges_to_on_in_set_imp_closure[OF hTY himgsub hsimg hconvY])
+
+            show "y \<in> closure_on Y TY (f ` A)"
+              using hyfx hfxcl by simp
+          qed
+        qed
+
+        have hEq:
+          "top1_continuous_map_on X TX Y TY f \<longleftrightarrow>
+            ((\<forall>x\<in>X. f x \<in> Y) \<and>
+             (\<forall>A. A \<subseteq> X \<longrightarrow> f ` closure_on X TX A \<subseteq> closure_on Y TY (f ` A)))"
+          by (rule Theorem_18_1(1)[OF hTX hTY, of f])
+
+        show "top1_continuous_map_on X TX Y TY f"
+          apply (rule iffD2[OF hEq])
+          apply (intro conjI)
+           apply (rule hmap)
+          apply (rule hclosure)
+          done
+      qed
+    qed
+  qed
 qed
 
 (** from \S30 Theorem 30.2 (Subspaces and countable products) [top1.tex:3934] **)
