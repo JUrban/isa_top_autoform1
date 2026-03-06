@@ -16655,7 +16655,330 @@ theorem Theorem_26_9:
     (\<forall>\<C>. (\<forall>C\<in>\<C>. closedin_on X TX C) \<and>
          (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {})
          \<longrightarrow> \<Inter>\<C> \<noteq> {})"
-  sorry
+proof (rule iffI)
+  assume hcomp: "top1_compact_on X TX"
+  have hCover:
+    "\<forall>Uc. Uc \<subseteq> TX \<and> X \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F)"
+    using hcomp unfolding top1_compact_on_def by blast
+
+  show "\<forall>\<C>. (\<forall>C\<in>\<C>. closedin_on X TX C) \<and>
+       (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {}) \<longrightarrow>
+       \<Inter>\<C> \<noteq> {}"
+  proof (intro allI impI)
+    fix \<C> :: "'a set set"
+    assume hC: "(\<forall>C\<in>\<C>. closedin_on X TX C) \<and>
+      (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {})"
+    have hClosed: "\<forall>C\<in>\<C>. closedin_on X TX C"
+      using hC by blast
+    have hFIP:
+      "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {}"
+      using hC by blast
+
+    show "\<Inter>\<C> \<noteq> {}"
+    proof
+      assume hInt: "\<Inter>\<C> = {}"
+
+      have hCne: "\<C> \<noteq> {}"
+      proof
+        assume hC0: "\<C> = {}"
+        have "\<Inter>\<C> = (UNIV::'a set)"
+          unfolding hC0 by simp
+        thus False
+          using hInt by simp
+      qed
+
+      obtain A where hA: "A \<in> \<C>"
+        using hCne by blast
+      have hA_closed: "closedin_on X TX A"
+        using hClosed hA by blast
+      have hAne: "A \<noteq> {}"
+      proof -
+        have "finite {A} \<and> {A} \<noteq> {} \<and> {A} \<subseteq> \<C>"
+          using hA by simp
+        hence "\<Inter>{A} \<noteq> {}"
+          using hFIP by blast
+        thus ?thesis
+          by simp
+      qed
+      have hXne: "X \<noteq> {}"
+        using closedin_sub[OF hA_closed] hAne by blast
+
+      define Uc where "Uc = (\<lambda>A. X - A) ` \<C>"
+
+      have hUc_sub: "Uc \<subseteq> TX"
+      proof (rule subsetI)
+        fix U assume hU: "U \<in> Uc"
+        obtain A where hAin: "A \<in> \<C>" and hUeq: "U = X - A"
+          using hU unfolding Uc_def by blast
+        have "X - A \<in> TX"
+          by (rule closedin_diff_open[OF hClosed[rule_format, OF hAin]])
+        thus "U \<in> TX"
+          unfolding hUeq .
+      qed
+
+      have hCov: "X \<subseteq> \<Union>Uc"
+      proof -
+        have hEq: "X - \<Inter>\<C> = \<Union>{X - A |A. A \<in> \<C>}"
+          by (rule diff_Inter_eq)
+        have hEq2: "\<Union>{X - A |A. A \<in> \<C>} = \<Union>Uc"
+          unfolding Uc_def by blast
+        have "X = X - \<Inter>\<C>"
+          using hInt by simp
+        hence "X = \<Union>{X - A |A. A \<in> \<C>}"
+          using hEq by simp
+        thus ?thesis
+          unfolding hEq2 by simp
+      qed
+
+      obtain F where hFfin: "finite F" and hFsub: "F \<subseteq> Uc" and hFcov: "X \<subseteq> \<Union>F"
+        using hCover[rule_format, OF conjI[OF hUc_sub hCov]] by blast
+
+      have hFne: "F \<noteq> {}"
+      proof
+        assume hF0: "F = {}"
+        have "\<Union>F = {}"
+          unfolding hF0 by simp
+        thus False
+          using hFcov hXne by blast
+      qed
+
+      define D where "D = (\<lambda>U. X - U) ` F"
+      have hDfin: "finite D"
+        unfolding D_def by (rule finite_imageI[OF hFfin])
+      have hDne: "D \<noteq> {}"
+        unfolding D_def using hFne by blast
+
+      have hDsubC: "D \<subseteq> \<C>"
+      proof (rule subsetI)
+        fix A assume hAin: "A \<in> D"
+        obtain U where hUF: "U \<in> F" and hAeq: "A = X - U"
+          using hAin unfolding D_def by blast
+        have hUUc: "U \<in> Uc"
+          using hFsub hUF by blast
+        obtain A0 where hA0in: "A0 \<in> \<C>" and hUeq: "U = X - A0"
+          using hUUc unfolding Uc_def by blast
+        have hA0subX: "A0 \<subseteq> X"
+          by (rule closedin_sub[OF hClosed[rule_format, OF hA0in]])
+        have "A = X - (X - A0)"
+          unfolding hAeq hUeq by simp
+        also have "... = A0"
+          using hA0subX by blast
+        finally show "A \<in> \<C>"
+          using hA0in by simp
+      qed
+
+      have hInterD: "\<Inter>D = {}"
+      proof (rule ccontr)
+        assume hNonempty: "\<Inter>D \<noteq> {}"
+        obtain x where hx: "x \<in> \<Inter>D"
+          using hNonempty by blast
+
+        have hxX: "x \<in> X"
+        proof -
+          have "\<Inter>D \<subseteq> X"
+          proof (rule subsetI)
+            fix y assume hy: "y \<in> \<Inter>D"
+            have "\<forall>A\<in>D. y \<in> A"
+              using hy by blast
+            obtain A where hAD: "A \<in> D"
+              using hDne by blast
+            have hyA: "y \<in> A"
+              using \<open>\<forall>A\<in>D. y \<in> A\<close> hAD by blast
+            have hAinC: "A \<in> \<C>"
+              using hDsubC hAD by blast
+            have "A \<subseteq> X"
+              by (rule closedin_sub[OF hClosed[rule_format, OF hAinC]])
+            thus "y \<in> X"
+              using hyA by blast
+          qed
+          thus ?thesis
+            using hx by blast
+        qed
+
+        have hxNotUnionF: "x \<notin> \<Union>F"
+        proof
+          assume hxUF: "x \<in> \<Union>F"
+          obtain U where hUF: "U \<in> F" and hxU: "x \<in> U"
+            using hxUF by blast
+          have "x \<in> X - U"
+            using hx unfolding D_def using hUF by blast
+          thus False
+            using hxU by blast
+        qed
+
+        have hxUnionF: "x \<in> \<Union>F"
+          using hFcov hxX by blast
+        show False
+          using hxNotUnionF hxUnionF by blast
+      qed
+
+      have False
+        using hFIP[rule_format, OF conjI[OF hDfin conjI[OF hDne hDsubC]]]
+        using hInterD by simp
+      thus False by simp
+    qed
+  qed
+next
+  assume hFIPall:
+    "\<forall>\<C>. (\<forall>C\<in>\<C>. closedin_on X TX C) \<and>
+         (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {})
+         \<longrightarrow> \<Inter>\<C> \<noteq> {}"
+
+  show "top1_compact_on X TX"
+    unfolding top1_compact_on_def
+  proof (intro conjI)
+    show "is_topology_on X TX"
+      by (rule hTop)
+    show "\<forall>Uc. Uc \<subseteq> TX \<and> X \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F)"
+    proof (intro allI impI)
+      fix Uc :: "'a set set"
+      assume hUc: "Uc \<subseteq> TX \<and> X \<subseteq> \<Union>Uc"
+      have hUcsub: "Uc \<subseteq> TX"
+        using hUc by blast
+      have hUccov: "X \<subseteq> \<Union>Uc"
+        using hUc by blast
+
+      show "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F"
+      proof (rule ccontr)
+        assume hNoFin: "\<not> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F)"
+
+        have hNoFin': "\<forall>F. finite F \<and> F \<subseteq> Uc \<longrightarrow> \<not> (X \<subseteq> \<Union>F)"
+        proof (intro allI impI)
+          fix F
+          assume hF: "finite F \<and> F \<subseteq> Uc"
+          show "\<not> (X \<subseteq> \<Union>F)"
+          proof
+            assume hcov: "X \<subseteq> \<Union>F"
+            have "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F"
+              by (rule exI[where x=F]) (use hF hcov in blast)
+            thus False
+              using hNoFin by blast
+          qed
+        qed
+
+        have hXne: "X \<noteq> {}"
+        proof
+          assume hX0: "X = {}"
+          have "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> X \<subseteq> \<Union>F"
+            unfolding hX0 by (rule exI[where x="{}"]) simp
+          thus False
+            using hNoFin by blast
+        qed
+
+        have hUcne: "Uc \<noteq> {}"
+        proof
+          assume hUc0: "Uc = {}"
+          have "\<Union>Uc = {}"
+            unfolding hUc0 by simp
+          hence "X = {}"
+            using hUccov by blast
+          thus False
+            using hXne by blast
+        qed
+
+        define \<C> where "\<C> = (\<lambda>U. X - U) ` Uc"
+
+        have hX_TX: "X \<in> TX"
+          by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+
+        have hClosed: "\<forall>A\<in>\<C>. closedin_on X TX A"
+        proof (intro ballI)
+          fix A assume hA: "A \<in> \<C>"
+          obtain U where hUUc: "U \<in> Uc" and hAeq: "A = X - U"
+            using hA unfolding \<C>_def by blast
+          have hU_TX: "U \<in> TX"
+            using hUcsub hUUc by blast
+          have hAsubX: "A \<subseteq> X"
+            unfolding hAeq by blast
+          have hXdiffA: "X - A = X \<inter> U"
+            unfolding hAeq by blast
+          have hXcapU: "X \<inter> U \<in> TX"
+            by (rule topology_inter2[OF hTop hX_TX hU_TX])
+          have hXdiffA_open: "X - A \<in> TX"
+            unfolding hXdiffA using hXcapU by simp
+          show "closedin_on X TX A"
+            by (rule closedin_intro[OF hAsubX hXdiffA_open])
+        qed
+
+        have hFIP:
+          "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {}"
+        proof (intro allI impI)
+          fix F assume hF: "finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C>"
+          have hFfin: "finite F" and hFne: "F \<noteq> {}" and hFsub: "F \<subseteq> \<C>"
+            using hF by blast+
+
+          have hrep: "\<forall>A\<in>F. \<exists>U. U \<in> Uc \<and> A = X - U"
+            using hFsub unfolding \<C>_def by blast
+          obtain g where hg: "\<forall>A\<in>F. g A \<in> Uc \<and> A = X - g A"
+            using bchoice[OF hrep] by blast
+
+          define G where "G = g ` F"
+          have hGfin: "finite G"
+            unfolding G_def by (rule finite_imageI[OF hFfin])
+          have hGsub: "G \<subseteq> Uc"
+            unfolding G_def using hg by blast
+
+          have hnotcov: "\<not> (X \<subseteq> \<Union>G)"
+            using hNoFin'[rule_format, of G] hGfin hGsub by blast
+          obtain x where hxX: "x \<in> X" and hxnotU: "x \<notin> \<Union>G"
+            using hnotcov by blast
+
+          have hxF: "\<forall>A\<in>F. x \<in> A"
+          proof (intro ballI)
+            fix A assume hAF: "A \<in> F"
+            have hAg: "g A \<in> Uc \<and> A = X - g A"
+              using hg hAF by blast
+            have hxnotg: "x \<notin> g A"
+            proof
+              assume hxg: "x \<in> g A"
+              have "g A \<in> G"
+                unfolding G_def using hAF by blast
+              hence "x \<in> \<Union>G"
+                using hxg by blast
+              thus False
+                using hxnotU by blast
+            qed
+            show "x \<in> A"
+              using hxX hxnotg hAg by blast
+          qed
+
+          have "x \<in> \<Inter>F"
+            using hxF by blast
+          thus "\<Inter>F \<noteq> {}"
+            by blast
+        qed
+
+        have hInt: "\<Inter>\<C> \<noteq> {}"
+          by (rule hFIPall[rule_format, of \<C>]) (use hClosed hFIP in blast)
+        obtain x where hx: "x \<in> \<Inter>\<C>"
+          using hInt by blast
+
+        obtain U0 where hU0: "U0 \<in> Uc"
+          using hUcne by blast
+        have hxX: "x \<in> X"
+          using hx hU0 unfolding \<C>_def by blast
+
+        have hxnotU: "x \<notin> \<Union>Uc"
+        proof
+          assume hxU: "x \<in> \<Union>Uc"
+          obtain U where hUUc: "U \<in> Uc" and hxUin: "x \<in> U"
+            using hxU by blast
+          have "X - U \<in> \<C>"
+            unfolding \<C>_def using hUUc by blast
+          have "x \<in> X - U"
+            using hx \<open>X - U \<in> \<C>\<close> by blast
+          thus False
+            using hxUin by blast
+        qed
+
+        have hxUnion: "x \<in> \<Union>Uc"
+          using hUccov hxX by blast
+        show False
+          using hxnotU hxUnion by blast
+      qed
+    qed
+  qed
+qed
 
 (** from \S26 Theorem 26.2 [top1.tex:3119] **)
 theorem Theorem_26_2:
