@@ -24161,18 +24161,20 @@ proof -
 	          qed
 	          have hpair_ne: "{x, x'} \<noteq> {}"
 	            by simp
-	          have "\<exists>U\<in>Uc. {x, x'} \<subseteq> U"
+	          have hexU: "\<exists>U\<in>Uc. {x, x'} \<subseteq> U"
 	          proof -
 	            have "{x, x'} \<subseteq> X \<and> {x, x'} \<noteq> {} \<and> top1_diameter_on dX {x, x'} < \<delta>"
 	              using hA hdiam hpair_ne by simp
 	            thus ?thesis
-	              using hLeb[rule_format, of "{x, x'}"] by blast
+	              using hLeb[rule_format, of "{x, x'}"]
+	              apply blast
+	              done
 	          qed
-	          then obtain U where hU: "U \<in> Uc" and hsub: "{x, x'} \<subseteq> U"
-	            by blast
+	          obtain U where hU: "U \<in> Uc" and hsub: "{x, x'} \<subseteq> U"
+	            using hexU by blast
 
-          obtain c where hcX: "c \<in> X" and hUdef: "U = {z\<in>X. dY (f c) (f z) < \<epsilon> / 2}"
-            using hU unfolding Uc_def by blast
+	          obtain c where hcX: "c \<in> X" and hUdef: "U = {z\<in>X. dY (f c) (f z) < \<epsilon> / 2}"
+	            using hU unfolding Uc_def by blast
 
           have hxU: "x \<in> U"
             using hsub by simp
