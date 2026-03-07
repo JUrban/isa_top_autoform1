@@ -12578,6 +12578,238 @@ text \<open>
 \<close>
   sorry
 
+(** Uniform metric topology is always coarser than the box topology on \<open>\<real>^I\<close>. **)
+lemma top1_uniform_metric_topology_subset_box_topology_real:
+  fixes I :: "'i set"
+  shows "top1_metric_topology_on (top1_PiE I (\<lambda>_. (UNIV::real set))) (top1_uniform_metric_real_on I)
+    \<subseteq> top1_box_topology_on I (\<lambda>_. (UNIV::real set)) (\<lambda>_. (order_topology_on_UNIV::real set set))"
+proof (cases "I = {}")
+  case True
+  let ?XR = "(\<lambda>_. (UNIV::real set))"
+  let ?TR = "(order_topology_on_UNIV::real set set)"
+  let ?X = "top1_PiE I ?XR"
+
+  have hXsingle: "?X = {(\<lambda>_. undefined)}"
+  proof (rule set_eqI)
+    fix f
+    show "f \<in> ?X \<longleftrightarrow> f \<in> {(\<lambda>_. undefined)}"
+    proof (rule iffI)
+      assume hf: "f \<in> ?X"
+      have hext: "\<forall>i. f i = undefined"
+        using hf unfolding True top1_PiE_iff by simp
+      have "f = (\<lambda>_. undefined)"
+        by (rule ext, simp add: hext)
+      thus "f \<in> {(\<lambda>_. undefined)}"
+        by simp
+    next
+      assume hf: "f \<in> {(\<lambda>_. undefined)}"
+      then show "f \<in> ?X"
+        unfolding True top1_PiE_iff by simp
+    qed
+  qed
+
+  have hTopCoord: "\<forall>i\<in>I. is_topology_on (?XR i) ?TR"
+    by (simp add: order_topology_on_UNIV_is_topology_on)
+  have hTopTbox: "is_topology_on ?X (top1_box_topology_on I ?XR (\<lambda>_. ?TR))"
+    by (rule top1_box_topology_on_is_topology_on[OF hTopCoord])
+  have hempty: "{} \<in> top1_box_topology_on I ?XR (\<lambda>_. ?TR)"
+    using hTopTbox unfolding is_topology_on_def by blast
+  have hwhole: "?X \<in> top1_box_topology_on I ?XR (\<lambda>_. ?TR)"
+    using hTopTbox unfolding is_topology_on_def by blast
+
+  show ?thesis
+  proof (rule subsetI)
+    fix U
+    assume hU: "U \<in> top1_metric_topology_on ?X (top1_uniform_metric_real_on I)"
+    have hUsub: "U \<subseteq> ?X"
+      using hU unfolding top1_metric_topology_on_def topology_generated_by_basis_def by blast
+    have "U = {} \<or> U = ?X"
+      using hUsub unfolding hXsingle by auto
+    thus "U \<in> top1_box_topology_on I ?XR (\<lambda>_. ?TR)"
+      using hempty hwhole by blast
+  qed
+next
+  case False
+  let ?XR = "(\<lambda>_. (UNIV::real set))"
+  let ?TR = "(order_topology_on_UNIV::real set set)"
+  let ?X = "top1_PiE I ?XR"
+  obtain i0 where hi0: "i0 \<in> I"
+    using False by blast
+
+  have hTopCoord: "\<forall>i\<in>I. is_topology_on (?XR i) ?TR"
+    by (simp add: order_topology_on_UNIV_is_topology_on)
+  have hTopTbox: "is_topology_on ?X (top1_box_topology_on I ?XR (\<lambda>_. ?TR))"
+    by (rule top1_box_topology_on_is_topology_on[OF hTopCoord])
+
+  have hBasisSub:
+    "top1_metric_basis_on ?X (top1_uniform_metric_real_on I) \<subseteq> top1_box_topology_on I ?XR (\<lambda>_. ?TR)"
+  proof (rule subsetI)
+    fix b
+    assume hb: "b \<in> top1_metric_basis_on ?X (top1_uniform_metric_real_on I)"
+    obtain x e where hxX: "x \<in> ?X" and he: "0 < e"
+        and hb_eq: "b = top1_ball_on ?X (top1_uniform_metric_real_on I) x e"
+      using hb unfolding top1_metric_basis_on_def by blast
+
+    have hball_in:
+      "top1_ball_on ?X (top1_uniform_metric_real_on I) x e \<in> top1_box_topology_on I ?XR (\<lambda>_. ?TR)"
+      unfolding top1_box_topology_on_def topology_generated_by_basis_def
+    proof (rule CollectI, intro conjI)
+      show "top1_ball_on ?X (top1_uniform_metric_real_on I) x e \<subseteq> top1_PiE I ?XR"
+        unfolding top1_ball_on_def by blast
+
+      show "\<forall>y\<in>top1_ball_on ?X (top1_uniform_metric_real_on I) x e.
+              \<exists>ba\<in>top1_box_basis_on I ?XR (\<lambda>_. ?TR).
+                y \<in> ba \<and> ba \<subseteq> top1_ball_on ?X (top1_uniform_metric_real_on I) x e"
+      proof (intro ballI)
+        fix y
+        assume hy: "y \<in> top1_ball_on ?X (top1_uniform_metric_real_on I) x e"
+        have hyX: "y \<in> ?X" and hdist: "top1_uniform_metric_real_on I x y < e"
+          using hy unfolding top1_ball_on_def by blast+
+
+        define r where "r = (top1_uniform_metric_real_on I x y + e) / 2"
+        have hr_pos: "r > 0"
+        proof -
+          have hmet: "top1_metric_on ?X (top1_uniform_metric_real_on I)"
+            by (rule top1_uniform_metric_real_on_metric_on_PiE_UNIV[OF False])
+          have hxy_nonneg: "0 \<le> top1_uniform_metric_real_on I x y"
+            using hmet hxX hyX unfolding top1_metric_on_def by blast
+          have "0 < top1_uniform_metric_real_on I x y + e"
+            using he hxy_nonneg by linarith
+          hence "0 < (top1_uniform_metric_real_on I x y + e) / 2"
+            by simp
+          thus ?thesis
+            unfolding r_def by simp
+        qed
+        have hr_lt: "r < e"
+        proof -
+          have "2 * top1_uniform_metric_real_on I x y < 2 * e"
+            using hdist by (simp add: mult_strict_left_mono)
+          hence "top1_uniform_metric_real_on I x y + top1_uniform_metric_real_on I x y < 2 * e"
+            by (simp add: algebra_simps)
+          hence "top1_uniform_metric_real_on I x y + e < 2 * e"
+            using hdist by linarith
+          hence "(top1_uniform_metric_real_on I x y + e) / 2 < e"
+            by (simp add: field_simps)
+          thus ?thesis
+            unfolding r_def by simp
+        qed
+        have hdist_r: "top1_uniform_metric_real_on I x y < r"
+        proof -
+          have hmet: "top1_metric_on ?X (top1_uniform_metric_real_on I)"
+            by (rule top1_uniform_metric_real_on_metric_on_PiE_UNIV[OF False])
+          have hxy_nonneg: "0 \<le> top1_uniform_metric_real_on I x y"
+            using hmet hxX hyX unfolding top1_metric_on_def by blast
+          have "top1_uniform_metric_real_on I x y < e"
+            by (rule hdist)
+          hence "top1_uniform_metric_real_on I x y + top1_uniform_metric_real_on I x y
+              < top1_uniform_metric_real_on I x y + e"
+            by (simp add: add_strict_left_mono)
+          hence "2 * top1_uniform_metric_real_on I x y < top1_uniform_metric_real_on I x y + e"
+            by (simp add: algebra_simps)
+          hence "top1_uniform_metric_real_on I x y < (top1_uniform_metric_real_on I x y + e) / 2"
+            by (simp add: field_simps)
+          thus ?thesis
+            unfolding r_def by simp
+        qed
+
+        define U where "U = (\<lambda>i. top1_ball_on UNIV top1_real_bounded_metric (x i) r)"
+        have hUbox: "\<forall>i\<in>I. U i \<in> ?TR \<and> U i \<subseteq> ?XR i"
+        proof (intro ballI)
+          fix i assume hi: "i \<in> I"
+          have "top1_ball_on UNIV top1_real_bounded_metric (x i) r \<in> (order_topology_on_UNIV::real set set)"
+            by (rule top1_real_bounded_metric_ball_in_order_topology[OF hr_pos])
+          thus "U i \<in> ?TR \<and> U i \<subseteq> ?XR i"
+            unfolding U_def by simp
+        qed
+        have hbox_basis: "top1_PiE I U \<in> top1_box_basis_on I ?XR (\<lambda>_. ?TR)"
+          unfolding top1_box_basis_on_def using hUbox by blast
+
+        have hPi_sub_X: "top1_PiE I U \<subseteq> ?X"
+        proof -
+          have hsub: "\<forall>i\<in>I. U i \<subseteq> ?XR i"
+            using hUbox by blast
+          have "top1_PiE I U \<subseteq> top1_PiE I ?XR"
+            by (rule top1_PiE_mono[OF hsub])
+          thus ?thesis
+            by simp
+        qed
+
+        have hybox: "y \<in> top1_PiE I U"
+        proof -
+          have hyExt: "\<forall>j. j \<notin> I \<longrightarrow> y j = undefined"
+            using hyX unfolding top1_PiE_iff by blast
+          have hyU: "\<forall>i\<in>I. y i \<in> U i"
+          proof (intro ballI)
+            fix i assume hi: "i \<in> I"
+            have hle_coord:
+              "top1_real_bounded_metric (x i) (y i) \<le> top1_uniform_metric_real_on I x y"
+              by (rule top1_uniform_metric_real_on_coord_le[OF hi])
+            have "top1_real_bounded_metric (x i) (y i) < r"
+              using hle_coord hdist_r by linarith
+            thus "y i \<in> U i"
+              unfolding U_def top1_ball_on_def by simp
+          qed
+          show ?thesis
+            unfolding top1_PiE_iff using hyU hyExt by blast
+        qed
+
+        have hbox_sub_ball:
+          "top1_PiE I U \<subseteq> top1_ball_on ?X (top1_uniform_metric_real_on I) x e"
+        proof (rule subsetI)
+          fix z
+          assume hz: "z \<in> top1_PiE I U"
+          have hzX: "z \<in> ?X"
+            using hPi_sub_X hz by blast
+
+          have hall_le:
+            "\<forall>s\<in>((\<lambda>i. top1_real_bounded_metric (x i) (z i)) ` I). s \<le> r"
+          proof (intro ballI)
+            fix s
+            assume hs: "s \<in> ((\<lambda>i. top1_real_bounded_metric (x i) (z i)) ` I)"
+            then obtain i where hi: "i \<in> I" and hs_eq: "s = top1_real_bounded_metric (x i) (z i)"
+              by blast
+            have "z i \<in> U i"
+              using hz hi unfolding top1_PiE_iff by blast
+            then have "top1_real_bounded_metric (x i) (z i) < r"
+              unfolding U_def top1_ball_on_def by simp
+            thus "s \<le> r"
+              unfolding hs_eq by simp
+          qed
+
+          have hSne: "((\<lambda>i. top1_real_bounded_metric (x i) (z i)) ` I) \<noteq> {}"
+            using hi0 by blast
+          have hSup_le: "top1_uniform_metric_real_on I x z \<le> r"
+            unfolding top1_uniform_metric_real_on_def
+            by (rule cSup_least[OF hSne]) (use hall_le in blast)
+          have "top1_uniform_metric_real_on I x z < e"
+            using hSup_le hr_lt by linarith
+          thus "z \<in> top1_ball_on ?X (top1_uniform_metric_real_on I) x e"
+            unfolding top1_ball_on_def using hzX by blast
+        qed
+
+        show "\<exists>ba\<in>top1_box_basis_on I ?XR (\<lambda>_. ?TR).
+                y \<in> ba \<and> ba \<subseteq> top1_ball_on ?X (top1_uniform_metric_real_on I) x e"
+          apply (rule bexI[where x="top1_PiE I U"])
+           apply (intro conjI)
+            apply (rule hybox)
+           apply (rule hbox_sub_ball)
+          apply (rule hbox_basis)
+          done
+      qed
+    qed
+
+    show "b \<in> top1_box_topology_on I ?XR (\<lambda>_. ?TR)"
+      unfolding hb_eq using hball_in by simp
+  qed
+
+  have hGenSub:
+    "topology_generated_by_basis ?X (top1_metric_basis_on ?X (top1_uniform_metric_real_on I))
+      \<subseteq> top1_box_topology_on I ?XR (\<lambda>_. ?TR)"
+    by (rule topology_generated_by_basis_subset[OF hTopTbox hBasisSub])
+  show ?thesis
+    unfolding top1_metric_topology_on_def using hGenSub by simp
+qed
+
 (** from \S20 Theorem 20.4 [top1.tex:1761] **)
 theorem Theorem_20_4:
   fixes I :: "'i set"
@@ -12597,7 +12829,18 @@ text \<open>
   bound).  For infinite \<open>I\<close>, provide standard strictness counterexamples (e.g. a box-open set requiring
   coordinatewise radii not bounded below, and a product-open set not containing any uniform ball).
 \<close>
-  sorry
+proof -
+  have hTunifSub: "Tunif \<subseteq> Tbox"
+    unfolding Tunif_def Tbox_def X\<^sub>R_def XR_def TR_def
+    by (rule top1_uniform_metric_topology_subset_box_topology_real)
+  have hTprodSub: "Tprod \<subseteq> Tunif"
+    sorry
+  show "Tprod \<subseteq> Tunif \<and> Tunif \<subseteq> Tbox"
+    using hTprodSub hTunifSub by blast
+next
+  show "infinite I \<longrightarrow> Tprod \<noteq> Tunif \<and> Tunif \<noteq> Tbox \<and> Tprod \<noteq> Tbox"
+    sorry
+qed
 
 (** from \S20 Theorem 20.5 [top1.tex:1776] **)
 theorem Theorem_20_5:
