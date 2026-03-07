@@ -11551,6 +11551,14 @@ theorem Theorem_20_3:
   defines "X\<^sub>R \<equiv> top1_PiE I XR"
   shows "top1_metric_topology_on X\<^sub>R (top1_euclidean_metric_real_on I) = top1_product_topology_on I XR (\<lambda>_. TR)"
     and "top1_metric_topology_on X\<^sub>R (top1_square_metric_real_on I) = top1_product_topology_on I XR (\<lambda>_. TR)"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof plan: for finite, nonempty index set \<open>I\<close>, show that metric balls for the Euclidean / sup metric
+  generate the same topology as the product topology on \<open>\<real>\<close>-coordinates.  This should proceed by showing
+  mutual refinement of standard bases (rectangles vs. balls), using equivalence of norms on finite products and
+  the already-developed facts about \<open>top1_product_topology_on\<close>.
+\<close>
   sorry
 
 (** from \S20 Theorem 20.4 [top1.tex:1761] **)
@@ -11564,6 +11572,14 @@ theorem Theorem_20_4:
   defines "Tunif \<equiv> top1_metric_topology_on X\<^sub>R (top1_uniform_metric_real_on I)"
   shows "Tprod \<subseteq> Tunif \<and> Tunif \<subseteq> Tbox"
     and "infinite I \<longrightarrow> Tprod \<noteq> Tunif \<and> Tunif \<noteq> Tbox \<and> Tprod \<noteq> Tbox"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof plan: show the uniform metric topology is finer than the product topology (basic product rectangles
+  contain a uniform-metric ball) and coarser than the box topology (uniform balls are boxes with a uniform radius
+  bound).  For infinite \<open>I\<close>, provide standard strictness counterexamples (e.g. a box-open set requiring
+  coordinatewise radii not bounded below, and a product-open set not containing any uniform ball).
+\<close>
   sorry
 
 (** from \S20 Theorem 20.5 [top1.tex:1776] **)
@@ -11574,6 +11590,14 @@ theorem Theorem_20_5:
   defines "Tprod \<equiv> top1_product_topology_on (UNIV::nat set) XR (\<lambda>_. TR)"
   shows "top1_metric_on X\<omega> top1_D_metric_real_omega
     \<and> top1_metric_topology_on X\<omega> top1_D_metric_real_omega = Tprod"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof plan: show \<open>top1_D_metric_real_omega\<close> is a metric (weighted sup of bounded coordinate metrics),
+  then prove equality of topologies by comparing bases: a ball in the D-metric gives finitely many coordinate
+  constraints, hence is product-open; conversely, a basic product neighborhood around a point contains a suitable
+  D-metric ball by choosing a small enough radius governed by finitely many coordinates.
+\<close>
   sorry
 
 section \<open>\<S>21 The Metric Topology (continued)\<close>
@@ -24247,6 +24271,14 @@ theorem Theorem_27_7:
   assumes hhaus: "is_hausdorff_on X TX"
   assumes hnoi: "\<forall>x\<in>X. \<not> top1_isolated_point_on X TX x"
   shows "\<not> countable X"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof plan: in a nonempty compact Hausdorff space with no isolated points, build a Cantor-like splitting
+  tree of disjoint nonempty closed sets with diameters / neighborhood bases shrinking; extract an injection from
+  \<open>{0,1}^nat\<close> (or an uncountable set of infinite branches) into \<open>X\<close> to contradict countability.  This is the
+  standard argument used to show a perfect compact Hausdorff space is uncountable.
+\<close>
   sorry
 
 (** from \S27 Corollary 27.8 [top1.tex:3543] **)
@@ -24254,6 +24286,12 @@ corollary Corollary_27_8:
   fixes a b :: real
   assumes hab: "a < b"
   shows "\<not> countable {a..b}"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof plan: specialize Theorem_27_7 to \<open>X = {a..b}\<close> with the standard order topology on reals, using
+  known facts: closed intervals are compact and Hausdorff, and have no isolated points when \<open>a < b\<close>.
+\<close>
   sorry
 
 section \<open>\<S>28 Limit Point Compactness\<close>
@@ -24562,6 +24600,14 @@ theorem Theorem_29_1:
         \<longrightarrow> (\<exists>h.
               top1_homeomorphism_on (insert None (Some ` X)) TY (insert None (Some ` X)) TY' h
               \<and> (\<forall>x\<in>X. h (Some x) = Some x)))"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof plan: construct the topology on \<open>Y = insert None (Some ` X)\<close> by declaring neighborhoods of
+  \<open>Some x\<close> to match the original topology, and neighborhoods of \<open>None\<close> to be complements of compact closed
+  subsets of \<open>Some ` X\<close>.  Then prove: (i) resulting space is compact and Hausdorff iff \<open>X\<close> is locally compact
+  Hausdorff; (ii) uniqueness up to a homeomorphism fixing \<open>Some x\<close>.
+\<close>
   sorry
 
 (** from \S29 Theorem 29.2 [top1.tex:3767] **)
@@ -25178,6 +25224,13 @@ corollary Corollary_29_4:
         \<and> (f ` X) \<in> TY
         \<and> top1_homeomorphism_on X TX (f ` X) (subspace_topology Y TY (f ` X)) f)
       \<longleftrightarrow> (top1_locally_compact_on X TX \<and> is_hausdorff_on X TX)"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof plan: use Theorem 29.1 (one-point compactification) in the forward direction by embedding \<open>X\<close>
+  as an open subspace of a compact Hausdorff space; conversely, from local compactness + Hausdorff, obtain a
+  one-point compactification and embed \<open>X\<close> as the open subspace \<open>Some ` X\<close>.
+\<close>
   sorry
 
 section \<open>\<S>30 The Countability Axioms\<close>
