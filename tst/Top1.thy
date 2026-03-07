@@ -11523,6 +11523,265 @@ qed
 definition top1_real_bounded_metric :: "real \<Rightarrow> real \<Rightarrow> real" where
   "top1_real_bounded_metric a b = min (abs (a - b)) 1"
 
+(** Helper: monotonicity of \<open>min _ 1\<close> in its argument. **)
+lemma top1_min_mono_1:
+  fixes u v :: real
+  assumes huv: "u \<le> v"
+  shows "min u 1 \<le> min v 1"
+proof (cases "v \<le> 1")
+  case True
+  have "min u 1 \<le> u"
+    by simp
+  also have "u \<le> v"
+    by (rule huv)
+  also have "v = min v 1"
+    using True by simp
+  finally show ?thesis
+    by simp
+next
+  case False
+  have "min u 1 \<le> 1"
+    by simp
+  also have "1 = min v 1"
+    using False by simp
+  finally show ?thesis .
+qed
+
+(** Helper: subadditivity of \<open>min _ 1\<close> on nonnegative reals. **)
+lemma top1_min_add_le:
+  fixes u v :: real
+  assumes hu: "0 \<le> u"
+  assumes hv: "0 \<le> v"
+  shows "min (u + v) 1 \<le> min u 1 + min v 1"
+proof (cases "u \<ge> 1 \<or> v \<ge> 1")
+  case True
+  have hL: "min (u + v) 1 \<le> 1"
+    by simp
+  have hR: "1 \<le> min u 1 + min v 1"
+  proof (cases "u \<ge> 1")
+    case True
+    have hmu: "min u 1 = 1"
+      using True by simp
+    have hmv0: "0 \<le> min v 1"
+      using hv by simp
+    have "1 \<le> 1 + min v 1"
+      using hmv0 by simp
+    thus ?thesis
+      using hmu by simp
+  next
+    case False
+    have "v \<ge> 1"
+      using True False by blast
+    then have hmv: "min v 1 = 1"
+      by simp
+    have hmu0: "0 \<le> min u 1"
+      using hu by simp
+    have "1 \<le> min u 1 + 1"
+      using hmu0 by simp
+    thus ?thesis
+      using hmv by simp
+  qed
+  show ?thesis
+    by (rule order_trans[OF hL hR])
+next
+  case False
+  have hu1: "u < 1"
+  proof -
+    have "\<not> (1 \<le> u)"
+      using False by auto
+    thus ?thesis
+      by (simp add: not_le)
+  qed
+  have hv1: "v < 1"
+  proof -
+    have "\<not> (1 \<le> v)"
+      using False by auto
+    thus ?thesis
+      by (simp add: not_le)
+  qed
+  have hu_le1: "u \<le> 1"
+    using hu1 by simp
+  have hv_le1: "v \<le> 1"
+    using hv1 by simp
+  have hmu: "min u 1 = u"
+    using hu_le1 by simp
+  have hmv: "min v 1 = v"
+    using hv_le1 by simp
+  have "min (u + v) 1 \<le> u + v"
+    by simp
+  thus ?thesis
+    using hmu hmv by simp
+qed
+
+lemma top1_real_bounded_metric_triangle:
+  shows "top1_real_bounded_metric a c
+    \<le> top1_real_bounded_metric a b + top1_real_bounded_metric b c"
+proof -
+  have habc: "abs (a - c) \<le> abs (a - b) + abs (b - c)"
+  proof -
+    have "abs (a - c) = abs ((a - b) + (b - c))"
+      by simp
+    also have "\<dots> \<le> abs (a - b) + abs (b - c)"
+      by (rule abs_triangle_ineq)
+    finally show ?thesis .
+  qed
+
+  have h1: "min (abs (a - c)) 1 \<le> min (abs (a - b) + abs (b - c)) 1"
+    by (rule top1_min_mono_1[OF habc])
+  have h2: "min (abs (a - b) + abs (b - c)) 1 \<le> min (abs (a - b)) 1 + min (abs (b - c)) 1"
+    by (rule top1_min_add_le) simp_all
+
+  show ?thesis
+    unfolding top1_real_bounded_metric_def
+    by (rule order_trans[OF h1 h2])
+qed
+
+lemma top1_real_bounded_metric_metric_on:
+  shows "top1_metric_on UNIV top1_real_bounded_metric"
+proof (unfold top1_metric_on_def, intro conjI)
+  show "\<forall>x\<in>UNIV. 0 \<le> top1_real_bounded_metric x x"
+    unfolding top1_real_bounded_metric_def by simp
+  show "\<forall>x\<in>UNIV. \<forall>y\<in>UNIV. 0 \<le> top1_real_bounded_metric x y"
+    unfolding top1_real_bounded_metric_def by simp
+
+  show "\<forall>x\<in>UNIV. \<forall>y\<in>UNIV. top1_real_bounded_metric x y = 0 \<longleftrightarrow> x = y"
+  proof (intro ballI)
+    fix x y :: real
+    show "top1_real_bounded_metric x y = 0 \<longleftrightarrow> x = y"
+    proof (rule iffI)
+      assume h0: "top1_real_bounded_metric x y = 0"
+      have habs0: "abs (x - y) = 0"
+      proof (cases "abs (x - y) \<le> 1")
+        case True
+        have "top1_real_bounded_metric x y = abs (x - y)"
+          unfolding top1_real_bounded_metric_def using True by simp
+        thus ?thesis
+          using h0 by simp
+      next
+        case False
+        have "top1_real_bounded_metric x y = 1"
+          unfolding top1_real_bounded_metric_def using False by simp
+        thus ?thesis
+          using h0 by simp
+      qed
+      show "x = y"
+        using habs0 by simp
+    next
+      assume hxy: "x = y"
+      show "top1_real_bounded_metric x y = 0"
+        unfolding top1_real_bounded_metric_def using hxy by simp
+    qed
+  qed
+
+  show "\<forall>x\<in>UNIV. \<forall>y\<in>UNIV. top1_real_bounded_metric x y = top1_real_bounded_metric y x"
+    unfolding top1_real_bounded_metric_def by (simp add: abs_minus_commute)
+
+  show "\<forall>x\<in>UNIV. \<forall>y\<in>UNIV. \<forall>z\<in>UNIV.
+          top1_real_bounded_metric x z \<le> top1_real_bounded_metric x y + top1_real_bounded_metric y z"
+  proof (intro ballI)
+    fix x y z :: real
+    show "top1_real_bounded_metric x z \<le> top1_real_bounded_metric x y + top1_real_bounded_metric y z"
+      by (rule top1_real_bounded_metric_triangle)
+  qed
+qed
+
+lemma top1_real_bounded_metric_ball_in_order_topology:
+  fixes a e :: real
+  assumes he: "0 < e"
+  shows "top1_ball_on UNIV top1_real_bounded_metric a e \<in> (order_topology_on_UNIV::real set set)"
+proof (cases "1 < e")
+  case True
+  have hEq: "top1_ball_on UNIV top1_real_bounded_metric a e = (UNIV::real set)"
+  proof (rule set_eqI)
+    fix y :: real
+    show "y \<in> top1_ball_on UNIV top1_real_bounded_metric a e \<longleftrightarrow> y \<in> (UNIV::real set)"
+    proof
+      assume "y \<in> top1_ball_on UNIV top1_real_bounded_metric a e"
+      then show "y \<in> (UNIV::real set)"
+        by simp
+    next
+      assume "y \<in> (UNIV::real set)"
+      have hle: "top1_real_bounded_metric a y \<le> 1"
+        unfolding top1_real_bounded_metric_def by simp
+      have "top1_real_bounded_metric a y < e"
+        by (rule le_less_trans[OF hle True])
+      then show "y \<in> top1_ball_on UNIV top1_real_bounded_metric a e"
+        unfolding top1_ball_on_def by simp
+    qed
+  qed
+  have hTop: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have "UNIV \<in> (order_topology_on_UNIV::real set set)"
+    using hTop unfolding is_topology_on_def by blast
+  thus ?thesis
+    using hEq by simp
+next
+  case False
+  have he1: "e \<le> 1"
+    using False by simp
+  have hab: "a - e < a + e"
+    using he by simp
+
+  have hEq: "top1_ball_on UNIV top1_real_bounded_metric a e = open_interval (a - e) (a + e)"
+  proof (rule set_eqI)
+    fix y :: real
+    show "y \<in> top1_ball_on UNIV top1_real_bounded_metric a e \<longleftrightarrow> y \<in> open_interval (a - e) (a + e)"
+    proof -
+      have h1: "y \<in> top1_ball_on UNIV top1_real_bounded_metric a e \<longleftrightarrow> top1_real_bounded_metric a y < e"
+        unfolding top1_ball_on_def by simp
+      have h2: "top1_real_bounded_metric a y < e \<longleftrightarrow> abs (a - y) < e"
+      proof (rule iffI)
+        assume hlt: "top1_real_bounded_metric a y < e"
+        have hmin: "min (abs (a - y)) 1 < e"
+          using hlt unfolding top1_real_bounded_metric_def .
+        show "abs (a - y) < e"
+        proof (cases "abs (a - y) \<le> 1")
+          case True
+          have "min (abs (a - y)) 1 = abs (a - y)"
+            using True by simp
+          thus ?thesis
+            using hmin by simp
+        next
+          case False
+          have "min (abs (a - y)) 1 = 1"
+            using False by simp
+          then have "1 < e"
+            using hmin by simp
+          thus ?thesis
+            using he1 by simp
+        qed
+      next
+        assume habs: "abs (a - y) < e"
+        have habs1: "abs (a - y) < 1"
+          by (rule less_le_trans[OF habs he1])
+        have "min (abs (a - y)) 1 = abs (a - y)"
+          using habs1 by simp
+        thus "top1_real_bounded_metric a y < e"
+          unfolding top1_real_bounded_metric_def using habs by simp
+      qed
+
+      have h3: "abs (a - y) < e \<longleftrightarrow> a - e < y \<and> y < a + e"
+      proof -
+        have "abs (a - y) < e \<longleftrightarrow> abs (y - a) < e"
+          by (simp add: abs_minus_commute)
+        also have "\<dots> \<longleftrightarrow> a - e < y \<and> y < a + e"
+          by (simp add: abs_diff_less_iff)
+        finally show ?thesis .
+      qed
+
+      have h4: "y \<in> open_interval (a - e) (a + e) \<longleftrightarrow> a - e < y \<and> y < a + e"
+        unfolding open_interval_def by simp
+      show ?thesis
+        using h1 h2 h3 h4 by simp
+    qed
+  qed
+
+  have "open_interval (a - e) (a + e) \<in> (order_topology_on_UNIV::real set set)"
+    by (rule open_interval_in_order_topology[OF hab])
+  thus ?thesis
+    using hEq by simp
+qed
+
 (** Euclidean metric on finite products of reals, written on function-spaces \<open>top1_PiE I (\<lambda>_. UNIV)\<close>. **)
 definition top1_euclidean_metric_real_on :: "'i set \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> ('i \<Rightarrow> real) \<Rightarrow> real" where
   "top1_euclidean_metric_real_on I x y = sqrt (\<Sum>i\<in>I. (x i - y i)\<^sup>2)"
