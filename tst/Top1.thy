@@ -23463,6 +23463,82 @@ qed
 definition top1_diameter_on :: "('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'a set \<Rightarrow> real" where
   "top1_diameter_on d A = Sup {d x y | x y. x \<in> A \<and> y \<in> A}"
 
+(** Diameter bound for a 2-point subset of a metric space. **)
+lemma top1_diameter_on_pair_le:
+  assumes hd: "top1_metric_on X d"
+  assumes hx: "x \<in> X"
+  assumes hy: "y \<in> X"
+  shows "top1_diameter_on d {x, y} \<le> d x y"
+proof -
+  have hxy0: "0 \<le> d x y"
+    using hd hx hy unfolding top1_metric_on_def by blast
+  have hsym: "d y x = d x y"
+    using hd hx hy unfolding top1_metric_on_def by blast
+  have hxx: "d x x = 0"
+    using hd hx unfolding top1_metric_on_def by blast
+  have hyy: "d y y = 0"
+    using hd hy unfolding top1_metric_on_def by blast
+
+  define D where "D = {d u v | u v. u \<in> {x, y} \<and> v \<in> {x, y}}"
+
+  have hDle: "\<forall>r\<in>D. r \<le> d x y"
+  proof (intro ballI)
+    fix r
+    assume hr: "r \<in> D"
+    obtain u v where hu: "u \<in> {x, y}" and hv: "v \<in> {x, y}" and hr': "r = d u v"
+      using hr unfolding D_def by blast
+    from hu have hu': "u = x \<or> u = y"
+      by simp
+    from hv have hv': "v = x \<or> v = y"
+      by simp
+    show "r \<le> d x y"
+      using hu' hv'
+    proof (elim disjE)
+      assume "u = x" and "v = x"
+      show ?thesis
+        unfolding hr' \<open>u = x\<close> \<open>v = x\<close> hxx using hxy0 by simp
+    next
+      assume "u = x" and "v = y"
+      show ?thesis
+        unfolding hr' \<open>u = x\<close> \<open>v = y\<close> by simp
+    next
+      assume "u = y" and "v = x"
+      show ?thesis
+        unfolding hr' \<open>u = y\<close> \<open>v = x\<close> hsym by simp
+    next
+      assume "u = y" and "v = y"
+      show ?thesis
+        unfolding hr' \<open>u = y\<close> \<open>v = y\<close> hyy using hxy0 by simp
+    qed
+  qed
+
+  have hDne: "D \<noteq> {}"
+  proof -
+    have "d x x \<in> D"
+      unfolding D_def by blast
+    thus ?thesis
+      by blast
+  qed
+  have hDbd: "bdd_above D"
+    unfolding bdd_above_def
+  proof (rule exI[where x="d x y"], intro ballI)
+    fix r
+    assume "r \<in> D"
+    thus "r \<le> d x y"
+      using hDle by blast
+  qed
+
+  have "Sup D \<le> d x y"
+    using hDne hDbd
+    apply (subst cSup_le_iff)
+      apply (rule hDne)
+     apply (rule hDbd)
+    apply (rule hDle)
+    done
+  thus ?thesis
+    unfolding top1_diameter_on_def D_def by simp
+qed
+
 (** from \S27 Lemma 27.5 (Lebesgue number lemma) [top1.tex:3484] **)
 lemma Lemma_27_5:
   assumes hd: "top1_metric_on X d"
@@ -23487,7 +23563,189 @@ theorem Theorem_27_6:
   assumes hcomp: "top1_compact_on X (top1_metric_topology_on X dX)"
   assumes hcont: "top1_continuous_map_on X (top1_metric_topology_on X dX) Y (top1_metric_topology_on Y dY) f"
   shows "top1_uniformly_continuous_map_on X dX Y dY f"
-  sorry
+proof -
+  have hmap: "\<forall>x\<in>X. f x \<in> Y"
+    using hcont unfolding top1_continuous_map_on_def by blast
+  have hmapD: "\<And>x. x \<in> X \<Longrightarrow> f x \<in> Y"
+    using hmap by blast
+
+  show ?thesis
+    unfolding top1_uniformly_continuous_map_on_def
+  proof (intro conjI)
+    show "\<forall>x\<in>X. f x \<in> Y"
+      by (rule hmap)
+
+    show "\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>x\<in>X. \<forall>x'\<in>X. dX x x' < \<delta> \<longrightarrow> dY (f x) (f x') < \<epsilon>"
+    proof (intro allI impI)
+      fix \<epsilon> :: real
+      assume h\<epsilon>: "\<epsilon> > 0"
+
+      define Uc where "Uc = (\<lambda>c. {x\<in>X. dY (f c) (f x) < \<epsilon> / 2}) ` X"
+
+      have hUc_sub: "Uc \<subseteq> top1_metric_topology_on X dX"
+      proof (rule subsetI)
+        fix U
+        assume hU: "U \<in> Uc"
+        obtain c where hcX: "c \<in> X" and hUdef: "U = {x\<in>X. dY (f c) (f x) < \<epsilon> / 2}"
+          using hU unfolding Uc_def by blast
+
+        have hfcY: "f c \<in> Y"
+          by (rule hmapD[OF hcX])
+        have hball_basis: "top1_ball_on Y dY (f c) (\<epsilon> / 2) \<in> top1_metric_basis_on Y dY"
+        proof -
+          have "0 < \<epsilon> / 2"
+            using h\<epsilon> by simp
+          thus ?thesis
+            unfolding top1_metric_basis_on_def
+            using hfcY by blast
+        qed
+        have hBasisY: "is_basis_on Y (top1_metric_basis_on Y dY)"
+          by (rule top1_metric_basis_is_basis_on[OF hdY])
+        have hball_open: "top1_ball_on Y dY (f c) (\<epsilon> / 2) \<in> top1_metric_topology_on Y dY"
+          unfolding top1_metric_topology_on_def
+          by (rule basis_elem_open_in_generated_topology[OF hBasisY hball_basis])
+
+        have hpreopen: "{x\<in>X. f x \<in> top1_ball_on Y dY (f c) (\<epsilon> / 2)} \<in> top1_metric_topology_on X dX"
+          using hcont hball_open unfolding top1_continuous_map_on_def by blast
+
+        have hUeq: "U = {x\<in>X. f x \<in> top1_ball_on Y dY (f c) (\<epsilon> / 2)}"
+        proof (rule set_eqI)
+          fix x
+          show "(x \<in> U) = (x \<in> {x\<in>X. f x \<in> top1_ball_on Y dY (f c) (\<epsilon> / 2)})"
+            unfolding hUdef top1_ball_on_def
+            apply (cases "x \<in> X")
+             apply (simp add: hmapD)
+            apply simp
+            done
+        qed
+
+        show "U \<in> top1_metric_topology_on X dX"
+          unfolding hUeq using hpreopen by simp
+      qed
+
+	      have hcov: "X \<subseteq> \<Union>Uc"
+	      proof (rule subsetI)
+	        fix x
+	        assume hxX: "x \<in> X"
+	        have hfxY: "f x \<in> Y"
+	          by (rule hmapD[OF hxX])
+	        have hdiag: "dY (f x) (f x) = 0"
+	          using hdY hfxY unfolding top1_metric_on_def by blast
+	        have hxU: "x \<in> {z\<in>X. dY (f x) (f z) < \<epsilon> / 2}"
+	        proof -
+	          have hpos: "0 < \<epsilon> / 2"
+	            using h\<epsilon> by simp
+	          have "dY (f x) (f x) < \<epsilon> / 2"
+	            unfolding hdiag using hpos by simp
+	          thus ?thesis
+	            using hxX by simp
+	        qed
+        have "{z\<in>X. dY (f x) (f z) < \<epsilon> / 2} \<in> Uc"
+        proof -
+          have "{z\<in>X. dY (f x) (f z) < \<epsilon> / 2} = (\<lambda>c. {z\<in>X. dY (f c) (f z) < \<epsilon> / 2}) x"
+            by simp
+          moreover have "(\<lambda>c. {z\<in>X. dY (f c) (f z) < \<epsilon> / 2}) x \<in> (\<lambda>c. {z\<in>X. dY (f c) (f z) < \<epsilon> / 2}) ` X"
+            by (rule imageI[OF hxX])
+          ultimately show ?thesis
+            unfolding Uc_def by simp
+        qed
+	        thus "x \<in> \<Union>Uc"
+	          using hxU by blast
+	      qed
+
+      obtain \<delta> where h\<delta>: "\<delta> > 0"
+        and hLeb: "\<forall>A. A \<subseteq> X \<and> top1_diameter_on dX A < \<delta> \<longrightarrow> (\<exists>U\<in>Uc. A \<subseteq> U)"
+        using Lemma_27_5[OF hdX hcomp hUc_sub hcov] by blast
+
+      show "\<exists>\<delta>>0. \<forall>x\<in>X. \<forall>x'\<in>X. dX x x' < \<delta> \<longrightarrow> dY (f x) (f x') < \<epsilon>"
+      proof (rule exI[where x=\<delta>], intro conjI)
+        show "\<delta> > 0"
+          by (rule h\<delta>)
+	        show "\<forall>x\<in>X. \<forall>x'\<in>X. dX x x' < \<delta> \<longrightarrow> dY (f x) (f x') < \<epsilon>"
+	        proof (intro ballI ballI impI)
+	          fix x x'
+	          assume hxX: "x \<in> X"
+	          assume hx'X: "x' \<in> X"
+	          assume hdist: "dX x x' < \<delta>"
+
+          have hdiam: "top1_diameter_on dX {x, x'} < \<delta>"
+          proof -
+            have "top1_diameter_on dX {x, x'} \<le> dX x x'"
+              by (rule top1_diameter_on_pair_le[OF hdX hxX hx'X])
+            thus ?thesis
+              using hdist by (rule le_less_trans)
+          qed
+
+	          have hA: "{x, x'} \<subseteq> X"
+	          proof (rule subsetI)
+	            fix y
+	            assume hy: "y \<in> {x, x'}"
+	            show "y \<in> X"
+	            proof (cases "y = x")
+	              case True
+	              show ?thesis
+	                using hxX True by simp
+	            next
+	              case False
+	              have "y = x'"
+	                using hy False by simp
+	              thus ?thesis
+	                using hx'X by simp
+	            qed
+	          qed
+          have "\<exists>U\<in>Uc. {x, x'} \<subseteq> U"
+            using hLeb hA hdiam by blast
+          then obtain U where hU: "U \<in> Uc" and hsub: "{x, x'} \<subseteq> U"
+            by blast
+
+          obtain c where hcX: "c \<in> X" and hUdef: "U = {z\<in>X. dY (f c) (f z) < \<epsilon> / 2}"
+            using hU unfolding Uc_def by blast
+
+          have hxU: "x \<in> U"
+            using hsub by simp
+          have hx'U: "x' \<in> U"
+            using hsub by simp
+
+          have hcx: "dY (f c) (f x) < \<epsilon> / 2"
+            using hxU unfolding hUdef by simp
+          have hcx': "dY (f c) (f x') < \<epsilon> / 2"
+            using hx'U unfolding hUdef by simp
+
+          have hfxY: "f x \<in> Y"
+            by (rule hmapD[OF hxX])
+          have hfx'Y: "f x' \<in> Y"
+            by (rule hmapD[OF hx'X])
+          have hfcY: "f c \<in> Y"
+            by (rule hmapD[OF hcX])
+
+          have hsym1: "dY (f x) (f c) = dY (f c) (f x)"
+            using hdY hfxY hfcY unfolding top1_metric_on_def by blast
+          have hsym2: "dY (f c) (f x') = dY (f x') (f c)"
+            using hdY hfcY hfx'Y unfolding top1_metric_on_def by blast
+          have htri: "dY (f x) (f x') \<le> dY (f x) (f c) + dY (f c) (f x')"
+            using hdY hfxY hfcY hfx'Y unfolding top1_metric_on_def by blast
+
+          have hsum: "dY (f x) (f c) + dY (f c) (f x') < \<epsilon>"
+          proof -
+            have hpos: "0 < \<epsilon> / 2"
+              using h\<epsilon> by simp
+            have hlt1: "dY (f x) (f c) < \<epsilon> / 2"
+              unfolding hsym1 using hcx .
+            have hlt2: "dY (f c) (f x') < \<epsilon> / 2"
+              using hcx' .
+            have "dY (f x) (f c) + dY (f c) (f x') < \<epsilon> / 2 + \<epsilon> / 2"
+              using hlt1 hlt2 by (rule add_strict_mono)
+            thus ?thesis
+              by simp
+          qed
+
+          show "dY (f x) (f x') < \<epsilon>"
+            by (rule le_less_trans[OF htri hsum])
+        qed
+      qed
+    qed
+  qed
+qed
 
 (** Isolated points (used in Theorem 27.7). **)
 definition top1_isolated_point_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a \<Rightarrow> bool" where
