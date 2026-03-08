@@ -29644,15 +29644,177 @@ theorem Theorem_27_7:
   assumes hhaus: "is_hausdorff_on X TX"
   assumes hnoi: "\<forall>x\<in>X. \<not> top1_isolated_point_on X TX x"
   shows "\<not> countable X"
-text \<open>
-  Proof status: admitted for now.
+proof
+  assume hcnt: "countable X"
+  have hTop: "is_topology_on X TX"
+    using hhaus unfolding is_hausdorff_on_def by blast
+  have X_TX: "X \<in> TX"
+    by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
 
-  Intended proof plan: in a nonempty compact Hausdorff space with no isolated points, build a Cantor-like splitting
-  tree of disjoint nonempty closed sets with diameters / neighborhood bases shrinking; extract an injection from
-  \<open>{0,1}^nat\<close> (or an uncountable set of infinite branches) into \<open>X\<close> to contradict countability.  This is the
-  standard argument used to show a perfect compact Hausdorff space is uncountable.
-\<close>
-sorry
+  obtain f :: "nat \<Rightarrow> 'a" where hfX: "\<forall>n. f n \<in> X" and hfimg: "f ` (UNIV :: nat set) = X"
+    using top1_countable_nonempty_eq_image_nat[OF hcnt hXne] by blast
+
+  define shrink where
+    "shrink x U = (SOME V. V \<in> TX \<and> V \<subseteq> X \<and> V \<subseteq> U \<and> V \<noteq> {} \<and> x \<notin> closure_on X TX V)"
+    for x U
+
+  have shrink_spec:
+    "\<And>x U. U \<in> TX \<Longrightarrow> U \<subseteq> X \<Longrightarrow> U \<noteq> {} \<Longrightarrow> x \<in> X \<Longrightarrow>
+      shrink x U \<in> TX \<and> shrink x U \<subseteq> X \<and> shrink x U \<subseteq> U \<and> shrink x U \<noteq> {}
+        \<and> x \<notin> closure_on X TX (shrink x U)"
+  proof -
+    fix x U
+    assume hU: "U \<in> TX"
+    assume hUX: "U \<subseteq> X"
+    assume hUne: "U \<noteq> {}"
+    assume hxX: "x \<in> X"
+    have hex:
+      "\<exists>V. V \<in> TX \<and> V \<subseteq> X \<and> V \<subseteq> U \<and> V \<noteq> {} \<and> x \<notin> closure_on X TX V"
+      by (rule top1_27_7_shrink_open_avoid_closure[OF hhaus hnoi hU hUX hUne hxX])
+    show
+      "shrink x U \<in> TX \<and> shrink x U \<subseteq> X \<and> shrink x U \<subseteq> U \<and> shrink x U \<noteq> {}
+        \<and> x \<notin> closure_on X TX (shrink x U)"
+      unfolding shrink_def by (rule someI_ex[OF hex])
+  qed
+
+  define V where
+    "V n = rec_nat (shrink (f 0) X) (\<lambda>n W. shrink (f (Suc n)) W) n"
+    for n
+
+  have hV_props:
+    "\<forall>n. V n \<in> TX \<and> V n \<subseteq> X \<and> V n \<noteq> {} \<and> f n \<notin> closure_on X TX (V n)
+      \<and> (n \<noteq> 0 \<longrightarrow> V n \<subseteq> V (n - 1))"
+  proof (intro allI)
+    fix n
+    show
+      "V n \<in> TX \<and> V n \<subseteq> X \<and> V n \<noteq> {} \<and> f n \<notin> closure_on X TX (V n)
+        \<and> (n \<noteq> 0 \<longrightarrow> V n \<subseteq> V (n - 1))"
+    proof (induction n)
+      case 0
+      have hV0: "V 0 = shrink (f 0) X"
+        unfolding V_def by simp
+      have hf0X: "f 0 \<in> X"
+        using hfX by blast
+      have hspec: "shrink (f 0) X \<in> TX \<and> shrink (f 0) X \<subseteq> X \<and> shrink (f 0) X \<subseteq> X \<and>
+          shrink (f 0) X \<noteq> {} \<and> f 0 \<notin> closure_on X TX (shrink (f 0) X)"
+        by (rule shrink_spec[OF X_TX subset_refl hXne hf0X])
+      show ?case
+        unfolding hV0
+        using hspec by simp
+    next
+      case (Suc n)
+      have hVn: "V n \<in> TX \<and> V n \<subseteq> X \<and> V n \<noteq> {} \<and> f n \<notin> closure_on X TX (V n)
+        \<and> (n \<noteq> 0 \<longrightarrow> V n \<subseteq> V (n - 1))"
+        by (rule Suc.IH)
+      have hVnT: "V n \<in> TX"
+        by (rule conjunct1[OF hVn])
+      have hVnX: "V n \<subseteq> X"
+        by (rule conjunct1[OF conjunct2[OF hVn]])
+      have hVnNe: "V n \<noteq> {}"
+        by (rule conjunct1[OF conjunct2[OF conjunct2[OF hVn]]])
+
+      have hVSuc: "V (Suc n) = shrink (f (Suc n)) (V n)"
+        unfolding V_def by simp
+      have hfSucX: "f (Suc n) \<in> X"
+        using hfX by blast
+
+      have hspec: "shrink (f (Suc n)) (V n) \<in> TX \<and> shrink (f (Suc n)) (V n) \<subseteq> X \<and>
+          shrink (f (Suc n)) (V n) \<subseteq> V n \<and> shrink (f (Suc n)) (V n) \<noteq> {} \<and>
+          f (Suc n) \<notin> closure_on X TX (shrink (f (Suc n)) (V n))"
+        by (rule shrink_spec[OF hVnT hVnX hVnNe hfSucX])
+
+      have hVSnT: "V (Suc n) \<in> TX"
+        unfolding hVSuc using hspec by blast
+      have hVSnX: "V (Suc n) \<subseteq> X"
+        unfolding hVSuc using hspec by blast
+      have hVSnNe: "V (Suc n) \<noteq> {}"
+        unfolding hVSuc using hspec by blast
+      have hfSn_not: "f (Suc n) \<notin> closure_on X TX (V (Suc n))"
+        unfolding hVSuc using hspec by blast
+      have hVsh: "V (Suc n) \<subseteq> V n"
+        unfolding hVSuc using hspec by blast
+
+      show ?case
+        by (intro conjI hVSnT conjI hVSnX conjI hVSnNe conjI hfSn_not conjI)
+          (simp add: hVsh)
+    qed
+  qed
+
+  have hVsubX: "\<forall>n. V n \<subseteq> X"
+    using hV_props by blast
+  have hVne: "\<forall>n. V n \<noteq> {}"
+    using hV_props by blast
+  have hVshrink: "\<forall>n. V (Suc n) \<subseteq> V n"
+  proof (intro allI)
+    fix n
+    have hVSuc: "V (Suc n) = shrink (f (Suc n)) (V n)"
+      unfolding V_def by simp
+    have hVn: "V n \<in> TX \<and> V n \<subseteq> X \<and> V n \<noteq> {} \<and> f n \<notin> closure_on X TX (V n)
+      \<and> (n \<noteq> 0 \<longrightarrow> V n \<subseteq> V (n - 1))"
+      using hV_props by blast
+    have hVnT: "V n \<in> TX"
+      by (rule conjunct1[OF hVn])
+    have hVnX: "V n \<subseteq> X"
+      by (rule conjunct1[OF conjunct2[OF hVn]])
+    have hVnNe: "V n \<noteq> {}"
+      by (rule conjunct1[OF conjunct2[OF conjunct2[OF hVn]]])
+    have hfSucX: "f (Suc n) \<in> X"
+      using hfX by blast
+    have hspec: "shrink (f (Suc n)) (V n) \<subseteq> V n"
+      using shrink_spec[OF hVnT hVnX hVnNe hfSucX] by blast
+    show "V (Suc n) \<subseteq> V n"
+      unfolding hVSuc by (rule hspec)
+  qed
+
+  have hInt_ne:
+    "\<Inter>(range (\<lambda>n. closure_on X TX (V n))) \<noteq> {}"
+    by (rule top1_compact_nested_closure_inter_ne[OF hTop hcomp hVsubX hVne hVshrink])
+
+  obtain x0 where hx0: "x0 \<in> \<Inter>(range (\<lambda>n. closure_on X TX (V n)))"
+    using hInt_ne by blast
+
+  have hx0X: "x0 \<in> X"
+  proof -
+    have hV0X: "V 0 \<subseteq> X"
+      using hVsubX by blast
+    have hcl0X: "closure_on X TX (V 0) \<subseteq> X"
+      by (rule closure_on_subset_carrier[OF hTop hV0X])
+    have hx0cl0: "x0 \<in> closure_on X TX (V 0)"
+    proof -
+      have "closure_on X TX (V 0) \<in> range (\<lambda>n. closure_on X TX (V n))"
+        by blast
+      thus ?thesis
+        by (rule InterD[OF hx0])
+    qed
+    show ?thesis
+      by (rule subsetD[OF hcl0X hx0cl0])
+  qed
+
+  have hx0img: "x0 \<in> f ` (UNIV :: nat set)"
+    using hx0X by (simp add: hfimg)
+  obtain n0 where hn0: "f n0 = x0"
+    using hx0img by blast
+
+  have hx0cln0: "x0 \<in> closure_on X TX (V n0)"
+  proof -
+    have "closure_on X TX (V n0) \<in> range (\<lambda>n. closure_on X TX (V n))"
+      by blast
+    thus ?thesis
+      by (rule InterD[OF hx0])
+  qed
+
+  have hf_not_cl: "f n0 \<notin> closure_on X TX (V n0)"
+  proof -
+    have "V n0 \<in> TX \<and> V n0 \<subseteq> X \<and> V n0 \<noteq> {} \<and> f n0 \<notin> closure_on X TX (V n0)
+      \<and> (n0 \<noteq> 0 \<longrightarrow> V n0 \<subseteq> V (n0 - 1))"
+      using hV_props by blast
+    thus ?thesis
+      by blast
+  qed
+
+  show False
+    using hf_not_cl hx0cln0 hn0 by simp
+qed
 
 (** from \S27 Corollary 27.8 [top1.tex:3543] **)
 corollary Corollary_27_8:
