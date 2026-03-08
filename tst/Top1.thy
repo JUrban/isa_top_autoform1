@@ -12643,6 +12643,97 @@ proof -
     unfolding top1_D_metric_real_omega_def by simp
 qed
 
+(** Munkres' \<open>D\<close>-metric is reflexive. **)
+lemma top1_D_metric_real_omega_refl:
+  shows "top1_D_metric_real_omega x x = 0"
+proof -
+  let ?S = "((\<lambda>n. top1_real_bounded_metric (x n) (x n) / real (Suc n)) ` (UNIV::nat set))"
+
+  have hSeq: "?S = {0}"
+  proof (rule set_eqI)
+    fix r
+    show "r \<in> ?S \<longleftrightarrow> r \<in> {0}"
+    proof
+      assume hr: "r \<in> ?S"
+      then obtain n where hn: "r = top1_real_bounded_metric (x n) (x n) / real (Suc n)"
+        by blast
+      have h0: "top1_real_bounded_metric (x n) (x n) = 0"
+        unfolding top1_real_bounded_metric_def by simp
+      have "r = 0"
+        unfolding hn h0 by simp
+      then show "r \<in> {0}"
+        by simp
+    next
+      assume "r \<in> {0}"
+      then have hr0: "r = 0"
+        by simp
+      have h0: "top1_real_bounded_metric (x 0) (x 0) = 0"
+        unfolding top1_real_bounded_metric_def by simp
+      have hmem0: "0 \<in> ?S"
+      proof -
+        have "(0::nat) \<in> (UNIV::nat set)"
+          by simp
+        then have "(\<lambda>n. top1_real_bounded_metric (x n) (x n) / real (Suc n)) 0 \<in> ?S"
+          by (rule imageI)
+        then show ?thesis
+          unfolding h0 by simp
+      qed
+      show "r \<in> ?S"
+        unfolding hr0 using hmem0 by simp
+    qed
+  qed
+
+  show ?thesis
+    unfolding top1_D_metric_real_omega_def
+    unfolding hSeq
+    by simp
+qed
+
+(** Munkres' \<open>D\<close>-metric is symmetric. **)
+lemma top1_D_metric_real_omega_sym:
+  shows "top1_D_metric_real_omega x y = top1_D_metric_real_omega y x"
+proof -
+  let ?Sxy = "((\<lambda>n. top1_real_bounded_metric (x n) (y n) / real (Suc n)) ` (UNIV::nat set))"
+  let ?Syx = "((\<lambda>n. top1_real_bounded_metric (y n) (x n) / real (Suc n)) ` (UNIV::nat set))"
+
+  have hsets: "?Sxy = ?Syx"
+  proof (rule set_eqI)
+    fix r
+    show "r \<in> ?Sxy \<longleftrightarrow> r \<in> ?Syx"
+    proof
+      assume hr: "r \<in> ?Sxy"
+      then obtain n where hn: "r = top1_real_bounded_metric (x n) (y n) / real (Suc n)"
+        by blast
+      have hsym: "top1_real_bounded_metric (x n) (y n) = top1_real_bounded_metric (y n) (x n)"
+        unfolding top1_real_bounded_metric_def by (simp add: abs_minus_commute algebra_simps)
+      have "r = top1_real_bounded_metric (y n) (x n) / real (Suc n)"
+        unfolding hn hsym by simp
+      then show "r \<in> ?Syx"
+        by blast
+    next
+      assume hr: "r \<in> ?Syx"
+      then obtain n where hn: "r = top1_real_bounded_metric (y n) (x n) / real (Suc n)"
+        by blast
+      have hsym: "top1_real_bounded_metric (y n) (x n) = top1_real_bounded_metric (x n) (y n)"
+        unfolding top1_real_bounded_metric_def by (simp add: abs_minus_commute algebra_simps)
+      have "r = top1_real_bounded_metric (x n) (y n) / real (Suc n)"
+        unfolding hn hsym by simp
+      then show "r \<in> ?Sxy"
+        by blast
+    qed
+  qed
+
+  show ?thesis
+    unfolding top1_D_metric_real_omega_def
+    unfolding hsets
+    by simp
+qed
+
+(** Triangle inequality for Munkres' \<open>D\<close>-metric (proof deferred). **)
+lemma top1_D_metric_real_omega_triangle:
+  shows "top1_D_metric_real_omega x z \<le> top1_D_metric_real_omega x y + top1_D_metric_real_omega y z"
+  sorry
+
 (** from \S20 Theorem 20.3 [top1.tex:1684] **)
 theorem Theorem_20_3:
   fixes I :: "'i set"
