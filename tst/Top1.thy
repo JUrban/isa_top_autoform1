@@ -28040,6 +28040,167 @@ proof -
     unfolding top1_diameter_on_def D_def by simp
 qed
 
+(** Boundedness of a compact metric space (carrier-restricted). **)
+lemma top1_metric_compact_bounded_from_point:
+  assumes hd: "top1_metric_on X d"
+  assumes hcomp: "top1_compact_on X (top1_metric_topology_on X d)"
+  assumes hx0X: "x0 \<in> X"
+  shows "\<exists>R>0. \<forall>x\<in>X. d x0 x \<le> R"
+proof -
+  define Balls where "Balls n = top1_ball_on X d x0 (real (Suc n))" for n
+  define Uc0 where "Uc0 = range Balls"
+
+  have hUc0sub: "Uc0 \<subseteq> top1_metric_topology_on X d"
+  proof (rule subsetI)
+    fix U
+    assume hU: "U \<in> Uc0"
+    obtain n where hUeq: "U = Balls n"
+      using hU unfolding Uc0_def by blast
+    have hrad: "0 < (real (Suc n) :: real)"
+      by simp
+    have "top1_ball_on X d x0 (real (Suc n)) \<in> top1_metric_topology_on X d"
+      by (rule top1_ball_open_in_metric_topology[OF hd hx0X hrad])
+    thus "U \<in> top1_metric_topology_on X d"
+      unfolding hUeq Balls_def by simp
+  qed
+
+  have hcov0: "X \<subseteq> \<Union>Uc0"
+  proof (rule subsetI)
+    fix x
+    assume hxX: "x \<in> X"
+    obtain n where hn: "d x0 x < real n"
+      using reals_Archimedean2[of "d x0 x"] by blast
+    have hn': "d x0 x < real (Suc n)"
+      by (rule less_le_trans[OF hn]) simp
+    have hxball: "x \<in> Balls n"
+      unfolding Balls_def top1_ball_on_def using hxX hn' by simp
+    have "Balls n \<in> Uc0"
+      unfolding Uc0_def by blast
+    thus "x \<in> \<Union>Uc0"
+      using hxball by blast
+  qed
+
+  have hcompact_cover:
+    "\<forall>V. V \<subseteq> top1_metric_topology_on X d \<and> X \<subseteq> \<Union>V \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> V \<and> X \<subseteq> \<Union>F)"
+    using hcomp unfolding top1_compact_on_def by blast
+
+  obtain F where hFfin: "finite F" and hFsub: "F \<subseteq> Uc0" and hFcov: "X \<subseteq> \<Union>F"
+    using hcompact_cover[rule_format, of Uc0] hUc0sub hcov0 by blast
+
+  have hFne: "F \<noteq> {}"
+  proof -
+    have hx0UnionF: "x0 \<in> \<Union>F"
+      by (rule subsetD[OF hFcov hx0X])
+    then obtain U where "U \<in> F"
+      by blast
+    thus ?thesis
+      by blast
+  qed
+
+  have hexIdx: "\<forall>U\<in>F. \<exists>n. U = Balls n"
+    using hFsub unfolding Uc0_def by blast
+  obtain idx where hidx: "\<forall>U\<in>F. U = Balls (idx U)"
+    using bchoice[OF hexIdx] by blast
+
+  define N where "N = idx ` F"
+  have hNfin: "finite N"
+    unfolding N_def using hFfin by simp
+  have hNne: "N \<noteq> {}"
+    unfolding N_def using hFne by simp
+
+  define nmax where "nmax = Max N"
+
+  have hR: "\<forall>x\<in>X. d x0 x \<le> real (Suc nmax)"
+  proof (intro ballI)
+    fix x
+    assume hxX: "x \<in> X"
+    have hxUF: "x \<in> \<Union>F"
+      using hFcov hxX by blast
+    then obtain U where hUF: "U \<in> F" and hxU: "x \<in> U"
+      by blast
+
+    have hUeq: "U = Balls (idx U)"
+      using hidx hUF by blast
+    have hxball: "x \<in> Balls (idx U)"
+      using hxU by (simp only: hUeq[symmetric])
+    have hxball': "x \<in> top1_ball_on X d x0 (real (Suc (idx U)))"
+      using hxball unfolding Balls_def by simp
+    have hxlt: "d x0 x < real (Suc (idx U))"
+      using hxball' unfolding top1_ball_on_def by simp
+
+    have hidxU_in: "idx U \<in> N"
+      unfolding N_def using hUF by blast
+    have hidxU_le: "idx U \<le> nmax"
+      unfolding nmax_def using hNfin hidxU_in by simp
+    have hle_rad: "real (Suc (idx U)) \<le> real (Suc nmax)"
+      using hidxU_le by simp
+
+    have "d x0 x < real (Suc nmax)"
+      by (rule less_le_trans[OF hxlt hle_rad])
+    thus "d x0 x \<le> real (Suc nmax)"
+      by simp
+  qed
+
+  show ?thesis
+  proof (rule exI[where x="real (Suc nmax)"], intro conjI)
+    show "0 < real (Suc nmax)"
+      by simp
+    show "\<forall>x\<in>X. d x0 x \<le> real (Suc nmax)"
+      using hR .
+  qed
+qed
+
+lemma top1_metric_compact_bounded:
+  assumes hd: "top1_metric_on X d"
+  assumes hcomp: "top1_compact_on X (top1_metric_topology_on X d)"
+  shows "\<exists>M. \<forall>x\<in>X. \<forall>y\<in>X. d x y \<le> M"
+proof (cases "X = {}")
+  case True
+  show ?thesis
+    by (rule exI[where x="0::real"]) (simp add: True)
+next
+  case False
+  obtain x0 where hx0X: "x0 \<in> X"
+    using False by blast
+  obtain R0 where hR0pos: "0 < R0" and hR0: "\<forall>x\<in>X. d x0 x \<le> R0"
+    using top1_metric_compact_bounded_from_point[OF hd hcomp hx0X] by blast
+
+  have hsym: "\<forall>x\<in>X. d x x0 = d x0 x"
+    using hd hx0X unfolding top1_metric_on_def by blast
+  have htri: "\<forall>x\<in>X. \<forall>y\<in>X. d x y \<le> d x x0 + d x0 y"
+    using hd hx0X unfolding top1_metric_on_def by blast
+
+  show ?thesis
+  proof (rule exI[where x="2 * R0"])
+    show "\<forall>x\<in>X. \<forall>y\<in>X. d x y \<le> 2 * R0"
+    proof (intro ballI ballI)
+      fix x y
+      assume hxX: "x \<in> X"
+      assume hyX: "y \<in> X"
+
+      have hxy: "d x y \<le> d x x0 + d x0 y"
+        using htri hxX hyX by blast
+      have hxx0: "d x x0 = d x0 x"
+        using hsym hxX by blast
+
+      have "d x y \<le> d x0 x + d x0 y"
+        using hxy hxx0 by simp
+      also have "\<dots> \<le> R0 + R0"
+      proof -
+        have hx0x: "d x0 x \<le> R0"
+          using hR0 hxX by blast
+        have hx0y: "d x0 y \<le> R0"
+          using hR0 hyX by blast
+        show "d x0 x + d x0 y \<le> R0 + R0"
+          by (rule add_mono[OF hx0x hx0y])
+      qed
+      also have "\<dots> = 2 * R0"
+        by simp
+      finally show "d x y \<le> 2 * R0" .
+    qed
+  qed
+qed
+
 (** from \S27 Lemma 27.5 (Lebesgue number lemma) [top1.tex:3484] **)
 lemma Lemma_27_5:
   assumes hd: "top1_metric_on X d"
@@ -28057,9 +28218,6 @@ text \<open>
   The commented proof below is a first draft; it should be refactored into smaller helper lemmas (with local simp
   sets) to avoid tactic blow-ups.
 \<close>
-sorry
-
-(* Draft proof (to be refactored into smaller helper lemmas):
 proof (cases "X = {}")
   case True
   show ?thesis
@@ -28071,10 +28229,336 @@ proof (cases "X = {}")
   qed
 next
   case False
-  \<comment> \<open>proof omitted\<close>
-  sorry
+  have hXne: "X \<noteq> {}"
+    using False .
+
+  obtain x0 where hx0X: "x0 \<in> X"
+    using hXne by blast
+
+  obtain M where hM: "\<forall>x\<in>X. \<forall>y\<in>X. d x y \<le> M"
+    using top1_metric_compact_bounded[OF hd hcomp] by blast
+
+  have hexLocal:
+    "\<forall>x\<in>X. \<exists>p. 0 < fst p \<and> snd p \<in> Uc \<and> top1_ball_on X d x (fst p) \<subseteq> snd p"
+  proof (intro ballI)
+    fix x
+    assume hxX: "x \<in> X"
+    have hxUnion: "x \<in> \<Union>Uc"
+      using hcov hxX by blast
+    obtain U where hUUc: "U \<in> Uc" and hxU: "x \<in> U"
+      using hxUnion by blast
+    have hUopen: "U \<in> top1_metric_topology_on X d"
+      using hUc hUUc by blast
+
+    have hBasisFor:
+      "basis_for X (top1_metric_basis_on X d) (top1_metric_topology_on X d)"
+      unfolding basis_for_def top1_metric_topology_on_def
+      by (intro conjI top1_metric_basis_is_basis_on[OF hd] refl)
+
+    obtain b where hbbasis: "b \<in> top1_metric_basis_on X d"
+      and hxb: "x \<in> b" and hbsub: "b \<subseteq> U"
+      using basis_for_refine[OF hBasisFor hUopen hxU] by blast
+
+    obtain c e where hb: "b = top1_ball_on X d c e" and hcX: "c \<in> X" and he: "0 < e"
+      using hbbasis unfolding top1_metric_basis_on_def by blast
+
+    have hdx: "d c x < e"
+      using hxb unfolding hb top1_ball_on_def using hxX by simp
+
+    define r where "r = (e - d c x) / 2"
+    have hrpos: "0 < r"
+    proof -
+      have hpos: "0 < e - d c x"
+        using hdx by linarith
+      show ?thesis
+        unfolding r_def using hpos by simp
+    qed
+
+    have hball_sub_b: "top1_ball_on X d x r \<subseteq> b"
+    proof (rule subsetI)
+      fix y
+      assume hy: "y \<in> top1_ball_on X d x r"
+      have hyX: "y \<in> X" and hxy: "d x y < r"
+        using hy unfolding top1_ball_on_def by blast+
+
+      have hcx': "d c y \<le> d c x + d x y"
+        using hd hcX hxX hyX unfolding top1_metric_on_def by blast
+      have "d c x + d x y < d c x + r"
+        using hxy by simp
+      also have "\<dots> < e"
+      proof -
+        have hpos: "0 < e - d c x"
+          using hdx by linarith
+        have "d c x + r = d c x + (e - d c x) / 2"
+          unfolding r_def by simp
+        also have "\<dots> = (d c x + e) / 2"
+          by (simp add: field_simps algebra_simps)
+        also have "\<dots> < e"
+        proof -
+          have "d c x + e < e + e"
+            using hdx by linarith
+          hence "(d c x + e) / 2 < (e + e) / 2"
+            by (rule divide_strict_right_mono) simp
+          thus ?thesis
+            by simp
+        qed
+        finally show "d c x + r < e"
+          by simp
+      qed
+      finally have "d c x + d x y < e" .
+      hence "d c y < e"
+        by (rule le_less_trans[OF hcx'])
+      thus "y \<in> b"
+        unfolding hb top1_ball_on_def using hyX by simp
+    qed
+
+    have hball_sub_U: "top1_ball_on X d x r \<subseteq> U"
+      by (rule subset_trans[OF hball_sub_b hbsub])
+
+    show "\<exists>p. 0 < fst p \<and> snd p \<in> Uc \<and> top1_ball_on X d x (fst p) \<subseteq> snd p"
+      apply (rule exI[where x="(r, U)"])
+      using hrpos hUUc hball_sub_U by simp
+  qed
+
+  obtain f where hf:
+    "\<forall>x\<in>X. 0 < fst (f x) \<and> snd (f x) \<in> Uc \<and> top1_ball_on X d x (fst (f x)) \<subseteq> snd (f x)"
+    using bchoice[OF hexLocal] by blast
+
+  define rad where "rad x = fst (f x)" for x
+  define Ufun where "Ufun x = snd (f x)" for x
+
+  have hradpos: "\<forall>x\<in>X. 0 < rad x"
+    unfolding rad_def using hf by blast
+  have hUfunUc: "\<forall>x\<in>X. Ufun x \<in> Uc"
+    unfolding Ufun_def using hf by blast
+  have hball_sub: "\<forall>x\<in>X. top1_ball_on X d x (rad x) \<subseteq> Ufun x"
+    unfolding rad_def Ufun_def using hf by blast
+
+  define V where "V x = top1_ball_on X d x (rad x / 2)" for x
+  define Vc where "Vc = V ` X"
+
+  have hVc_subT: "Vc \<subseteq> top1_metric_topology_on X d"
+  proof (rule subsetI)
+    fix U
+    assume hU: "U \<in> Vc"
+    obtain x where hxX: "x \<in> X" and hUeq: "U = V x"
+      using hU unfolding Vc_def by blast
+    have hrad: "0 < rad x / 2"
+      using hradpos hxX by simp
+    have "top1_ball_on X d x (rad x / 2) \<in> top1_metric_topology_on X d"
+      by (rule top1_ball_open_in_metric_topology[OF hd hxX hrad])
+    thus "U \<in> top1_metric_topology_on X d"
+      unfolding hUeq V_def by simp
+  qed
+
+  have hVc_cov: "X \<subseteq> \<Union>Vc"
+  proof (rule subsetI)
+    fix x
+    assume hxX: "x \<in> X"
+    have hdx0: "d x x = 0"
+      using hd hxX unfolding top1_metric_on_def by blast
+    have hxV: "x \<in> V x"
+      unfolding V_def top1_ball_on_def using hxX hdx0 hradpos[rule_format, OF hxX] by simp
+    have "V x \<in> Vc"
+      unfolding Vc_def by (rule imageI[OF hxX])
+    thus "x \<in> \<Union>Vc"
+      using hxV by blast
+  qed
+
+  have hcompact_cover:
+    "\<forall>V. V \<subseteq> top1_metric_topology_on X d \<and> X \<subseteq> \<Union>V \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> V \<and> X \<subseteq> \<Union>F)"
+    using hcomp unfolding top1_compact_on_def by blast
+
+  obtain F where hFfin: "finite F" and hFsub: "F \<subseteq> Vc" and hFcov: "X \<subseteq> \<Union>F"
+    using hcompact_cover[rule_format, of Vc] hVc_subT hVc_cov by blast
+
+  have hFne: "F \<noteq> {}"
+  proof -
+    have "x0 \<in> \<Union>F"
+      using hFcov hx0X by blast
+    thus ?thesis
+      by blast
+  qed
+
+  have hexCenter: "\<forall>U\<in>F. \<exists>c. c \<in> X \<and> U = V c"
+    using hFsub unfolding Vc_def by blast
+  obtain center where hcenter: "\<forall>U\<in>F. center U \<in> X \<and> U = V (center U)"
+    using bchoice[OF hexCenter] by blast
+
+  define R where "R = (\<lambda>U. rad (center U) / 2) ` F"
+
+  have hRfin: "finite R"
+    unfolding R_def using hFfin by simp
+  have hRne: "R \<noteq> {}"
+    unfolding R_def using hFne by simp
+  have hRpos: "\<forall>t\<in>R. 0 < t"
+  proof (intro ballI)
+    fix t
+    assume ht: "t \<in> R"
+    obtain U where hUF: "U \<in> F" and htdef: "t = rad (center U) / 2"
+      using ht unfolding R_def by blast
+    have hcxX: "center U \<in> X"
+      using hcenter hUF by blast
+    show "0 < t"
+      unfolding htdef using hradpos hcxX by simp
+  qed
+
+  define \<delta> where "\<delta> = Min R"
+
+  have h\<delta>pos: "\<delta> > 0"
+  proof -
+    have h\<delta>in: "\<delta> \<in> R"
+      unfolding \<delta>_def by (rule Min_in[OF hRfin hRne])
+    thus ?thesis
+      using hRpos by blast
+  qed
+
+  have hLeb_point:
+    "\<forall>x\<in>X. \<exists>U\<in>Uc. top1_ball_on X d x \<delta> \<subseteq> U"
+  proof (intro ballI)
+    fix x
+    assume hxX: "x \<in> X"
+    have hxUF: "x \<in> \<Union>F"
+      using hFcov hxX by blast
+    obtain B where hBF: "B \<in> F" and hxB: "x \<in> B"
+      using hxUF by blast
+
+    have hcX: "center B \<in> X" and hBeq: "B = V (center B)"
+      using hcenter hBF by blast+
+
+    have hradB_in_R: "rad (center B) / 2 \<in> R"
+      unfolding R_def by (rule imageI[OF hBF])
+
+    have h\<delta>le: "\<delta> \<le> rad (center B) / 2"
+      unfolding \<delta>_def by (rule Min_le[OF hRfin hradB_in_R])
+
+    have hcx: "d (center B) x < rad (center B) / 2"
+    proof -
+      have hBsub: "B \<subseteq> V (center B)"
+        by (rule equalityD1[OF hBeq])
+      have hxV: "x \<in> V (center B)"
+        by (rule subsetD[OF hBsub hxB])
+      have hxBall: "x \<in> top1_ball_on X d (center B) (rad (center B) / 2)"
+        using hxV unfolding V_def by simp
+      show ?thesis
+        using hxBall unfolding top1_ball_on_def by simp
+    qed
+
+    have hball_sub_Big: "top1_ball_on X d x \<delta> \<subseteq> top1_ball_on X d (center B) (rad (center B))"
+    proof (rule subsetI)
+      fix y
+      assume hy: "y \<in> top1_ball_on X d x \<delta>"
+      have hyX: "y \<in> X" and hxy: "d x y < \<delta>"
+        using hy unfolding top1_ball_on_def by blast+
+
+      have htri: "d (center B) y \<le> d (center B) x + d x y"
+        using hd hcX hxX hyX unfolding top1_metric_on_def by blast
+      have "d (center B) x + d x y < rad (center B) / 2 + \<delta>"
+        using hcx hxy by linarith
+      also have "\<dots> \<le> rad (center B) / 2 + rad (center B) / 2"
+        using h\<delta>le by (simp add: add_left_mono)
+      also have "\<dots> = rad (center B)"
+        by simp
+      finally have hsum: "d (center B) x + d x y < rad (center B)" .
+      have "d (center B) y < rad (center B)"
+        by (rule le_less_trans[OF htri hsum])
+      thus "y \<in> top1_ball_on X d (center B) (rad (center B))"
+        unfolding top1_ball_on_def using hyX by simp
+    qed
+
+    have hU: "Ufun (center B) \<in> Uc"
+    proof -
+      have hcbX: "center B \<in> X"
+        using hcenter hBF by blast
+      show ?thesis
+        using hUfunUc hcbX by blast
+    qed
+    have hball_big_sub: "top1_ball_on X d (center B) (rad (center B)) \<subseteq> Ufun (center B)"
+      using hball_sub hcX by blast
+    have hball_sub_U: "top1_ball_on X d x \<delta> \<subseteq> Ufun (center B)"
+      by (rule subset_trans[OF hball_sub_Big hball_big_sub])
+
+    show "\<exists>U\<in>Uc. top1_ball_on X d x \<delta> \<subseteq> U"
+    proof (rule bexI[where x="Ufun (center B)"])
+      show "Ufun (center B) \<in> Uc"
+        by (rule hU)
+      show "top1_ball_on X d x \<delta> \<subseteq> Ufun (center B)"
+        by (rule hball_sub_U)
+    qed
+  qed
+
+  show ?thesis
+  proof (rule exI[where x=\<delta>], intro conjI)
+    show "\<delta> > 0"
+      by (rule h\<delta>pos)
+    show "\<forall>A. A \<subseteq> X \<and> A \<noteq> {} \<and> top1_diameter_on d A < \<delta> \<longrightarrow> (\<exists>U\<in>Uc. A \<subseteq> U)"
+    proof (intro allI impI)
+      fix A
+      assume hA: "A \<subseteq> X \<and> A \<noteq> {} \<and> top1_diameter_on d A < \<delta>"
+      have hAX: "A \<subseteq> X"
+        using hA by blast
+      obtain a where haA: "a \<in> A"
+        using hA by blast
+      have haX: "a \<in> X"
+        using hAX haA by blast
+
+      have hA_sub_ball: "A \<subseteq> top1_ball_on X d a \<delta>"
+      proof (rule subsetI)
+        fix y
+        assume hyA: "y \<in> A"
+        have hyX: "y \<in> X"
+          using hAX hyA by blast
+
+        define S where "S = {d u v | u v. u \<in> A \<and> v \<in> A}"
+        have hSbdd: "bdd_above S"
+          unfolding bdd_above_def S_def
+        proof (rule exI[where x=M], intro ballI)
+          fix r
+          assume hr: "r \<in> {d u v |u v. u \<in> A \<and> v \<in> A}"
+          then obtain u v where huA: "u \<in> A" and hvA: "v \<in> A" and hrdef: "r = d u v"
+            by blast
+          have huX: "u \<in> X" and hvX: "v \<in> X"
+            using hAX huA hAX hvA by blast+
+          show "r \<le> M"
+            unfolding hrdef using hM huX hvX by blast
+        qed
+
+        have hdy_le: "d a y \<le> Sup S"
+        proof -
+          have "d a y \<in> S"
+            unfolding S_def by (intro CollectI exI[where x=a] exI[where x=y]) (use haA hyA in blast)
+          thus ?thesis
+            by (rule cSup_upper) (use hSbdd in blast)
+        qed
+
+        have hdiam: "top1_diameter_on d A = Sup S"
+          unfolding top1_diameter_on_def S_def by simp
+        have "top1_diameter_on d A < \<delta>"
+          using hA by blast
+        hence "Sup S < \<delta>"
+          unfolding hdiam by simp
+        hence "d a y < \<delta>"
+          by (rule le_less_trans[OF hdy_le])
+
+        show "y \<in> top1_ball_on X d a \<delta>"
+          unfolding top1_ball_on_def using hyX \<open>d a y < \<delta>\<close> by simp
+      qed
+
+      obtain U where hUUc: "U \<in> Uc" and hball_sub_U: "top1_ball_on X d a \<delta> \<subseteq> U"
+        using hLeb_point haX by blast
+
+      have "A \<subseteq> U"
+        by (rule subset_trans[OF hA_sub_ball hball_sub_U])
+      show "\<exists>U\<in>Uc. A \<subseteq> U"
+      proof (rule bexI[where x=U])
+        show "U \<in> Uc"
+          by (rule hUUc)
+        show "A \<subseteq> U"
+          by fact
+      qed
+    qed
+  qed
 qed
-*)
 
 (** Uniform continuity between metric spaces (restricted to the carriers). **)
 definition top1_uniformly_continuous_map_on ::
