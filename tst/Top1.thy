@@ -13780,9 +13780,133 @@ proof (rule notI)
     show ?thesis
       unfolding W_def top1_PiE_iff using hx0U x0_def by simp
   qed
-
+  
   have hW_not_Tunif: "W \<notin> ?Tunif"
-    sorry
+  proof
+    assume hWopen: "W \<in> ?Tunif"
+    obtain \<epsilon> where heps: "0 < \<epsilon>"
+        and hball_sub: "top1_ball_on ?X (top1_uniform_metric_real_on I) x0 \<epsilon> \<subseteq> W"
+      using top1_metric_open_contains_ball[OF hMetric hWopen hx0W] by blast
+
+    obtain N :: nat where hN: "inverse (of_nat (Suc N)) < \<epsilon>"
+      using reals_Archimedean[OF heps] by blast
+    define i0 where "i0 = f N"
+    have hi0I: "i0 \<in> I"
+    proof -
+      have "f N \<in> range f"
+        by blast
+      then have "f N \<in> I"
+        using hf_range by blast
+      thus ?thesis
+        unfolding i0_def .
+    qed
+    have hi0Range: "i0 \<in> range f"
+      unfolding i0_def by blast
+
+    define r where "r = inverse (real (Suc N))"
+    have hr_pos: "0 < r"
+      unfolding r_def by simp
+    have hr_lt: "r < \<epsilon>"
+      using hN unfolding r_def by simp
+
+    define y where "y = (\<lambda>i. if i \<in> I then (if i = i0 then r else (0::real)) else undefined)"
+    have hyX: "y \<in> ?X"
+      unfolding y_def top1_PiE_iff by simp
+
+    have hdist_le: "top1_uniform_metric_real_on I x0 y \<le> r"
+    proof -
+      define S where "S = ((\<lambda>i. top1_real_bounded_metric (x0 i) (y i)) ` I)"
+      have hSne: "S \<noteq> {}"
+      proof -
+        have "top1_real_bounded_metric (x0 i0) (y i0) \<in> S"
+          unfolding S_def using hi0I by blast
+        thus ?thesis
+          by blast
+      qed
+
+      have hall: "\<forall>s\<in>S. s \<le> r"
+      proof (intro ballI)
+        fix s
+        assume hs: "s \<in> S"
+        then obtain i where hiI: "i \<in> I" and hs_eq: "s = top1_real_bounded_metric (x0 i) (y i)"
+          unfolding S_def by blast
+        show "s \<le> r"
+        proof (cases "i = i0")
+          case True
+          have hx0i: "x0 i = (0::real)"
+            using hiI unfolding x0_def by simp
+          have hyi: "y i = r"
+            using hiI True unfolding y_def by simp
+          have habs: "abs ((0::real) - r) = r"
+            using hr_pos by simp
+          have "top1_real_bounded_metric (x0 i) (y i) = min r 1"
+            unfolding hx0i hyi top1_real_bounded_metric_def habs by simp
+          moreover have "min r 1 = r"
+          proof -
+            have "r \<le> 1"
+            proof -
+              have h: "(1::real) \<le> 1 + real N"
+                by simp
+              have "inverse (1 + real N) \<le> inverse 1"
+                by (rule le_imp_inverse_le[OF h]) simp
+              thus ?thesis
+                unfolding r_def by simp
+            qed
+            thus ?thesis
+              by simp
+          qed
+          ultimately have "top1_real_bounded_metric (x0 i) (y i) = r"
+            by simp
+          thus ?thesis
+            unfolding hs_eq by simp
+        next
+          case False
+          have hx0i: "x0 i = (0::real)"
+            using hiI unfolding x0_def by simp
+          have hyi: "y i = (0::real)"
+            using hiI False unfolding y_def by simp
+          have "top1_real_bounded_metric (x0 i) (y i) = 0"
+            unfolding hx0i hyi top1_real_bounded_metric_def by simp
+          thus ?thesis
+            unfolding hs_eq using hr_pos by simp
+        qed
+      qed
+
+      have "Sup S \<le> r"
+      proof (rule cSup_least[OF hSne])
+        fix s
+        assume hs: "s \<in> S"
+        show "s \<le> r"
+          using hall hs by blast
+      qed
+      thus ?thesis
+        unfolding top1_uniform_metric_real_on_def S_def by simp
+    qed
+
+    have hdist_lt: "top1_uniform_metric_real_on I x0 y < \<epsilon>"
+      using hdist_le hr_lt by linarith
+    have hyball: "y \<in> top1_ball_on ?X (top1_uniform_metric_real_on I) x0 \<epsilon>"
+      unfolding top1_ball_on_def using hyX hdist_lt by simp
+    have hyW: "y \<in> W"
+      using hball_sub hyball by blast
+
+    have hyU0: "y i0 \<in> U i0"
+    proof -
+      have "\<forall>i\<in>I. y i \<in> U i"
+        using hyW unfolding W_def top1_PiE_iff by simp
+      thus ?thesis
+        using hi0I by simp
+    qed
+
+    have hUi0: "U i0 = open_interval (-r) r"
+      unfolding U_def r_def using hi0Range by (simp add: hginv i0_def)
+    have "y i0 = r"
+      using hi0I unfolding y_def by simp
+    hence "y i0 \<notin> U i0"
+      unfolding hUi0 open_interval_def by simp
+    thus False
+      using hyU0 by contradiction
+  qed
   (* Proof idea: pick a box-basic neighborhood around the zero function with radii shrinking along an injected copy
      of \<open>\<nat>\<close>; any uniform ball includes a point violating one of those coordinate constraints.  A full draft of
      this argument previously caused `*** Timeout` under session option `timeout=120`. *)
