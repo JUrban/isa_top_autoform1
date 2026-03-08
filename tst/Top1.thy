@@ -29389,6 +29389,80 @@ proof -
     by (rule exI[where x=V]) (use hVT hVsubX hVsubU hVne hx_not_cl in blast)
 qed
 
+(** A small countability helper: a nonempty countable set is the image of a map \<open>nat \<Rightarrow> X\<close>. **)
+lemma top1_countable_nonempty_eq_image_nat:
+  assumes hcnt: "countable X"
+  assumes hXne: "X \<noteq> {}"
+  shows "\<exists>f::nat \<Rightarrow> 'a. (\<forall>n. f n \<in> X) \<and> f ` (UNIV :: nat set) = X"
+proof -
+  obtain g :: "'a \<Rightarrow> nat" where hg: "inj_on g X"
+    using hcnt unfolding countable_def by blast
+  obtain x0 where hx0X: "x0 \<in> X"
+    using hXne by blast
+
+  define f where "f n = (if n \<in> g ` X then inv_into X g n else x0)" for n
+
+  have hfX: "\<forall>n. f n \<in> X"
+  proof (intro allI)
+    fix n
+    show "f n \<in> X"
+    proof (cases "n \<in> g ` X")
+      case True
+      have "inv_into X g n \<in> X"
+        by (rule inv_into_into[OF True])
+      thus ?thesis
+        unfolding f_def using True by simp
+    next
+      case False
+      thus ?thesis
+        unfolding f_def using hx0X by simp
+    qed
+  qed
+
+  have hXsub: "X \<subseteq> f ` (UNIV :: nat set)"
+  proof (rule subsetI)
+    fix x
+    assume hxX: "x \<in> X"
+    have hgx: "g x \<in> g ` X"
+      using hxX by blast
+    have "f (g x) = inv_into X g (g x)"
+      unfolding f_def using hgx by simp
+    also have "... = x"
+      by (rule inv_into_f_f[OF hg hxX])
+    finally have hxfx: "f (g x) = x" .
+    have "f (g x) \<in> f ` (UNIV :: nat set)"
+      by (rule imageI) simp
+    thus "x \<in> f ` (UNIV :: nat set)"
+      using hxfx by simp
+  qed
+
+  have hfsubX: "f ` (UNIV :: nat set) \<subseteq> X"
+    using hfX by blast
+
+  have "f ` (UNIV :: nat set) = X"
+    by (rule equalityI[OF hfsubX hXsub])
+  thus ?thesis
+    using hfX by (intro exI[where x=f] conjI) (simp_all add: f_def)
+qed
+
+(** Compactness yields a nonempty intersection for a nested sequence of nonempty closures. **)
+lemma top1_compact_nested_closure_inter_ne:
+  fixes V :: "nat \<Rightarrow> 'a set"
+  assumes hTop: "is_topology_on X TX"
+  assumes hcomp: "top1_compact_on X TX"
+  assumes hVsubX: "\<forall>n. V n \<subseteq> X"
+  assumes hVne: "\<forall>n. V n \<noteq> {}"
+  assumes hVshrink: "\<forall>n. V (Suc n) \<subseteq> V n"
+  shows "\<Inter>(range (\<lambda>n. closure_on X TX (V n))) \<noteq> {}"
+text \<open>
+  Proof status: admitted for now.
+
+  Intended proof: define \<open>Cl n = closure_on X TX (V n)\<close>; show the family \<open>range Cl\<close> has the finite intersection
+  property using the nestedness assumption, then apply compactness (Theorem 26.9, via the closed-set FIP
+  characterization).
+\<close>
+sorry
+
 (** from \S27 Theorem 27.7 [top1.tex:3519] **)
 theorem Theorem_27_7:
   assumes hXne: "X \<noteq> {}"
