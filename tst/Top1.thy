@@ -29445,6 +29445,25 @@ proof -
     using hfX by (intro exI[where x=f] conjI) (simp_all add: f_def)
 qed
 
+(** A basic helper about nested sequences of sets (used in compactness/FIP arguments). **)
+lemma top1_nested_subset_le:
+  fixes A :: "nat \<Rightarrow> 'a set"
+  assumes hstep: "\<forall>n. A (Suc n) \<subseteq> A n"
+  assumes hmn: "m \<le> n"
+  shows "A n \<subseteq> A m"
+proof -
+  have hdec: "decseq A"
+  proof (rule decseq_SucI)
+    fix k
+    have "A (Suc k) \<subseteq> A k"
+      by (rule allE[OF hstep, where x=k])
+    thus "A (Suc k) \<le> A k"
+      by simp
+  qed
+  show ?thesis
+    by (rule decseqD[OF hdec hmn])
+qed
+
 (** Compactness yields a nonempty intersection for a nested sequence of nonempty closures. **)
 lemma top1_compact_nested_closure_inter_ne:
   fixes V :: "nat \<Rightarrow> 'a set"
@@ -29454,14 +29473,169 @@ lemma top1_compact_nested_closure_inter_ne:
   assumes hVne: "\<forall>n. V n \<noteq> {}"
   assumes hVshrink: "\<forall>n. V (Suc n) \<subseteq> V n"
   shows "\<Inter>(range (\<lambda>n. closure_on X TX (V n))) \<noteq> {}"
-text \<open>
-  Proof status: admitted for now.
+proof -
+  have hCl_closed:
+    "\<forall>n. closedin_on X TX (closure_on X TX (V n))"
+  proof (intro allI)
+    fix n
+    have hVnX: "V n \<subseteq> X"
+      using hVsubX by blast
+    show "closedin_on X TX (closure_on X TX (V n))"
+      by (rule closure_on_closed[OF hTop hVnX])
+  qed
 
-  Intended proof: define \<open>Cl n = closure_on X TX (V n)\<close>; show the family \<open>range Cl\<close> has the finite intersection
-  property using the nestedness assumption, then apply compactness (Theorem 26.9, via the closed-set FIP
-  characterization).
-\<close>
-sorry
+  have hCl_step:
+    "\<forall>n. closure_on X TX (V (Suc n)) \<subseteq> closure_on X TX (V n)"
+  proof (intro allI)
+    fix n
+    have hVV: "V (Suc n) \<subseteq> V n"
+      using hVshrink by blast
+    show "closure_on X TX (V (Suc n)) \<subseteq> closure_on X TX (V n)"
+      by (rule closure_on_mono[OF hVV])
+  qed
+
+  have hCl_le:
+    "m \<le> n \<Longrightarrow> closure_on X TX (V n) \<subseteq> closure_on X TX (V m)" for m n
+    by (rule top1_nested_subset_le[OF hCl_step])
+
+  have hFIP:
+    "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> range (\<lambda>n. closure_on X TX (V n))
+         \<longrightarrow> \<Inter>F \<noteq> {}"
+  proof (intro allI impI)
+    fix F
+    assume hF: "finite F \<and> F \<noteq> {} \<and> F \<subseteq> range (\<lambda>n. closure_on X TX (V n))"
+    have hFfin: "finite F"
+      by (rule conjunct1[OF hF])
+    have hFne: "F \<noteq> {}"
+      by (rule conjunct1[OF conjunct2[OF hF]])
+    have hFsub: "F \<subseteq> range (\<lambda>n. closure_on X TX (V n))"
+      by (rule conjunct2[OF conjunct2[OF hF]])
+
+    have hFsub_img: "F \<subseteq> (\<lambda>n. closure_on X TX (V n)) ` (UNIV :: nat set)"
+      using hFsub by simp
+
+    have exC:
+      "\<exists>C::nat set. C \<subseteq> (UNIV :: nat set) \<and> finite C \<and> F = (\<lambda>n. closure_on X TX (V n)) ` C"
+      by (rule finite_subset_image[OF hFfin hFsub_img])
+
+    obtain C :: "nat set" where hCsub: "C \<subseteq> (UNIV :: nat set)"
+      and hCfin: "finite C"
+      and hFeq: "F = (\<lambda>n. closure_on X TX (V n)) ` C"
+    proof -
+      from exC show thesis
+      proof (elim exE)
+        fix C :: "nat set"
+        assume hC: "C \<subseteq> (UNIV :: nat set) \<and> finite C \<and> F = (\<lambda>n. closure_on X TX (V n)) ` C"
+        have hCsub: "C \<subseteq> (UNIV :: nat set)"
+          by (rule conjunct1[OF hC])
+        have hCfin: "finite C"
+          by (rule conjunct1[OF conjunct2[OF hC]])
+        have hFeq: "F = (\<lambda>n. closure_on X TX (V n)) ` C"
+          by (rule conjunct2[OF conjunct2[OF hC]])
+        show thesis
+          by (rule that[OF hCsub hCfin hFeq])
+      qed
+    qed
+
+    have hCne: "C \<noteq> {}"
+    proof
+      assume hC0: "C = {}"
+      have "F = {}"
+        unfolding hFeq hC0 by simp
+      thus False
+        using hFne by simp
+    qed
+
+    define nmax where "nmax = Max C"
+
+    have hnmaxC: "nmax \<in> C"
+      unfolding nmax_def by (rule Max_in[OF hCfin hCne])
+
+    have hClnmax_ne: "closure_on X TX (V nmax) \<noteq> {}"
+    proof -
+      have hVnmax_ne: "V nmax \<noteq> {}"
+        using hVne by blast
+      obtain x0 where hx0: "x0 \<in> V nmax"
+        using hVnmax_ne by blast
+      have hx0cl: "x0 \<in> closure_on X TX (V nmax)"
+        by (rule subsetD[OF subset_closure_on hx0])
+      show ?thesis
+        using hx0cl by blast
+    qed
+
+    have hClnmax_sub: "closure_on X TX (V nmax) \<subseteq> \<Inter>F"
+    proof (rule subsetI)
+      fix x
+      assume hx: "x \<in> closure_on X TX (V nmax)"
+      show "x \<in> \<Inter>F"
+      proof (rule InterI)
+        fix D
+        assume hDF: "D \<in> F"
+        obtain k where hkC: "k \<in> C" and hDeq: "D = closure_on X TX (V k)"
+        proof -
+          have hDimg: "D \<in> (\<lambda>n. closure_on X TX (V n)) ` C"
+            unfolding hFeq[symmetric] using hDF by simp
+          then obtain k where hkC: "k \<in> C" and hDeq: "D = (\<lambda>n. closure_on X TX (V n)) k"
+            by blast
+          show ?thesis
+            by (rule that[OF hkC]) (simp only: hDeq)
+        qed
+
+        have hkle: "k \<le> nmax"
+          unfolding nmax_def by (rule Max_ge[OF hCfin hkC])
+        have hsub: "closure_on X TX (V nmax) \<subseteq> closure_on X TX (V k)"
+          by (rule hCl_le[OF hkle])
+        have "x \<in> closure_on X TX (V k)"
+          by (rule subsetD[OF hsub hx])
+        thus "x \<in> D"
+          unfolding hDeq by simp
+      qed
+    qed
+
+    obtain x0 where hx0: "x0 \<in> closure_on X TX (V nmax)"
+      using hClnmax_ne by blast
+    have "x0 \<in> \<Inter>F"
+      by (rule subsetD[OF hClnmax_sub hx0])
+    thus "\<Inter>F \<noteq> {}"
+      by blast
+  qed
+
+  have hCompact_closed_FIP:
+    "\<forall>\<C>. (\<forall>C\<in>\<C>. closedin_on X TX C) \<and>
+         (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {})
+         \<longrightarrow> \<Inter>\<C> \<noteq> {}"
+    by (rule iffD1[OF Theorem_26_9[OF hTop] hcomp])
+
+  have hClosed_family: "\<forall>C\<in>range (\<lambda>n. closure_on X TX (V n)). closedin_on X TX C"
+  proof (intro ballI)
+    fix C
+    assume hC: "C \<in> range (\<lambda>n. closure_on X TX (V n))"
+    then obtain n where hCeq: "C = closure_on X TX (V n)"
+      by blast
+    show "closedin_on X TX C"
+      unfolding hCeq using hCl_closed by blast
+  qed
+
+  have hInter: "\<Inter>(range (\<lambda>n. closure_on X TX (V n))) \<noteq> {}"
+  proof -
+    have hImp:
+      "(\<forall>C\<in>range (\<lambda>n. closure_on X TX (V n)). closedin_on X TX C) \<and>
+       (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> range (\<lambda>n. closure_on X TX (V n))
+            \<longrightarrow> \<Inter>F \<noteq> {})
+       \<longrightarrow> \<Inter>(range (\<lambda>n. closure_on X TX (V n))) \<noteq> {}"
+      by (rule spec[OF hCompact_closed_FIP])
+    have hPrem:
+      "(\<forall>C\<in>range (\<lambda>n. closure_on X TX (V n)). closedin_on X TX C) \<and>
+       (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> range (\<lambda>n. closure_on X TX (V n))
+            \<longrightarrow> \<Inter>F \<noteq> {})"
+      by (intro conjI hClosed_family hFIP)
+    show ?thesis
+      by (rule mp[OF hImp hPrem])
+  qed
+
+  show ?thesis
+    using hInter by simp
+qed
 
 (** from \S27 Theorem 27.7 [top1.tex:3519] **)
 theorem Theorem_27_7:
