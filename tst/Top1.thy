@@ -28741,6 +28741,56 @@ definition top1_isolated_point_on :: "'a set \<Rightarrow> 'a set set \<Rightarr
 definition countable :: "'a set \<Rightarrow> bool" where
   "countable S \<longleftrightarrow> (\<exists>f::'a \<Rightarrow> nat. inj_on f S)"
 
+(** The full powerset of \<open>\<nat>\<close> is not countable (Cantor). **)
+lemma top1_not_countable_UNIV_nat_set:
+  "\<not> countable (UNIV :: nat set set)"
+proof
+  assume hcnt: "countable (UNIV :: nat set set)"
+  obtain g :: "nat set \<Rightarrow> nat" where hg_inj: "inj_on g (UNIV :: nat set set)"
+    using hcnt unfolding countable_def by blast
+  have hg_inj': "inj g"
+    using hg_inj unfolding inj_on_def by simp
+
+  define f :: "nat \<Rightarrow> nat set" where
+    "f n = (if n \<in> range g then (SOME S. g S = n) else {})" for n
+
+  have hsurj: "f ` (UNIV :: nat set) = (UNIV :: nat set set)"
+  proof (rule set_eqI)
+    fix S :: "nat set"
+    show "S \<in> f ` (UNIV :: nat set) \<longleftrightarrow> S \<in> (UNIV :: nat set set)"
+    proof (rule iffI)
+      assume "S \<in> f ` (UNIV :: nat set)"
+      then show "S \<in> (UNIV :: nat set set)"
+        by simp
+    next
+      assume "S \<in> (UNIV :: nat set set)"
+      define n where "n = g S"
+      have hn_range: "n \<in> range g"
+        unfolding n_def by blast
+      have hsome: "g (SOME S'. g S' = n) = n"
+        unfolding n_def by (rule someI, simp)
+      have hEq: "(SOME S'. g S' = n) = S"
+      proof -
+        have "g (SOME S'. g S' = n) = g S"
+          using hsome unfolding n_def by simp
+        thus ?thesis
+          using hg_inj' unfolding inj_def by blast
+      qed
+      have "f n = S"
+        unfolding f_def using hn_range hEq by simp
+      hence "S \<in> f ` (UNIV :: nat set)"
+        by (intro image_eqI[where x=n]) simp_all
+      thus "S \<in> f ` (UNIV :: nat set)"
+        by simp
+    qed
+  qed
+
+  have "f ` (UNIV :: nat set) = Pow (UNIV :: nat set)"
+    using hsurj by simp
+  thus False
+    using Cantors_theorem by blast
+qed
+
 (** from \S27 Theorem 27.7 [top1.tex:3519] **)
 theorem Theorem_27_7:
   assumes hXne: "X \<noteq> {}"
