@@ -13160,8 +13160,6 @@ lemma top1_product_topology_ne_uniform_metric_topology_real:
   assumes hInf: "infinite I"
   shows "top1_product_topology_on I (\<lambda>_. (UNIV::real set)) (\<lambda>_. (order_topology_on_UNIV::real set set))
     \<noteq> top1_metric_topology_on (top1_PiE I (\<lambda>_. (UNIV::real set))) (top1_uniform_metric_real_on I)"
-sorry
-(*
 proof (rule notI)
   let ?XR = "(\<lambda>_. (UNIV::real set))"
   let ?TR = "(order_topology_on_UNIV::real set set)"
@@ -13172,13 +13170,7 @@ proof (rule notI)
   assume hEq: "?Tprod = ?Tunif"
 
   have hIne: "I \<noteq> {}"
-  proof
-    assume hI0: "I = {}"
-    hence "finite I"
-      by simp
-    with hInf show False
-      by simp
-  qed
+    using hInf by auto
 
   define x0 where "x0 = (\<lambda>i. if i \<in> I then (0::real) else undefined)"
   have hx0X: "x0 \<in> ?X"
@@ -13189,8 +13181,13 @@ proof (rule notI)
 
   define B where "B = top1_ball_on ?X (top1_uniform_metric_real_on I) x0 (1/2)"
   have hB_Tunif: "B \<in> ?Tunif"
-    unfolding B_def
-    by (rule top1_ball_open_in_metric_topology[OF hMetric hx0X], simp)
+  proof -
+    have "B \<in> top1_metric_topology_on ?X (top1_uniform_metric_real_on I)"
+      unfolding B_def
+      by (rule top1_ball_open_in_metric_topology[OF hMetric hx0X]) simp
+    thus ?thesis
+      by simp
+  qed
 
   have hx0B: "x0 \<in> B"
   proof -
@@ -13203,10 +13200,15 @@ proof (rule notI)
   have hB_not_Tprod: "B \<notin> ?Tprod"
   proof
     assume hBprod: "B \<in> ?Tprod"
+
+    have hBgen:
+      "B \<subseteq> ?X
+        \<and> (\<forall>x\<in>B. \<exists>ba\<in>top1_product_basis_on I ?XR (\<lambda>_. ?TR). x \<in> ba \<and> ba \<subseteq> B)"
+      using hBprod unfolding top1_product_topology_on_def topology_generated_by_basis_def by simp
     have hBnbhd:
       "\<forall>x\<in>B. \<exists>ba\<in>top1_product_basis_on I ?XR (\<lambda>_. ?TR). x \<in> ba \<and> ba \<subseteq> B"
-      using hBprod unfolding top1_product_topology_on_def topology_generated_by_basis_def
-      by blast
+      using hBgen by blast
+
     obtain b where hbasis: "b \<in> top1_product_basis_on I ?XR (\<lambda>_. ?TR)"
         and hx0b: "x0 \<in> b"
         and hbsub: "b \<subseteq> B"
@@ -13222,24 +13224,35 @@ proof (rule notI)
       using hFfin unfolding F_def by simp
 
     have hIFne: "I - F \<noteq> {}"
-	    proof
-	      assume hIF0: "I - F = {}"
-	      have hIsubF: "I \<subseteq> F"
-	        using hIF0 by blast
-	      have "finite I"
-	        by (rule finite_subset[OF hIsubF hFfin'])
-	      with hInf show False
-	        by simp
-	    qed
+    proof
+      assume hIF0: "I - F = {}"
+      have hIsubF: "I \<subseteq> F"
+        using hIF0 by blast
+      have "finite I"
+        by (rule finite_subset[OF hIsubF hFfin'])
+      with hInf show False
+        by simp
+    qed
     obtain j where hj: "j \<in> I - F"
       using hIFne by blast
     have hjI: "j \<in> I" and hjnF: "j \<notin> F"
       using hj by blast+
 
-    have hx0all: "\<forall>i\<in>I. x0 i \<in> U i"
+    have hx0_in_U: "\<forall>i\<in>I. x0 i \<in> U i"
       using hx0b unfolding hbU top1_PiE_iff by simp
 
+    have hUj_UNIV: "U j = (UNIV::real set)"
+    proof -
+      have "j \<in> I"
+        by (rule hjI)
+      moreover have "U j = ?XR j"
+        using hjI hjnF unfolding F_def by blast
+      ultimately show ?thesis
+        by simp
+    qed
+
     define y where "y = (\<lambda>i. if i \<in> I then (if i = j then (1::real) else x0 i) else undefined)"
+
     have hyX: "y \<in> ?X"
       unfolding y_def x0_def top1_PiE_iff by simp
 
@@ -13249,21 +13262,18 @@ proof (rule notI)
       proof (intro ballI)
         fix i assume hiI: "i \<in> I"
         show "y i \<in> U i"
-	        proof (cases "i \<in> F")
-	          case True
-	          have "i \<noteq> j"
-	            using True hjnF by blast
-	          hence "y i = x0 i"
-	            unfolding y_def using hiI by simp
-	          also have "x0 i \<in> U i"
-	            using hx0all hiI by simp
-	          finally show ?thesis .
+        proof (cases "i = j")
+          case True
+          show ?thesis
+            unfolding y_def using True hiI hjI hUj_UNIV by simp
         next
           case False
-          have "U i = ?XR i"
-            using hiI False unfolding F_def by blast
-          thus ?thesis
-            unfolding y_def by simp
+          have "y i = x0 i"
+            unfolding y_def using hiI False by simp
+          moreover have "x0 i \<in> U i"
+            using hx0_in_U hiI by simp
+          ultimately show ?thesis
+            by simp
         qed
       qed
       show ?thesis
@@ -13283,13 +13293,14 @@ proof (rule notI)
       by (rule top1_uniform_metric_real_on_coord_le[OF hjI])
     have hdist_ge: "1 \<le> top1_uniform_metric_real_on I x0 y"
       using hcoord hle_coord by simp
-	    have hnot_ball: "y \<notin> B"
-	    proof -
-	      have "\<not> (top1_uniform_metric_real_on I x0 y < 1/2)"
-	        using hdist_ge by linarith
-	      thus ?thesis
-	        unfolding B_def top1_ball_on_def using hyX by simp
-	    qed
+
+    have hnot_ball: "y \<notin> B"
+    proof -
+      have "\<not> (top1_uniform_metric_real_on I x0 y < 1/2)"
+        using hdist_ge by linarith
+      thus ?thesis
+        unfolding B_def top1_ball_on_def using hyX by simp
+    qed
 
     show False
       using hyB hnot_ball by contradiction
@@ -13300,7 +13311,6 @@ proof (rule notI)
   with hB_not_Tprod show False
     by contradiction
 qed
-*)
 
 (** For infinite index sets, the uniform metric topology on \<open>\<real>^I\<close> is strictly coarser than the box topology. **)
 lemma top1_uniform_metric_topology_ne_box_topology_real:
