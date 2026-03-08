@@ -13338,21 +13338,11 @@ proof (rule notI)
       by simp
   qed
 
-  have hTR_top: "is_topology_on (UNIV::real set) ?TR"
-  proof -
-    have hMetR: "top1_metric_on (UNIV::real set) top1_real_bounded_metric"
-      by (rule top1_real_bounded_metric_metric_on)
-    have hTopMet: "is_topology_on (UNIV::real set) (top1_metric_topology_on UNIV top1_real_bounded_metric)"
-      by (rule top1_metric_topology_on_is_topology_on[OF hMetR])
-    show ?thesis
-      unfolding order_topology_on_UNIV_eq_bounded_metric_topology_real using hTopMet by simp
-  qed
-
   have hTopAll: "\<forall>i\<in>I. is_topology_on (?XR i) ?TR"
   proof (intro ballI)
     fix i assume "i \<in> I"
     show "is_topology_on (?XR i) ?TR"
-      using hTR_top by simp
+      using order_topology_on_UNIV_is_topology_on by simp
   qed
 
   have hBasisBox: "is_basis_on ?X (top1_box_basis_on I ?XR (\<lambda>_. ?TR))"
@@ -13365,7 +13355,7 @@ proof (rule notI)
 
   define g where "g = inv_into UNIV f"
   have hginv: "\<And>n. g (f n) = n"
-    unfolding g_def using hf_inj by simp
+    unfolding g_def using hf_inj by (simp add: inv_into_f_f)
 
   define U where
     "U = (\<lambda>i. if i \<in> range f
@@ -13384,31 +13374,26 @@ proof (rule notI)
 		        have hUi: "U i = (UNIV::real set)"
 		          unfolding U_def using False by simp
 		        have hUNIV: "(UNIV::real set) \<in> ?TR"
-		          using hTR_top unfolding is_topology_on_def by blast
+		          using order_topology_on_UNIV_is_topology_on unfolding is_topology_on_def by blast
 		        show ?thesis
 		          using hUi hUNIV by simp
 		      next
 		        case True
-        obtain n where hin: "i = f n"
-          using True by auto
-        have hr: "0 < inverse (real (Suc (g i)))"
-          by simp
+            have hx0: "(0::real) \<in> (UNIV::real set)"
+              by simp
+            have heps: "0 < inverse (real (Suc (g i)))"
+              by simp
 	        have hball_open:
 	          "top1_ball_on UNIV top1_real_bounded_metric 0 (inverse (real (Suc (g i))))
 	            \<in> top1_metric_topology_on (UNIV::real set) top1_real_bounded_metric"
-	        proof -
-	          have hx0: "(0::real) \<in> (UNIV::real set)"
-	            by simp
-	          have heps: "0 < inverse (real (Suc (g i)))"
-	            by simp
-	          show ?thesis
-	            by (rule top1_ball_open_in_metric_topology[OF top1_real_bounded_metric_metric_on hx0 heps])
-	        qed
-	        have "U i \<in> ?TR"
-	          unfolding U_def order_topology_on_UNIV_eq_bounded_metric_topology_real using True hball_open by simp
-	        thus ?thesis
-	          unfolding U_def using True by simp
-      qed
+	          by (rule top1_ball_open_in_metric_topology[OF top1_real_bounded_metric_metric_on hx0 heps])
+            have hUi: "U i = top1_ball_on UNIV top1_real_bounded_metric 0 (inverse (real (Suc (g i))))"
+              unfolding U_def using True by simp
+            have "U i \<in> ?TR"
+              unfolding hUi order_topology_on_UNIV_eq_bounded_metric_topology_real using hball_open by simp
+            thus ?thesis
+              unfolding hUi using True by simp
+		      qed
     qed
     show ?thesis
       unfolding W_def top1_box_basis_on_def
@@ -13443,14 +13428,12 @@ proof (rule notI)
           unfolding U_def x0_def using False hiI by simp
       next
         case True
-        obtain n where hin: "i = f n"
-          using True by auto
         have hr: "0 < inverse (real (Suc (g i)))"
           by simp
-        have "top1_real_bounded_metric (x0 i) (x0 i) = 0"
+        have h00: "top1_real_bounded_metric (0::real) 0 = 0"
           unfolding top1_real_bounded_metric_def by simp
-        hence "top1_real_bounded_metric 0 0 < inverse (real (Suc (g i)))"
-          using hr unfolding x0_def using hiI by simp
+        have h00_lt: "top1_real_bounded_metric (0::real) 0 < inverse (real (Suc (g i)))"
+          unfolding h00 by (rule hr)
         thus ?thesis
           unfolding U_def top1_ball_on_def x0_def using True hiI by simp
       qed
@@ -13477,6 +13460,10 @@ proof (rule notI)
       by (rule le_less_trans[OF ht_le hhalf_lt])
     have ht_le_half: "t \<le> (1/2::real)"
       unfolding t_def by simp
+    have ht_nonneg: "0 \<le> t"
+      using ht_pos by linarith
+    have hmt0: "top1_real_bounded_metric (0::real) t = t"
+      unfolding top1_real_bounded_metric_def using ht_nonneg ht_le_half by simp
 
     obtain n0 where hn0: "n0 \<noteq> 0"
         and hn0_lt: "inverse (of_nat n0) < t"
@@ -13507,26 +13494,12 @@ proof (rule notI)
         show "s \<le> t"
         proof (cases "i = f n")
           case True
-          have hmt: "top1_real_bounded_metric 0 t = t"
-          proof -
-            have ht0: "0 \<le> t"
-              using ht_pos by linarith
-            have "top1_real_bounded_metric 0 t = min (abs (0 - t)) 1"
-              unfolding top1_real_bounded_metric_def by simp
-            also have "... = min (abs t) 1"
-              by simp
-            also have "... = min t 1"
-              using ht0 by simp
-            also have "... = t"
-              using ht_le_half by simp
-            finally show ?thesis .
-          qed
           show ?thesis
-            unfolding hs_eq y_def x0_def using hiI hjI True ht_le_half hmt by simp
+            unfolding hs_eq y_def x0_def using hiI hjI True hmt0 by simp
         next
           case False
           show ?thesis
-            unfolding hs_eq y_def x0_def using hiI False ht_pos by simp
+            unfolding hs_eq y_def x0_def using hiI False ht_nonneg by simp
         qed
       qed
       show ?thesis
@@ -13534,8 +13507,10 @@ proof (rule notI)
         by (rule cSup_least[OF hSne]) (use hall_le in blast)
     qed
 
+    have hdist_lt_del: "top1_uniform_metric_real_on I x0 y < \<delta>"
+      by (rule le_less_trans[OF hdist_le ht_lt_del])
     have hy_ball: "y \<in> top1_ball_on ?X (top1_uniform_metric_real_on I) x0 \<delta>"
-      unfolding top1_ball_on_def using hyX hx0X hdist_le ht_lt_del by (simp add: le_less_trans)
+      unfolding top1_ball_on_def using hyX hdist_lt_del by blast
 
     have hyW: "y \<in> W"
       using hball_sub hy_ball by blast
@@ -13544,26 +13519,15 @@ proof (rule notI)
     proof -
       have hyj: "y (f n) = t"
         unfolding y_def using hjI by simp
-      have hx0j: "x0 (f n) = 0"
-        unfolding x0_def using hjI by simp
       have hUj: "U (f n) = top1_ball_on UNIV top1_real_bounded_metric 0 (inverse (real (Suc n)))"
         unfolding U_def using hginv by simp
-      have hmt: "top1_real_bounded_metric 0 t = t"
-      proof -
-        have ht0: "0 \<le> t"
-          using ht_pos by linarith
-        have "top1_real_bounded_metric 0 t = min (abs (0 - t)) 1"
-          unfolding top1_real_bounded_metric_def by simp
-        also have "... = min (abs t) 1"
-          by simp
-        also have "... = min t 1"
-          using ht0 by simp
-        also have "... = t"
-          using ht_le_half by simp
-        finally show ?thesis .
-      qed
       have "y (f n) \<notin> U (f n)"
-        unfolding hUj top1_ball_on_def using hn_lt hyj hmt by linarith
+      proof -
+        have "\<not> (top1_real_bounded_metric (0::real) t < inverse (real (Suc n)))"
+          using hn_lt hmt0 by linarith
+        thus ?thesis
+          unfolding hUj top1_ball_on_def using hyj by simp
+      qed
       hence "\<not> (\<forall>i\<in>I. y i \<in> U i)"
         using hjI by blast
       thus ?thesis
@@ -13611,7 +13575,38 @@ proof -
     using hTprodSub hTunifSub by blast
 next
   show "infinite I \<longrightarrow> Tprod \<noteq> Tunif \<and> Tunif \<noteq> Tbox \<and> Tprod \<noteq> Tbox"
-    sorry
+  proof
+    assume hInfI: "infinite I"
+
+    have hTunifSub0: "Tunif \<subseteq> Tbox"
+      unfolding Tunif_def Tbox_def X\<^sub>R_def XR_def TR_def
+      by (rule top1_uniform_metric_topology_subset_box_topology_real)
+    have hTprodSub0: "Tprod \<subseteq> Tunif"
+      unfolding Tunif_def Tprod_def X\<^sub>R_def XR_def TR_def
+      by (rule top1_product_topology_subset_uniform_metric_topology_real)
+
+    have hprod_ne: "Tprod \<noteq> Tunif"
+      unfolding Tprod_def Tunif_def X\<^sub>R_def XR_def TR_def
+      using top1_product_topology_ne_uniform_metric_topology_real[OF hInfI] by simp
+
+    have hunif_ne: "Tunif \<noteq> Tbox"
+      unfolding Tunif_def Tbox_def X\<^sub>R_def XR_def TR_def
+      using top1_uniform_metric_topology_ne_box_topology_real[OF hInfI] by simp
+
+    have hprod_box_ne: "Tprod \<noteq> Tbox"
+    proof
+      assume hEq: "Tprod = Tbox"
+      have hTunifSub': "Tunif \<subseteq> Tprod"
+        using hTunifSub0 hEq by simp
+      have "Tprod = Tunif"
+        by (rule subset_antisym[OF hTprodSub0 hTunifSub'])
+      thus False
+        using hprod_ne by simp
+    qed
+
+    show "Tprod \<noteq> Tunif \<and> Tunif \<noteq> Tbox \<and> Tprod \<noteq> Tbox"
+      using hprod_ne hunif_ne hprod_box_ne by blast
+  qed
 qed
 
 (** from \S20 Theorem 20.5 [top1.tex:1776] **)
