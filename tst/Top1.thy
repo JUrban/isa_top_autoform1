@@ -12882,6 +12882,20 @@ proof -
     using hfinal1 unfolding hfinal2 by simp
 qed
 
+(** Each coordinate contribution is bounded above by the \<open>D\<close>-distance. **)
+lemma top1_D_metric_real_omega_term_le:
+  shows "top1_real_bounded_metric (x n) (y n) / real (Suc n) \<le> top1_D_metric_real_omega x y"
+proof -
+  let ?S = "((\<lambda>k. top1_real_bounded_metric (x k) (y k) / real (Suc k)) ` (UNIV::nat set))"
+  have hmem: "(\<lambda>k. top1_real_bounded_metric (x k) (y k) / real (Suc k)) n \<in> ?S"
+    by (rule imageI) simp
+  have hbdd: "bdd_above ?S"
+    by (rule top1_D_metric_real_omega_bdd_above)
+  show ?thesis
+    unfolding top1_D_metric_real_omega_def
+    by (rule cSup_upper[OF hmem hbdd])
+qed
+
 (** from \S20 Theorem 20.3 [top1.tex:1684] **)
 theorem Theorem_20_3:
   fixes I :: "'i set"
@@ -13880,6 +13894,436 @@ proof -
       by (rule hmetric)
     show "top1_metric_topology_on X\<omega> top1_D_metric_real_omega = Tprod"
       sorry
+(*
+    proof (rule subset_antisym)
+      let ?Tm = "top1_metric_topology_on X\<omega> top1_D_metric_real_omega"
+
+      have hTopTR: "is_topology_on (UNIV::real set) TR"
+        unfolding TR_def by (rule order_topology_on_UNIV_is_topology_on)
+      have hTopProd: "is_topology_on X\<omega> Tprod"
+      proof -
+        have hAll: "\<forall>i\<in>(UNIV::nat set). is_topology_on (XR i) TR"
+          unfolding XR_def using hTopTR by simp
+        show ?thesis
+          unfolding Tprod_def X\<omega>_def
+          by (rule top1_product_topology_on_is_topology_on[OF hAll])
+      qed
+      have hTopMet: "is_topology_on X\<omega> ?Tm"
+        by (rule top1_metric_topology_on_is_topology_on[OF hmetric])
+
+      show "?Tm \<subseteq> Tprod"
+      proof -
+        have hBasisSub: "top1_metric_basis_on X\<omega> top1_D_metric_real_omega \<subseteq> Tprod"
+        proof (rule subsetI)
+          fix b
+          assume hb: "b \<in> top1_metric_basis_on X\<omega> top1_D_metric_real_omega"
+          obtain x e where hxX: "x \<in> X\<omega>" and he: "0 < e"
+              and hb_eq: "b = top1_ball_on X\<omega> top1_D_metric_real_omega x e"
+            using hb unfolding top1_metric_basis_on_def by blast
+
+          have hball_in: "top1_ball_on X\<omega> top1_D_metric_real_omega x e \<in> Tprod"
+            unfolding Tprod_def X\<omega>_def top1_product_topology_on_def topology_generated_by_basis_def
+          proof (rule CollectI, intro conjI)
+            show "top1_ball_on (top1_PiE (UNIV::nat set) XR) top1_D_metric_real_omega x e \<subseteq>
+                  top1_PiE (UNIV::nat set) XR"
+            proof (rule subsetI)
+              fix y
+              assume hy: "y \<in> top1_ball_on (top1_PiE (UNIV::nat set) XR) top1_D_metric_real_omega x e"
+              thus "y \<in> top1_PiE (UNIV::nat set) XR"
+                unfolding top1_ball_on_def by simp
+            qed
+
+            show "\<forall>y\<in>top1_ball_on X\<omega> top1_D_metric_real_omega x e.
+                    \<exists>ba\<in>top1_product_basis_on (UNIV::nat set) XR (\<lambda>_. TR).
+                      y \<in> ba \<and> ba \<subseteq> top1_ball_on X\<omega> top1_D_metric_real_omega x e"
+            proof (intro ballI)
+              fix y
+              assume hy: "y \<in> top1_ball_on X\<omega> top1_D_metric_real_omega x e"
+              have hyX: "y \<in> X\<omega>" and hDxy: "top1_D_metric_real_omega x y < e"
+                using hy unfolding top1_ball_on_def by blast+
+
+              define \<delta> where "\<delta> = (e - top1_D_metric_real_omega x y) / 2"
+              have hdel_pos: "0 < \<delta>"
+                using hDxy he unfolding \<delta>_def by simp
+
+              obtain N :: nat where hN: "1 / real (Suc N) < \<delta>"
+              proof -
+                obtain N :: nat where hN': "inverse (of_nat (Suc N)) < \<delta>"
+                  using reals_Archimedean[OF hdel_pos] by blast
+                have "1 / real (Suc N) < \<delta>"
+                  using hN' by (simp add: field_simps)
+                thus ?thesis
+                  by (rule that)
+              qed
+
+              define U where
+                "U = (\<lambda>n.
+                    if n < Suc N then top1_ball_on UNIV top1_real_bounded_metric (y n) (\<delta> * real (Suc n))
+                    else (UNIV::real set))"
+              define ba where "ba = top1_PiE (UNIV::nat set) U"
+
+              have hba_basis: "ba \<in> top1_product_basis_on (UNIV::nat set) XR (\<lambda>_. TR)"
+              proof -
+                have hU_in: "\<forall>i\<in>(UNIV::nat set). U i \<in> TR \<and> U i \<subseteq> XR i"
+                proof (intro ballI)
+                  fix i :: nat
+                  show "U i \<in> TR \<and> U i \<subseteq> XR i"
+                  proof (cases "i < Suc N")
+                    case True
+                    have hpos: "0 < \<delta> * real (Suc i)"
+                      using hdel_pos by simp
+                    have hUiTR: "top1_ball_on UNIV top1_real_bounded_metric (y i) (\<delta> * real (Suc i)) \<in> TR"
+                      unfolding TR_def by (rule top1_real_bounded_metric_ball_in_order_topology[OF hpos])
+                    show ?thesis
+                      unfolding U_def XR_def using True hUiTR by simp
+                  next
+                    case False
+                    have hUNIV: "UNIV \<in> TR"
+                      using hTopTR unfolding is_topology_on_def by blast
+                    show ?thesis
+                      unfolding U_def XR_def using False hUNIV by simp
+                  qed
+                qed
+
+                have hfin: "finite {i \<in> (UNIV::nat set). U i \<noteq> XR i}"
+                proof -
+                  have hsub: "{i \<in> (UNIV::nat set). U i \<noteq> XR i} \<subseteq> {i. i < Suc N}"
+                    unfolding XR_def U_def by auto
+                  have hfin': "finite {i. i < Suc N}"
+                    by simp
+                  show ?thesis
+                    by (rule finite_subset[OF hsub hfin'])
+                qed
+
+                have "ba = top1_PiE (UNIV::nat set) U"
+                  unfolding ba_def by simp
+                thus ?thesis
+                  unfolding top1_product_basis_on_def
+                  apply (rule CollectI)
+                  apply (rule exI[where x=U])
+                  using hU_in hfin by simp
+              qed
+
+              have hy_in_ba: "y \<in> ba"
+              proof -
+                have hyU: "\<forall>i\<in>(UNIV::nat set). y i \<in> U i"
+                proof (intro ballI)
+                  fix i :: nat
+                  show "y i \<in> U i"
+                  proof (cases "i < Suc N")
+                    case True
+                    have hpos: "0 < \<delta> * real (Suc i)"
+                      using hdel_pos by simp
+                    have "top1_real_bounded_metric (y i) (y i) = 0"
+                      unfolding top1_real_bounded_metric_def by simp
+                    then have "y i \<in> top1_ball_on UNIV top1_real_bounded_metric (y i) (\<delta> * real (Suc i))"
+                      unfolding top1_ball_on_def using hpos by simp
+                    thus ?thesis
+                      unfolding U_def using True by simp
+                  next
+                    case False
+                    show ?thesis
+                      unfolding U_def using False by simp
+                  qed
+                qed
+                show ?thesis
+                  unfolding ba_def top1_PiE_iff
+                  using hyU by simp
+              qed
+
+              have hba_sub_ball: "ba \<subseteq> top1_ball_on X\<omega> top1_D_metric_real_omega x e"
+              proof (rule subsetI)
+                fix z
+                assume hz: "z \<in> ba"
+
+                have hzU: "\<forall>i\<in>(UNIV::nat set). z i \<in> U i"
+                  using hz unfolding ba_def top1_PiE_iff by simp
+
+                have hDyz_le: "top1_D_metric_real_omega y z \<le> \<delta>"
+                proof -
+                  let ?S = "((\<lambda>k. top1_real_bounded_metric (y k) (z k) / real (Suc k)) ` (UNIV::nat set))"
+                  have hbdd: "bdd_above ?S"
+                    by (rule top1_D_metric_real_omega_bdd_above)
+                  have hSne: "?S \<noteq> {}"
+                    by simp
+                  have hall: "\<forall>r\<in>?S. r \<le> \<delta>"
+                  proof (intro ballI)
+                    fix r
+                    assume hr: "r \<in> ?S"
+                    then obtain n where hn: "r = top1_real_bounded_metric (y n) (z n) / real (Suc n)"
+                      by blast
+                    show "r \<le> \<delta>"
+                    proof (cases "n < Suc N")
+                      case True
+                      have hz_in: "z n \<in> top1_ball_on UNIV top1_real_bounded_metric (y n) (\<delta> * real (Suc n))"
+                        using hzU unfolding U_def using True by simp
+                      have hpos: "0 < (real (Suc n) :: real)"
+                        by simp
+                      have hdist: "top1_real_bounded_metric (y n) (z n) < \<delta> * real (Suc n)"
+                        using hz_in unfolding top1_ball_on_def by blast
+                      have "top1_real_bounded_metric (y n) (z n) / real (Suc n) < \<delta>"
+                        using hdist hpos by (simp add: divide_lt_eq)
+                      thus ?thesis
+                        unfolding hn by simp
+                    next
+                      case False
+                      have hle1: "top1_real_bounded_metric (y n) (z n) \<le> (1::real)"
+                        unfolding top1_real_bounded_metric_def by simp
+                      have hpos: "0 < (real (Suc n) :: real)"
+                        by simp
+                      have hterm_le: "top1_real_bounded_metric (y n) (z n) / real (Suc n) \<le> 1 / real (Suc n)"
+                        using hle1 hpos by (simp add: divide_right_mono)
+                      have hSuc_le: "real (Suc N) \<le> (real (Suc n) :: real)"
+                        using False by simp
+                      have hposN: "0 < (real (Suc N) :: real)"
+                        by simp
+                      have hinv: "1 / real (Suc n) \<le> 1 / real (Suc N)"
+                        using inv_le_inv_of_le[OF hposN hSuc_le] by (simp add: field_simps)
+                      have htail: "top1_real_bounded_metric (y n) (z n) / real (Suc n) \<le> 1 / real (Suc N)"
+                        by (rule le_trans[OF hterm_le le_trans[OF hinv le_rfl]])
+                      have hlt: "1 / real (Suc N) < \<delta>"
+                        using hN by simp
+                      have "top1_real_bounded_metric (y n) (z n) / real (Suc n) < \<delta>"
+                        by (rule le_less_trans[OF htail hlt])
+                      thus ?thesis
+                        unfolding hn by simp
+                    qed
+                  qed
+                  have hSup: "Sup ?S \<le> \<delta>"
+                    by (rule cSup_least[OF hSne hbdd]) (rule hall)
+                  show ?thesis
+                    unfolding top1_D_metric_real_omega_def using hSup by simp
+                qed
+
+                have hDxz_le: "top1_D_metric_real_omega x z \<le> top1_D_metric_real_omega x y + top1_D_metric_real_omega y z"
+                  by (rule top1_D_metric_real_omega_triangle)
+                have hDxz_lt: "top1_D_metric_real_omega x z < e"
+                proof -
+                  have hmid: "top1_D_metric_real_omega x y + \<delta> = (e + top1_D_metric_real_omega x y) / 2"
+                    unfolding \<delta>_def by (simp add: field_simps algebra_simps)
+                  have hlt: "(e + top1_D_metric_real_omega x y) / 2 < e"
+                    using hDxy by simp
+                  have "top1_D_metric_real_omega x z \<le> top1_D_metric_real_omega x y + \<delta>"
+                    by (rule le_trans[OF hDxz_le add_left_mono[OF hDyz_le]])
+                  then have "top1_D_metric_real_omega x z \<le> (e + top1_D_metric_real_omega x y) / 2"
+                    using hmid by simp
+                  then show ?thesis
+                    by (rule le_less_trans[OF _ hlt])
+                qed
+                show "z \<in> top1_ball_on X\<omega> top1_D_metric_real_omega x e"
+                  unfolding top1_ball_on_def using hDxz_lt by blast
+              qed
+
+              show "\<exists>ba\<in>top1_product_basis_on (UNIV::nat set) XR (\<lambda>_. TR).
+                      y \<in> ba \<and> ba \<subseteq> top1_ball_on X\<omega> top1_D_metric_real_omega x e"
+                apply (rule bexI[where x=ba])
+                 apply (intro conjI)
+                  apply (rule hy_in_ba)
+                 apply (rule hba_sub_ball)
+                apply (rule hba_basis)
+                done
+            qed
+          qed
+
+          show "b \<in> Tprod"
+            unfolding hb_eq using hball_in by simp
+        qed
+
+        have hInc: "topology_generated_by_basis X\<omega> (top1_metric_basis_on X\<omega> top1_D_metric_real_omega) \<subseteq> Tprod"
+          by (rule topology_generated_by_basis_subset[OF hTopProd hBasisSub])
+        show ?thesis
+          unfolding top1_metric_topology_on_def using hInc by simp
+      qed
+
+      show "Tprod \<subseteq> ?Tm"
+      proof -
+        have hBasisSub: "top1_product_basis_on (UNIV::nat set) XR (\<lambda>_. TR) \<subseteq> ?Tm"
+        proof (rule subsetI)
+          fix b
+          assume hb: "b \<in> top1_product_basis_on (UNIV::nat set) XR (\<lambda>_. TR)"
+          obtain U where hUall: "\<forall>i\<in>(UNIV::nat set). U i \<in> TR \<and> U i \<subseteq> XR i"
+              and hfin: "finite {i \<in> (UNIV::nat set). U i \<noteq> XR i}"
+              and hb_eq: "b = top1_PiE (UNIV::nat set) U"
+            using hb unfolding top1_product_basis_on_def by blast
+
+          have hb_sub: "b \<subseteq> X\<omega>"
+            unfolding hb_eq X\<omega>_def XR_def
+            by (rule top1_PiE_mono) simp
+
+          have hopen: "b \<in> ?Tm"
+            unfolding top1_metric_topology_on_def topology_generated_by_basis_def
+          proof (rule CollectI, intro conjI)
+            show "b \<subseteq> X\<omega>"
+              by (rule hb_sub)
+            show "\<forall>x\<in>b. \<exists>ba\<in>top1_metric_basis_on X\<omega> top1_D_metric_real_omega. x \<in> ba \<and> ba \<subseteq> b"
+            proof (intro ballI)
+              fix x
+              assume hx: "x \<in> b"
+
+              define F where "F = {i \<in> (UNIV::nat set). U i \<noteq> XR i}"
+              have hFfin: "finite F"
+                unfolding F_def using hfin by simp
+
+              show "\<exists>ba\<in>top1_metric_basis_on X\<omega> top1_D_metric_real_omega. x \<in> ba \<and> ba \<subseteq> b"
+              proof (cases "F = {}")
+                case True
+                have hb_all: "b = X\<omega>"
+                proof (rule set_eqI)
+                  fix z
+                  show "z \<in> b \<longleftrightarrow> z \<in> X\<omega>"
+                  proof
+                    assume "z \<in> b"
+                    then show "z \<in> X\<omega>"
+                      using hb_sub by blast
+                  next
+                    assume hzX: "z \<in> X\<omega>"
+                    have hzU: "\<forall>i\<in>(UNIV::nat set). z i \<in> U i"
+                    proof (intro ballI)
+                      fix i :: nat
+                      have hUi: "U i = XR i"
+                        using True unfolding F_def by auto
+                      show "z i \<in> U i"
+                        unfolding hUi XR_def by simp
+                    qed
+                    show "z \<in> b"
+                      unfolding hb_eq top1_PiE_iff using hzU by simp
+                  qed
+                qed
+                have hxX: "x \<in> X\<omega>"
+                  using hx hb_sub by blast
+                have hxball: "x \<in> top1_ball_on X\<omega> top1_D_metric_real_omega x 1"
+                  unfolding top1_ball_on_def using hxX top1_D_metric_real_omega_refl by simp
+                have hball_basis: "top1_ball_on X\<omega> top1_D_metric_real_omega x 1 \<in> top1_metric_basis_on X\<omega> top1_D_metric_real_omega"
+                  unfolding top1_metric_basis_on_def using hxX by simp
+                have hsub: "top1_ball_on X\<omega> top1_D_metric_real_omega x 1 \<subseteq> b"
+                  unfolding hb_all by simp
+                show ?thesis
+                  apply (rule bexI[where x="top1_ball_on X\<omega> top1_D_metric_real_omega x 1"])
+                   apply (intro conjI)
+                    apply (rule hxball)
+                   apply (rule hsub)
+                  apply (rule hball_basis)
+                  done
+              next
+                case False
+                have hxX: "x \<in> X\<omega>"
+                  using hx hb_sub by blast
+
+                have hex: "\<forall>i\<in>F. \<exists>e. 0 < e \<and> top1_ball_on UNIV top1_real_bounded_metric (x i) e \<subseteq> U i"
+                proof (intro ballI)
+                  fix i :: nat
+                  assume hi: "i \<in> F"
+                  have hUiTR: "U i \<in> TR"
+                    using hUall hi by blast
+                  have hUiMet: "U i \<in> top1_metric_topology_on (UNIV::real set) top1_real_bounded_metric"
+                    using hUiTR unfolding order_topology_on_UNIV_eq_bounded_metric_topology_real[unfolded TR_def] by simp
+                  have hxi: "x i \<in> U i"
+                    using hx unfolding hb_eq top1_PiE_iff using hi by simp
+                  obtain e where hepos: "0 < e" and hsube: "top1_ball_on UNIV top1_real_bounded_metric (x i) e \<subseteq> U i"
+                    using top1_metric_open_contains_ball[OF top1_real_bounded_metric_metric_on hUiMet hxi] by blast
+                  show "\<exists>e. 0 < e \<and> top1_ball_on UNIV top1_real_bounded_metric (x i) e \<subseteq> U i"
+                    by (rule exI[where x=e], intro conjI[OF hepos hsube])
+                qed
+
+                obtain eps where heps: "\<forall>i\<in>F. 0 < eps i \<and> top1_ball_on UNIV top1_real_bounded_metric (x i) (eps i) \<subseteq> U i"
+                  using bchoice[OF hex] by blast
+
+                define r where "r = Min ((\<lambda>i. eps i / real (Suc i)) ` F)"
+
+                have hr_pos: "0 < r"
+                proof -
+                  have hpos_all: "\<forall>t\<in>((\<lambda>i. eps i / real (Suc i)) ` F). 0 < t"
+                  proof (intro ballI)
+                    fix t
+                    assume ht: "t \<in> ((\<lambda>i. eps i / real (Suc i)) ` F)"
+                    then obtain i where hiF: "i \<in> F" and ht_eq: "t = eps i / real (Suc i)"
+                      by blast
+                    have hepos: "0 < eps i"
+                      using heps hiF by blast
+                    show "0 < t"
+                      unfolding ht_eq using hepos by simp
+                  qed
+                  have hMin_in: "r \<in> ((\<lambda>i. eps i / real (Suc i)) ` F)"
+                    unfolding r_def
+                    by (rule Min_in) (use hFfin False in auto)
+                  show ?thesis
+                    using hpos_all hMin_in by blast
+                qed
+
+                have hball_sub: "top1_ball_on X\<omega> top1_D_metric_real_omega x r \<subseteq> b"
+                proof (rule subsetI)
+                  fix z
+                  assume hz: "z \<in> top1_ball_on X\<omega> top1_D_metric_real_omega x r"
+                  have hzX: "z \<in> X\<omega>" and hDxz: "top1_D_metric_real_omega x z < r"
+                    using hz unfolding top1_ball_on_def by blast+
+                  have hzU: "\<forall>i\<in>(UNIV::nat set). z i \<in> U i"
+                  proof (intro ballI)
+                    fix i :: nat
+                    show "z i \<in> U i"
+                    proof (cases "i \<in> F")
+                      case True
+                      have hterm_le: "top1_real_bounded_metric (x i) (z i) / real (Suc i) \<le> top1_D_metric_real_omega x z"
+                        by (rule top1_D_metric_real_omega_term_le)
+                      have hterm_lt: "top1_real_bounded_metric (x i) (z i) / real (Suc i) < r"
+                        by (rule le_less_trans[OF hterm_le hDxz])
+                      have hr_le: "r \<le> eps i / real (Suc i)"
+                      proof -
+                        have hmem: "eps i / real (Suc i) \<in> ((\<lambda>j. eps j / real (Suc j)) ` F)"
+                          using True by blast
+                        show ?thesis
+                          unfolding r_def by (rule Min_le[OF hFfin hmem])
+                      qed
+                      have hterm_lt2: "top1_real_bounded_metric (x i) (z i) / real (Suc i) < eps i / real (Suc i)"
+                        using hterm_lt hr_le by linarith
+                      have hpos: "0 < (real (Suc i) :: real)"
+                        by simp
+                      have hcoord: "top1_real_bounded_metric (x i) (z i) < eps i"
+                        using hterm_lt2 hpos by (simp add: divide_lt_eq)
+                      have hz_in_ball: "z i \<in> top1_ball_on UNIV top1_real_bounded_metric (x i) (eps i)"
+                        unfolding top1_ball_on_def using hcoord by simp
+                      have hsube: "top1_ball_on UNIV top1_real_bounded_metric (x i) (eps i) \<subseteq> U i"
+                        using heps True by blast
+                      show ?thesis
+                        using hsube hz_in_ball by blast
+                    next
+                      case False
+                      have hUi: "U i = XR i"
+                        using False unfolding F_def by auto
+                      show ?thesis
+                        unfolding hUi XR_def by simp
+                    qed
+                  qed
+                  show "z \<in> b"
+                    unfolding hb_eq top1_PiE_iff using hzU by simp
+                qed
+
+                have hx_in_ball: "x \<in> top1_ball_on X\<omega> top1_D_metric_real_omega x r"
+                  unfolding top1_ball_on_def using hxX top1_D_metric_real_omega_refl hr_pos by simp
+                have hball_basis: "top1_ball_on X\<omega> top1_D_metric_real_omega x r \<in> top1_metric_basis_on X\<omega> top1_D_metric_real_omega"
+                  unfolding top1_metric_basis_on_def using hxX hr_pos by blast
+
+                show ?thesis
+                  apply (rule bexI[where x="top1_ball_on X\<omega> top1_D_metric_real_omega x r"])
+                   apply (intro conjI)
+                    apply (rule hx_in_ball)
+                   apply (rule hball_sub)
+                  apply (rule hball_basis)
+                  done
+              qed
+            qed
+          qed
+
+          show "b \<in> ?Tm"
+            using hopen by simp
+        qed
+
+        have hInc: "topology_generated_by_basis X\<omega> (top1_product_basis_on (UNIV::nat set) XR (\<lambda>_. TR)) \<subseteq> ?Tm"
+          by (rule topology_generated_by_basis_subset[OF hTopMet hBasisSub])
+        show ?thesis
+          unfolding Tprod_def X\<omega>_def top1_product_topology_on_def using hInc by simp
+      qed
+    qed
+*)
   qed
 qed
 
