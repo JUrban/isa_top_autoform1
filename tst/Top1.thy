@@ -27207,7 +27207,10 @@ proof (cases "A = {}")
   case True
   show ?thesis
     unfolding top1_bounded_set_def True
-    by (intro exI[where x=0] conjI) simp_all
+    apply (intro exI[where x=0] conjI)
+    apply simp
+    apply simp
+    done
 next
   case False
   show ?thesis
@@ -28827,10 +28830,14 @@ proof
       qed
       have "f n = S"
         unfolding f_def using hn_range hEq by simp
-      hence "S \<in> f ` (UNIV :: nat set)"
-        by (intro image_eqI[where x=n]) simp_all
-      thus "S \<in> f ` (UNIV :: nat set)"
-        by simp
+      have "S \<in> f ` (UNIV :: nat set)"
+      proof -
+        have "f n \<in> f ` (UNIV :: nat set)"
+          by (rule imageI) simp
+        thus ?thesis
+          using \<open>f n = S\<close> by simp
+      qed
+      thus "S \<in> f ` (UNIV :: nat set)" .
     qed
   qed
 
@@ -29447,7 +29454,10 @@ proof -
   have "f ` (UNIV :: nat set) = X"
     by (rule equalityI[OF hfsubX hXsub])
   thus ?thesis
-    using hfX by (intro exI[where x=f] conjI) (simp_all add: f_def)
+    apply (intro exI[where x=f] conjI)
+    apply (rule hfX)
+    apply assumption
+    done
 qed
 
 (** A basic helper about nested sequences of sets (used in compactness/FIP arguments). **)
@@ -34496,8 +34506,12 @@ proof -
 	        assume hnot: "i \<notin> set (map fst (p # ps))"
 	        obtain j V where hp: "p = (j, V)"
 	          by (cases p) simp
-	        have hij: "i \<noteq> j" and hnotps: "i \<notin> set (map fst ps)"
-	          using hnot unfolding hp by simp_all
+		        have hij_hnotps: "i \<noteq> j \<and> i \<notin> set (map fst ps)"
+		          using hnot unfolding hp by simp
+		        have hij: "i \<noteq> j"
+		          using hij_hnotps by (elim conjE)
+		        have hnotps: "i \<notin> set (map fst ps)"
+		          using hij_hnotps by (elim conjE)
 
 		        have "mkF (p # ps) i = mkF ps i"
 		          unfolding mkF_def hp using hij by simp
@@ -36293,11 +36307,19 @@ proof -
 
         obtain x0 y0 where hp_def: "p = (x0, y0)"
           by (cases p, simp)
-        have hx0X: "x0 \<in> X" and hy0Y: "y0 \<in> Y"
-          using hpXY hp_def by simp_all
+	        have hx0X_hy0Y: "x0 \<in> X \<and> y0 \<in> Y"
+	          using hpXY by (simp add: hp_def)
+	        have hx0X: "x0 \<in> X"
+	          using hx0X_hy0Y by (elim conjE)
+	        have hy0Y: "y0 \<in> Y"
+	          using hx0X_hy0Y by (elim conjE)
 
-        have hx0U0: "x0 \<in> U0" and hy0V0: "y0 \<in> V0"
-          using hpU0V0 hp_def by simp_all
+	        have hx0U0_hy0V0: "x0 \<in> U0 \<and> y0 \<in> V0"
+	          using hpU0V0 by (simp add: hp_def)
+	        have hx0U0: "x0 \<in> U0"
+	          using hx0U0_hy0V0 by (elim conjE)
+	        have hy0V0: "y0 \<in> V0"
+	          using hx0U0_hy0V0 by (elim conjE)
 
         let ?Ux = "U0 \<inter> X"
         let ?Uy = "V0 \<inter> Y"
@@ -38408,13 +38430,17 @@ proof (cases "\<exists>z. y < z")
         by (rule le_less_trans[OF hty hys])
       show "t \<in> open_interval x s"
         unfolding open_interval_def using hxt hts by simp
-    next
-      assume ht: "t \<in> open_interval x s"
-      have hxt: "x < t" and hts: "t < s"
-        using ht unfolding open_interval_def by simp_all
-      have hty: "t \<le> y"
-      proof (rule ccontr)
-        assume hnot: "\<not> t \<le> y"
+	    next
+	      assume ht: "t \<in> open_interval x s"
+		      have hxt_hts: "x < t \<and> t < s"
+		        using ht by (simp add: open_interval_def)
+		      have hxt: "x < t"
+		        using hxt_hts by (elim conjE)
+		      have hts: "t < s"
+		        using hxt_hts by (elim conjE)
+	      have hty: "t \<le> y"
+	      proof (rule ccontr)
+	        assume hnot: "\<not> t \<le> y"
         have hylt: "y < t"
           using hnot by simp
         have hsle: "s \<le> t"
@@ -38500,8 +38526,12 @@ proof -
     assume h1: "b \<in> {open_interval u v | u v. u < v}"
     then obtain u v where huv: "u < v" and hbeq: "b = open_interval u v"
       by blast
-    have hua: "u < a" and hav: "a < v"
-      using hab unfolding hbeq open_interval_def by simp_all
+	    have hua_hav: "u < a \<and> a < v"
+	      using hab unfolding hbeq open_interval_def by simp
+	    have hua: "u < a"
+	      using hua_hav by (elim conjE)
+	    have hav: "a < v"
+	      using hua_hav by (elim conjE)
     show "\<exists>x<a. {x <.. a} \<subseteq> b"
     proof (rule exI[where x=u], intro conjI)
       show "u < a" by (rule hua)
