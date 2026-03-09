@@ -44526,14 +44526,21 @@ proof -
       by simp
     show "\<forall>x\<in>{x. a < x \<and> x < b}.
           \<exists>ba\<in>top1_metric_basis_on (UNIV::real set) (\<lambda>x y. abs (x - y)). x \<in> ba \<and> ba \<subseteq> {x. a < x \<and> x < b}"
-    proof (intro ballI)
-      fix x :: real
-      assume hx: "x \<in> {x. a < x \<and> x < b}"
-      have hax: "a < x" and hxb: "x < b"
-        using hx by simp_all
-      define e where "e = min (x - a) (b - x)"
-      have hepos: "0 < e"
-        unfolding e_def using hax hxb by simp
+	    proof (intro ballI)
+	      fix x :: real
+	      assume hx: "x \<in> {x. a < x \<and> x < b}"
+	      have hax: "a < x" and hxb: "x < b"
+	      proof -
+	        have hx_conj: "a < x \<and> x < b"
+	          using hx by simp
+	        show "a < x"
+	          using hx_conj by (rule conjunct1)
+	        show "x < b"
+	          using hx_conj by (rule conjunct2)
+	      qed
+	      define e where "e = min (x - a) (b - x)"
+	      have hepos: "0 < e"
+	        unfolding e_def using hax hxb by simp
       have hxball: "x \<in> top1_ball_on ?X ?d x e"
         unfolding top1_ball_on_def using hepos by simp
       have hball_basis: "top1_ball_on ?X ?d x e \<in> top1_metric_basis_on ?X ?d"
@@ -45572,14 +45579,25 @@ proof -
       have hEq: "{u\<in>X. f u \<in> {f x}} = {x}"
       proof (rule equalityI)
         show "{u \<in> X. f u \<in> {f x}} \<subseteq> {x}"
-        proof (rule subsetI)
-          fix u assume hu: "u \<in> {u \<in> X. f u \<in> {f x}}"
-          have huX: "u \<in> X" and hfu: "f u = f x"
-            using hu by simp_all
-          have hinj: "inj_on f X"
-            using hbij unfolding bij_betw_def by blast
-          have "u = x"
-            by (rule hinj[unfolded inj_on_def, rule_format, OF huX hxX hfu])
+	        proof (rule subsetI)
+	          fix u assume hu: "u \<in> {u \<in> X. f u \<in> {f x}}"
+	          have huX: "u \<in> X" and hfu: "f u = f x"
+	          proof -
+	            have hu_conj: "u \<in> X \<and> f u \<in> {f x}"
+	              using hu by simp
+	            have huX: "u \<in> X"
+	              using hu_conj by (rule conjunct1)
+	            have hfu_set: "f u \<in> {f x}"
+	              using hu_conj by (rule conjunct2)
+	            have hfu: "f u = f x"
+	              using hfu_set by simp
+	            show "u \<in> X" by (rule huX)
+	            show "f u = f x" by (rule hfu)
+	          qed
+	          have hinj: "inj_on f X"
+	            using hbij unfolding bij_betw_def by blast
+	          have "u = x"
+	            by (rule hinj[unfolded inj_on_def, rule_format, OF huX hxX hfu])
           thus "u \<in> {x}"
             by simp
         qed
