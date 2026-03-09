@@ -32363,15 +32363,15 @@ proof -
       qed
     qed
 
-	    have hOpenSubsetEq: "\<And>W. W \<subseteq> Y \<Longrightarrow> (W \<in> TY \<longleftrightarrow> W \<in> TY')"
-	      sorry
+				    have hOpenSubsetEq: "\<And>W. W \<subseteq> Y \<Longrightarrow> (W \<in> TY \<longleftrightarrow> W \<in> TY')"
+			      sorry
 
-(*	    proof
-	      fix W
-	      assume hWY: "W \<subseteq> Y"
-	      show "W \<in> TY \<longleftrightarrow> W \<in> TY'"
-	      proof (cases "None \<in> W")
-	        case True
+(*			    proof
+				      fix W
+				      assume hWY: "W \<subseteq> Y"
+				      show "W \<in> TY \<longleftrightarrow> W \<in> TY'"
+				      proof (cases "None \<in> W")
+		        case True
 	        let ?K = "Y - W"
 	        have hKY: "?K \<subseteq> Y"
 	          using hWY by blast
@@ -32501,23 +32501,15 @@ proof -
 	          show "W \<in> TY'"
 	            using topology_inter2[OF hTopY' hS_open' hU] hEq by simp
 	        qed
-	        show ?thesis
-	        proof -
-	          have h1: "W \<in> TY \<longleftrightarrow> W \<in> ?TS"
-	            using hWiffS .
-	          have h2: "W \<in> TY' \<longleftrightarrow> W \<in> ?TS'"
-	            using hWiffS' .
-	          have h3: "W \<in> ?TS \<longleftrightarrow> W \<in> ?TS'"
-	            using hTS_eq by simp
-	          show ?thesis
-	            using h1 h2 h3 by blast
-	        qed
-	    qed
+		        show ?thesis
+		          using hWiffS hWiffS' hTS_eq by blast
+				    qed
+			    qed
 *)
+				
+					    define h :: "'a option \<Rightarrow> 'a option" where "h = (\<lambda>z. z)"
 	
-		    define h :: "'a option \<Rightarrow> 'a option" where "h = (\<lambda>z. z)"
-
-    have hCont: "top1_continuous_map_on Y TY Y TY' h"
+	    have hCont: "top1_continuous_map_on Y TY Y TY' h"
       unfolding top1_continuous_map_on_def h_def
     proof (intro conjI)
       show "\<forall>x\<in>Y. x \<in> Y"
