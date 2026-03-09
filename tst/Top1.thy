@@ -245,8 +245,12 @@ proof -
           next
             case False
             have hEq: "mkF l i = A0 i"
-              using False
-              by (induct l) (simp_all add: mkF_def)
+            proof -
+			              have "(foldr (\<lambda>p f. f (fst p := snd p)) l A0) i = A0 i"
+			                by (rule fold_fun_update_notin_fst[OF False])
+			              thus ?thesis
+			                unfolding mkF_def .
+			            qed
             have "A0 i \<noteq> X i"
               using hneq unfolding hEq by blast
             thus ?thesis
@@ -33406,6 +33410,34 @@ proof -
     by (rule exI[where x=h], rule hinj)
 qed
 
+(** Helper: folding functional updates does not affect an index not updated by the list. **)
+lemma fold_fun_update_notin_fst:
+  fixes i :: 'i
+  fixes l :: "('i \<times> 'a) list"
+  fixes f0 :: "'i \<Rightarrow> 'a"
+  assumes hi: "i \<notin> set (map fst l)"
+  shows "(foldr (\<lambda>p f. f (fst p := snd p)) l f0) i = f0 i"
+  using hi
+proof (induct l arbitrary: f0)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons p ps)
+  have hi_ne: "i \<noteq> fst p"
+    using Cons.prems by simp
+  have hi_ps: "i \<notin> set (map fst ps)"
+    using Cons.prems by simp
+  have "(foldr (\<lambda>p f. f (fst p := snd p)) (p # ps) f0) i =
+      (fun_upd (foldr (\<lambda>p f. f (fst p := snd p)) ps f0) (fst p) (snd p)) i"
+    by simp
+  also have "... = (foldr (\<lambda>p f. f (fst p := snd p)) ps f0) i"
+    using hi_ne by simp
+  also have "... = f0 i"
+    by (rule Cons.hyps[OF hi_ps])
+  finally show ?case .
+qed
+
 (** A concrete injective encoding of pairs of naturals, used to build countability arguments. **)
 definition top1_pair_code :: "nat \<times> nat \<Rightarrow> nat" where
   "top1_pair_code p = (2 ^ fst p) * (2 * snd p + 1)"
@@ -34050,16 +34082,20 @@ proof -
             case True
             show ?thesis
               using True by blast
-          next
-            case False
-            have hEq: "mkF l i = A0 i"
-              using False
-              by (induct l) (simp_all add: mkF_def)
-            have "A0 i \<noteq> X i"
-              using hneq unfolding hEq by blast
-            thus ?thesis
-              using hiI by blast
-          qed
+	          next
+	            case False
+	            have hEq: "mkF l i = A0 i"
+	            proof -
+			              have "(foldr (\<lambda>p f. f (fst p := snd p)) l A0) i = A0 i"
+			                by (rule fold_fun_update_notin_fst[OF False])
+		              thus ?thesis
+		                unfolding mkF_def .
+		            qed
+	            have "A0 i \<noteq> X i"
+	              using hneq unfolding hEq by blast
+	            thus ?thesis
+	              using hiI by blast
+	          qed
         qed
 
         have hFin1: "finite (set (map fst l))"
