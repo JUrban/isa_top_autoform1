@@ -40898,8 +40898,14 @@ proof -
   qed
 
   have f_in_I: "f x \<in> top1_closed_interval 0 1" if hx: "x \<in> X" for x
-    unfolding top1_closed_interval_def
-    using f_ge0 f_le1 by auto
+  proof -
+    have h0: "0 \<le> f x"
+      by (rule f_ge0)
+    have h1: "f x \<le> 1"
+      by (rule f_le1)
+    show ?thesis
+      unfolding top1_closed_interval_def using h0 h1 by simp
+  qed
 
   have f_le_dyadic_if_in:
     "f x \<le> top1_dyadic n k"
@@ -42230,13 +42236,24 @@ proof -
         have hGrect: "?G \<times> ?U \<in> product_topology_on ?TI ?TI"
           by (rule product_rect_open[OF hG_TI hU_TI])
 
-        have hUn: "(\<Union>{?U \<times> ?G, ?G \<times> ?U}) \<in> product_topology_on ?TI ?TI"
-        proof -
-          have "{?U \<times> ?G, ?G \<times> ?U} \<subseteq> product_topology_on ?TI ?TI"
-            using hUrect hGrect by auto
-          show ?thesis
-            using union_TII \<open>{?U \<times> ?G, ?G \<times> ?U} \<subseteq> product_topology_on ?TI ?TI\<close> by blast
-        qed
+	          have hUn: "(\<Union>{?U \<times> ?G, ?G \<times> ?U}) \<in> product_topology_on ?TI ?TI"
+	        proof -
+	          have "{?U \<times> ?G, ?G \<times> ?U} \<subseteq> product_topology_on ?TI ?TI"
+	          proof -
+	            have hsub1: "{?G \<times> ?U} \<subseteq> product_topology_on ?TI ?TI"
+	              apply (rule insert_subsetI)
+	               apply (rule hGrect)
+	              apply simp
+	              done
+	            show ?thesis
+	              apply (rule insert_subsetI)
+	               apply (rule hUrect)
+	              apply (rule hsub1)
+	              done
+	          qed
+	          show ?thesis
+	            using union_TII \<open>{?U \<times> ?G, ?G \<times> ?U} \<subseteq> product_topology_on ?TI ?TI\<close> by blast
+	        qed
 
         have hEq:
           "{p \<in> ?I \<times> ?I. ?m p \<in> b} = (?U \<times> ?G) \<union> (?G \<times> ?U)"
@@ -42389,13 +42406,24 @@ proof -
             have hRrect: "?I \<times> ?L \<in> product_topology_on ?TI ?TI"
               by (rule product_rect_open[OF hI_in_TI hL_TI])
 
-            have hUn: "(\<Union>{?L \<times> ?I, ?I \<times> ?L}) \<in> product_topology_on ?TI ?TI"
-            proof -
-              have "{?L \<times> ?I, ?I \<times> ?L} \<subseteq> product_topology_on ?TI ?TI"
-                using hLrect hRrect by auto
-              show ?thesis
-                using union_TII \<open>{?L \<times> ?I, ?I \<times> ?L} \<subseteq> product_topology_on ?TI ?TI\<close> by blast
-            qed
+	            have hUn: "(\<Union>{?L \<times> ?I, ?I \<times> ?L}) \<in> product_topology_on ?TI ?TI"
+	            proof -
+	              have "{?L \<times> ?I, ?I \<times> ?L} \<subseteq> product_topology_on ?TI ?TI"
+	              proof -
+	                have hsub1: "{?I \<times> ?L} \<subseteq> product_topology_on ?TI ?TI"
+	                  apply (rule insert_subsetI)
+	                   apply (rule hRrect)
+	                  apply simp
+	                  done
+	                show ?thesis
+	                  apply (rule insert_subsetI)
+	                   apply (rule hLrect)
+	                  apply (rule hsub1)
+	                  done
+	              qed
+	              show ?thesis
+	                using union_TII \<open>{?L \<times> ?I, ?I \<times> ?L} \<subseteq> product_topology_on ?TI ?TI\<close> by blast
+	            qed
 
             have hEq:
               "{p \<in> ?I \<times> ?I. ?m p \<in> b} = (?L \<times> ?I) \<union> (?I \<times> ?L)"
@@ -42432,10 +42460,14 @@ proof -
   have hm_image: "?m ` (?I \<times> ?I) \<subseteq> ?I"
   proof (rule subsetI)
     fix t assume ht: "t \<in> ?m ` (?I \<times> ?I)"
-    then obtain p where hp: "p \<in> ?I \<times> ?I" and htdef: "t = ?m p"
-      by blast
-    have hpi1: "pi1 p \<in> ?I" and hpi2: "pi2 p \<in> ?I"
-      using hp unfolding pi1_def pi2_def by auto
+	    then obtain p where hp: "p \<in> ?I \<times> ?I" and htdef: "t = ?m p"
+	      by blast
+	    have hpi12: "pi1 p \<in> ?I \<and> pi2 p \<in> ?I"
+	      using hp unfolding pi1_def pi2_def by (simp add: mem_Times_iff)
+	    have hpi1: "pi1 p \<in> ?I"
+	      by (rule conjunct1[OF hpi12])
+	    have hpi2: "pi2 p \<in> ?I"
+	      by (rule conjunct2[OF hpi12])
     have hpi1': "0 \<le> pi1 p \<and> pi1 p \<le> 1"
       using hpi1 unfolding top1_closed_interval_def by blast
     have hpi2': "0 \<le> pi2 p \<and> pi2 p \<le> 1"
@@ -43409,8 +43441,15 @@ proof -
 	  have summable_geom: "summable (\<lambda>n. (1/2::real)^n)"
 	    by (simp add: summable_geometric_iff)
 	
-	  have suminf_geom: "(\<Sum>n. (1/2::real)^n) = 2"
-	    using suminf_geometric[of "1/2"] by auto
+		  have suminf_geom: "(\<Sum>n. (1/2::real)^n) = 2"
+		  proof -
+		    have hnorm: "norm (1/2::real) < 1"
+		      by simp
+		    have "(\<Sum>n. (1/2::real)^n) = 1 / (1 - (1/2::real))"
+		      by (rule suminf_geometric[OF hnorm])
+		    thus ?thesis
+		      by simp
+		  qed
 	
 	  have d_summable:
 	    "\<And>x y. x \<in> X \<Longrightarrow> y \<in> X \<Longrightarrow>
@@ -43705,10 +43744,14 @@ proof -
 		          using hyVn unfolding Vn_def by simp
 	        have hxIn': "fseq n x \<in> In n"
 	          using hxIn[OF hn] .
-		        have "fseq n y \<in> open_interval (fseq n x - eps) (fseq n x + eps)"
-		          using hyIn unfolding In_def by blast
-		        then have hleft: "fseq n x - eps < fseq n y" and hright: "fseq n y < fseq n x + eps"
-		          unfolding open_interval_def by auto
+			        have "fseq n y \<in> open_interval (fseq n x - eps) (fseq n x + eps)"
+			          using hyIn unfolding In_def by blast
+			        then have hconj: "fseq n x - eps < fseq n y \<and> fseq n y < fseq n x + eps"
+			          unfolding open_interval_def by simp
+			        have hleft: "fseq n x - eps < fseq n y"
+			          by (rule conjunct1[OF hconj])
+			        have hright: "fseq n y < fseq n x + eps"
+			          by (rule conjunct2[OF hconj])
 		        have habs: "abs (fseq n y - fseq n x) < eps"
 		        proof -
 		          have "-eps < fseq n y - fseq n x"
@@ -48123,11 +48166,38 @@ proof -
         by (rule basis_order_topology_cases[OF hb])
       show "{x \<in> ?R. -x \<in> b} \<in> ?TR"
       proof (rule disjE[OF hcases])
-        assume hbint: "\<exists>a c. a < c \<and> b = open_interval a c"
-        then obtain a c where hac: "a < c" and hbeq: "b = open_interval a c"
-          by blast
-        have hEq: "{x \<in> ?R. -x \<in> b} = open_interval (-c) (-a)"
-          unfolding hbeq open_interval_def by auto
+	        assume hbint: "\<exists>a c. a < c \<and> b = open_interval a c"
+	        then obtain a c where hac: "a < c" and hbeq: "b = open_interval a c"
+	          by blast
+	        have hEq: "{x \<in> ?R. -x \<in> b} = open_interval (-c) (-a)"
+	        proof (rule equalityI)
+	          show "{x \<in> ?R. -x \<in> b} \<subseteq> open_interval (-c) (-a)"
+	          proof (rule subsetI)
+	            fix x
+	            assume hx: "x \<in> {x \<in> ?R. -x \<in> b}"
+	            have hxb: "-x \<in> b"
+	              using hx by simp
+	            have "a < -x \<and> -x < c"
+	              using hxb unfolding hbeq open_interval_def by simp
+	            hence "-c < x \<and> x < -a"
+	              by linarith
+	            thus "x \<in> open_interval (-c) (-a)"
+	              unfolding open_interval_def by simp
+	          qed
+	          show "open_interval (-c) (-a) \<subseteq> {x \<in> ?R. -x \<in> b}"
+	          proof (rule subsetI)
+	            fix x
+	            assume hx: "x \<in> open_interval (-c) (-a)"
+	            have "-c < x \<and> x < -a"
+	              using hx unfolding open_interval_def by simp
+	            hence "a < -x \<and> -x < c"
+	              by linarith
+	            hence "-x \<in> b"
+	              unfolding hbeq open_interval_def by simp
+	            thus "x \<in> {x \<in> ?R. -x \<in> b}"
+	              by simp
+	          qed
+	        qed
         have hEq': "{x. -x \<in> b} = open_interval (-c) (-a)"
           using hEq by simp
         have hOpen: "open_interval (-c) (-a) \<in> ?TR"
@@ -48144,10 +48214,37 @@ proof -
         show ?thesis
         proof (rule disjE[OF hrest])
           assume hbr: "\<exists>a. b = open_ray_gt a"
-          then obtain a where hbeq: "b = open_ray_gt a"
-            by blast
-          have hEq: "{x \<in> ?R. -x \<in> b} = open_ray_lt (-a)"
-            unfolding hbeq open_ray_gt_def open_ray_lt_def by auto
+	          then obtain a where hbeq: "b = open_ray_gt a"
+	            by blast
+	          have hEq: "{x \<in> ?R. -x \<in> b} = open_ray_lt (-a)"
+	          proof (rule equalityI)
+	            show "{x \<in> ?R. -x \<in> b} \<subseteq> open_ray_lt (-a)"
+	            proof (rule subsetI)
+	              fix x
+	              assume hx: "x \<in> {x \<in> ?R. -x \<in> b}"
+	              have "-x \<in> b"
+	                using hx by simp
+	              have "a < -x"
+	                using \<open>-x \<in> b\<close> unfolding hbeq open_ray_gt_def by simp
+	              hence "x < -a"
+	                by linarith
+	              thus "x \<in> open_ray_lt (-a)"
+	                unfolding open_ray_lt_def by simp
+	            qed
+	            show "open_ray_lt (-a) \<subseteq> {x \<in> ?R. -x \<in> b}"
+	            proof (rule subsetI)
+	              fix x
+	              assume hx: "x \<in> open_ray_lt (-a)"
+	              have "x < -a"
+	                using hx unfolding open_ray_lt_def by simp
+	              hence "a < -x"
+	                by linarith
+	              hence "-x \<in> b"
+	                unfolding hbeq open_ray_gt_def by simp
+	              thus "x \<in> {x \<in> ?R. -x \<in> b}"
+	                by simp
+	            qed
+	          qed
           have hEq': "{x. -x \<in> b} = open_ray_lt (-a)"
             using hEq by simp
           have hOpen: "open_ray_lt (-a) \<in> ?TR"
@@ -48158,11 +48255,38 @@ proof -
           assume hrest2: "(\<exists>a. b = open_ray_lt a) \<or> b = (UNIV::real set)"
           show ?thesis
           proof (rule disjE[OF hrest2])
-            assume hbl: "\<exists>a. b = open_ray_lt a"
-            then obtain a where hbeq: "b = open_ray_lt a"
-              by blast
-            have hEq: "{x \<in> ?R. -x \<in> b} = open_ray_gt (-a)"
-              unfolding hbeq open_ray_gt_def open_ray_lt_def by auto
+	            assume hbl: "\<exists>a. b = open_ray_lt a"
+	            then obtain a where hbeq: "b = open_ray_lt a"
+	              by blast
+	            have hEq: "{x \<in> ?R. -x \<in> b} = open_ray_gt (-a)"
+	            proof (rule equalityI)
+	              show "{x \<in> ?R. -x \<in> b} \<subseteq> open_ray_gt (-a)"
+	              proof (rule subsetI)
+	                fix x
+	                assume hx: "x \<in> {x \<in> ?R. -x \<in> b}"
+	                have "-x \<in> b"
+	                  using hx by simp
+	                have "-x < a"
+	                  using \<open>-x \<in> b\<close> unfolding hbeq open_ray_lt_def by simp
+	                hence "-a < x"
+	                  by linarith
+	                thus "x \<in> open_ray_gt (-a)"
+	                  unfolding open_ray_gt_def by simp
+	              qed
+	              show "open_ray_gt (-a) \<subseteq> {x \<in> ?R. -x \<in> b}"
+	              proof (rule subsetI)
+	                fix x
+	                assume hx: "x \<in> open_ray_gt (-a)"
+	                have "-a < x"
+	                  using hx unfolding open_ray_gt_def by simp
+	                hence "-x < a"
+	                  by linarith
+	                hence "-x \<in> b"
+	                  unfolding hbeq open_ray_lt_def by simp
+	                thus "x \<in> {x \<in> ?R. -x \<in> b}"
+	                  by simp
+	              qed
+	            qed
             have hEq': "{x. -x \<in> b} = open_ray_gt (-a)"
               using hEq by simp
             have hOpen: "open_ray_gt (-a) \<in> ?TR"
