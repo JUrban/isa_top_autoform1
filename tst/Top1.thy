@@ -6519,7 +6519,12 @@ proof -
       show "x \<in> {x \<in> X. f x \<in> V} \<longleftrightarrow> x \<in> {x \<in> X. f x \<in> Y \<inter> V}"
       proof
         assume hx: "x \<in> {x \<in> X. f x \<in> V}"
-        have hxX: "x \<in> X" and hfxV: "f x \<in> V" using hx by simp_all
+        have hx_conj: "x \<in> X \<and> f x \<in> V"
+          using hx by simp
+        have hxX: "x \<in> X"
+          using hx_conj by (rule conjunct1)
+        have hfxV: "f x \<in> V"
+          using hx_conj by (rule conjunct2)
         have hfxY: "f x \<in> Y" using hmap hxX by blast
         show "x \<in> {x \<in> X. f x \<in> Y \<inter> V}"
           using hxX hfxY hfxV by simp
@@ -6993,7 +6998,12 @@ proof -
           show "x \<in> {x \<in> X. (g \<circ> f) x \<in> W} \<longleftrightarrow> x \<in> {x \<in> X. f x \<in> {y \<in> Y. g y \<in> W}}"
           proof
             assume hx: "x \<in> {x \<in> X. (g \<circ> f) x \<in> W}"
-            have hxX: "x \<in> X" and hgfx: "g (f x) \<in> W" using hx by simp_all
+            have hx_conj: "x \<in> X \<and> g (f x) \<in> W"
+              using hx by simp
+            have hxX: "x \<in> X"
+              using hx_conj by (rule conjunct1)
+            have hgfx: "g (f x) \<in> W"
+              using hx_conj by (rule conjunct2)
             have hfxY: "f x \<in> Y" using hfY hxX by blast
             have "f x \<in> {y \<in> Y. g y \<in> W}" using hfxY hgfx by blast
             thus "x \<in> {x \<in> X. f x \<in> {y \<in> Y. g y \<in> W}}" using hxX by blast
@@ -7512,7 +7522,12 @@ proof (rule iffI)
         show "a \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U} \<longleftrightarrow> a \<in> {a \<in> A. f a \<in> U \<times> Y}"
         proof
           assume ha: "a \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U}"
-          have haA: "a \<in> A" and hfst: "pi1 (f a) \<in> U" using ha by simp_all
+          have ha_conj: "a \<in> A \<and> pi1 (f a) \<in> U"
+            using ha by simp
+          have haA: "a \<in> A"
+            using ha_conj by (rule conjunct1)
+          have hfst: "pi1 (f a) \<in> U"
+            using ha_conj by (rule conjunct2)
           have hfa: "f a \<in> X \<times> Y" using hf_range haA by blast
           have hfa_xy: "fst (f a) \<in> X \<and> snd (f a) \<in> Y"
             using hfa by (simp add: mem_Times_iff)
@@ -7561,7 +7576,12 @@ proof (rule iffI)
         show "a \<in> {a \<in> A. (pi2 \<circ> f) a \<in> V} \<longleftrightarrow> a \<in> {a \<in> A. f a \<in> X \<times> V}"
         proof
           assume ha: "a \<in> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
-          have haA: "a \<in> A" and hsnd: "pi2 (f a) \<in> V" using ha by simp_all
+          have ha_conj: "a \<in> A \<and> pi2 (f a) \<in> V"
+            using ha by simp
+          have haA: "a \<in> A"
+            using ha_conj by (rule conjunct1)
+          have hsnd: "pi2 (f a) \<in> V"
+            using ha_conj by (rule conjunct2)
           have hfa: "f a \<in> X \<times> Y" using hf_range haA by blast
           have hfa_xy: "fst (f a) \<in> X \<and> snd (f a) \<in> Y"
             using hfa by (simp add: mem_Times_iff)
