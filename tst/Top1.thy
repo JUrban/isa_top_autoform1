@@ -7670,14 +7670,18 @@ next
       show "x \<in> {a \<in> A. f a \<in> b} \<longleftrightarrow>
             x \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U} \<inter> {a \<in> A. (pi2 \<circ> f) a \<in> V}"
         unfolding hbEq
-      proof
-        assume hx: "x \<in> {a \<in> A. f a \<in> U \<times> V}"
-        have hxA: "x \<in> A" and hfx: "f x \<in> U \<times> V"
-          using hx by simp_all
-        have hfx_uv: "fst (f x) \<in> U \<and> snd (f x) \<in> V"
-          using hfx by (simp add: mem_Times_iff)
-        have hpi1: "pi1 (f x) \<in> U"
-          using hfx_uv unfolding pi1_def by simp
+	      proof
+	        assume hx: "x \<in> {a \<in> A. f a \<in> U \<times> V}"
+	        have hx_conj: "x \<in> A \<and> f x \<in> U \<times> V"
+	          using hx by simp
+	        have hxA: "x \<in> A"
+	          using hx_conj by (rule conjunct1)
+	        have hfx: "f x \<in> U \<times> V"
+	          using hx_conj by (rule conjunct2)
+	        have hfx_uv: "fst (f x) \<in> U \<and> snd (f x) \<in> V"
+	          using hfx by (simp add: mem_Times_iff)
+	        have hpi1: "pi1 (f x) \<in> U"
+	          using hfx_uv unfolding pi1_def by simp
         have hpi2: "pi2 (f x) \<in> V"
           using hfx_uv unfolding pi2_def by simp
         have hx1: "x \<in> {a \<in> A. (pi1 \<circ> f) a \<in> U}"
@@ -8413,13 +8417,17 @@ proof (rule set_eqI)
       using hfi by simp
     show "f \<in> {f \<in> top1_PiE I X. f i \<in> U}"
       using hfX hfiU by simp
-  next
-    assume hf: "f \<in> {f \<in> top1_PiE I X. f i \<in> U}"
-    have hfX: "f \<in> top1_PiE I X" and hfiU: "f i \<in> U"
-      using hf by simp_all
-    have hfext: "\<forall>j. j \<notin> I \<longrightarrow> f j = undefined"
-      using hfX unfolding top1_PiE_iff by blast
-    have hmem: "\<forall>j\<in>I. f j \<in> (if j = i then U \<inter> X i else X j)"
+	  next
+	    assume hf: "f \<in> {f \<in> top1_PiE I X. f i \<in> U}"
+	    have hf_conj: "f \<in> top1_PiE I X \<and> f i \<in> U"
+	      using hf by simp
+	    have hfX: "f \<in> top1_PiE I X"
+	      using hf_conj by (rule conjunct1)
+	    have hfiU: "f i \<in> U"
+	      using hf_conj by (rule conjunct2)
+	    have hfext: "\<forall>j. j \<notin> I \<longrightarrow> f j = undefined"
+	      using hfX unfolding top1_PiE_iff by blast
+	    have hmem: "\<forall>j\<in>I. f j \<in> (if j = i then U \<inter> X i else X j)"
     proof (intro ballI)
       fix j assume hj: "j \<in> I"
       have hfXj: "f j \<in> X j"
