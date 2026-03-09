@@ -32358,16 +32358,231 @@ proof -
       qed
     qed
 
-								    have hOpenSubsetEq: "\<And>W. W \<subseteq> Y \<Longrightarrow> (W \<in> TY \<longleftrightarrow> W \<in> TY')"
-								    text \<open>
-								      TODO (timeout discipline): attempts at a full structured proof of this equivalence were
-								      saved as \<open>wip_hOpenSubsetEq_0196\<close> / \<open>wip_hOpenSubsetEq_0197\<close>, but they pushed the
-								      full session over the 120s timeout.  The intended argument is:
-								      (i) if \<open>None \<notin> W\<close>, reduce to openness in the common subspace topology on \<open>Some ` X\<close>;
-								      (ii) if \<open>None \<in> W\<close>, let \<open>C = Y - W\<close>, show \<open>C \<subseteq> Some ` X\<close>, transfer compactness of \<open>C\<close>
-								      between the two subspace topologies, then use compactness+Hausdorff to conclude closedness.
-								    \<close>
-								      sorry
+									    have hOpenSubsetEq: "\<And>W. W \<subseteq> Y \<Longrightarrow> (W \<in> TY \<longleftrightarrow> W \<in> TY')"
+									    proof -
+									      fix W
+									      assume hWY: "W \<subseteq> Y"
+									      show "W \<in> TY \<longleftrightarrow> W \<in> TY'"
+									      proof (cases "None \<in> W")
+									        case False
+									        have hWsubS: "W \<subseteq> ?S"
+									        proof (rule subsetI)
+									          fix w
+									          assume hw: "w \<in> W"
+									          have hwY: "w \<in> Y"
+									            using hWY hw by blast
+									          have hw_notNone: "w \<noteq> None"
+									          proof
+									            assume h: "w = None"
+									            have "None \<in> W"
+									              using hw h by simp
+									            thus False
+									              using False by contradiction
+									          qed
+									          show "w \<in> ?S"
+									          proof (cases w)
+									            case None
+									            thus ?thesis
+									              using hw_notNone by contradiction
+									          next
+									            case (Some x)
+									            have "Some x \<in> Some ` X"
+									              using hwY hw_notNone unfolding Y_def Some by blast
+									            thus ?thesis
+									              using Some by simp
+									          qed
+									        qed
+
+									        have hTY_iff: "W \<in> TY \<longleftrightarrow> W \<in> ?TS"
+									        proof
+									          assume hWopen: "W \<in> TY"
+									          have hEq: "W = ?S \<inter> W"
+									          proof (rule equalityI)
+									            show "W \<subseteq> ?S \<inter> W"
+									              using hWsubS by blast
+									            show "?S \<inter> W \<subseteq> W"
+									              by blast
+									          qed
+									          show "W \<in> ?TS"
+									            unfolding subspace_topology_def
+									            apply (rule CollectI)
+									            apply (rule exI[where x=W])
+									            apply (intro conjI)
+									             apply (rule hEq)
+									            apply (rule hWopen)
+									            done
+									        next
+									          assume hWopen: "W \<in> ?TS"
+									          obtain U where hU: "U \<in> TY" and hEq: "W = ?S \<inter> U"
+									            using hWopen unfolding subspace_topology_def by blast
+									          have hInt: "?S \<inter> U \<in> TY"
+									            by (rule topology_inter2[OF hTopY hS_open hU])
+									          show "W \<in> TY"
+									            by (subst hEq, rule hInt)
+									        qed
+
+									        have hTY'_iff: "W \<in> TY' \<longleftrightarrow> W \<in> ?TS'"
+									        proof
+									          assume hWopen: "W \<in> TY'"
+									          have hEq: "W = ?S \<inter> W"
+									          proof (rule equalityI)
+									            show "W \<subseteq> ?S \<inter> W"
+									              using hWsubS by blast
+									            show "?S \<inter> W \<subseteq> W"
+									              by blast
+									          qed
+									          show "W \<in> ?TS'"
+									            unfolding subspace_topology_def
+									            apply (rule CollectI)
+									            apply (rule exI[where x=W])
+									            apply (intro conjI)
+									             apply (rule hEq)
+									            apply (rule hWopen)
+									            done
+									        next
+									          assume hWopen: "W \<in> ?TS'"
+									          obtain U where hU: "U \<in> TY'" and hEq: "W = ?S \<inter> U"
+									            using hWopen unfolding subspace_topology_def by blast
+									          have hInt: "?S \<inter> U \<in> TY'"
+									            by (rule topology_inter2[OF hTopY' hS_open' hU])
+									          show "W \<in> TY'"
+									            by (subst hEq, rule hInt)
+									        qed
+
+									        have hTS_mem: "W \<in> ?TS \<longleftrightarrow> W \<in> ?TS'"
+									          using hTS_eq by simp
+
+									        show ?thesis
+									        proof
+									          assume hWopen: "W \<in> TY"
+									          have "W \<in> ?TS"
+									            using iffD1[OF hTY_iff hWopen] .
+									          have "W \<in> ?TS'"
+									            using iffD1[OF hTS_mem \<open>W \<in> ?TS\<close>] .
+									          show "W \<in> TY'"
+									            using iffD2[OF hTY'_iff \<open>W \<in> ?TS'\<close>] .
+									        next
+									          assume hWopen: "W \<in> TY'"
+									          have "W \<in> ?TS'"
+									            using iffD1[OF hTY'_iff hWopen] .
+									          have "W \<in> ?TS"
+									            using iffD2[OF hTS_mem \<open>W \<in> ?TS'\<close>] .
+									          show "W \<in> TY"
+									            using iffD2[OF hTY_iff \<open>W \<in> ?TS\<close>] .
+									        qed
+									      next
+									        case True
+									        define C where "C = Y - W"
+									        have hCY: "C \<subseteq> Y"
+									          unfolding C_def by blast
+									        have hCsubS: "C \<subseteq> ?S"
+									        proof (rule subsetI)
+									          fix c
+									          assume hc: "c \<in> C"
+									          have hcY: "c \<in> Y"
+									            using hc unfolding C_def by blast
+									          have hc_notW: "c \<notin> W"
+									            using hc unfolding C_def by blast
+									          have hc_notNone: "c \<noteq> None"
+									          proof
+									            assume h: "c = None"
+									            have "None \<notin> W"
+									              using hc_notW h by simp
+									            thus False
+									              using True by contradiction
+									          qed
+									          show "c \<in> ?S"
+									          proof (cases c)
+									            case None
+									            thus ?thesis
+									              using hc_notNone by contradiction
+									          next
+									            case (Some x)
+									            have "Some x \<in> Some ` X"
+									              using hcY hc_notNone unfolding Y_def Some by blast
+									            thus ?thesis
+									              using Some by simp
+									          qed
+									        qed
+
+									        have hYC: "Y - C = W"
+									        proof -
+									          have h1: "Y - C = Y \<inter> W"
+									            by (simp only: C_def Diff_Diff_Int)
+									          have h2: "Y \<inter> W = W"
+									          proof (rule equalityI)
+									            show "Y \<inter> W \<subseteq> W"
+									              by blast
+									            show "W \<subseteq> Y \<inter> W"
+									              using hWY by blast
+									          qed
+									          show ?thesis
+									            using h1 h2 by simp
+									        qed
+
+									        have hTopEq: "subspace_topology ?S ?TS C = subspace_topology Y TY C"
+									          using subspace_topology_trans[OF hCsubS] by simp
+									        have hTopEq': "subspace_topology ?S ?TS' C = subspace_topology Y TY' C"
+									          using subspace_topology_trans[OF hCsubS] by simp
+
+									        show ?thesis
+									        proof
+									          assume hWopen: "W \<in> TY"
+
+									          have hC_closed: "closedin_on Y TY C"
+									          proof (rule closedin_intro)
+									            show "C \<subseteq> Y"
+									              by (rule hCY)
+									            show "Y - C \<in> TY"
+									              using hWopen hYC by simp
+									          qed
+
+									          have hC_comp: "top1_compact_on C (subspace_topology Y TY C)"
+									            by (rule Theorem_26_2[OF hCompY hC_closed])
+
+									          have hC_compS: "top1_compact_on C (subspace_topology ?S ?TS C)"
+									            by (subst hTopEq, rule hC_comp)
+									          have hC_compS': "top1_compact_on C (subspace_topology ?S ?TS' C)"
+									            by (subst hTS_eq[symmetric], rule hC_compS)
+									          have hC_comp': "top1_compact_on C (subspace_topology Y TY' C)"
+									            by (subst hTopEq'[symmetric], rule hC_compS')
+
+									          have hC_closed': "closedin_on Y TY' C"
+									            by (rule Theorem_26_3[OF hHausY' hCY hC_comp'])
+									          have "Y - C \<in> TY'"
+									            by (rule closedin_diff_open[OF hC_closed'])
+									          thus "W \<in> TY'"
+									            using hYC by simp
+									        next
+									          assume hWopen: "W \<in> TY'"
+
+									          have hC_closed: "closedin_on Y TY' C"
+									          proof (rule closedin_intro)
+									            show "C \<subseteq> Y"
+									              by (rule hCY)
+									            show "Y - C \<in> TY'"
+									              using hWopen hYC by simp
+									          qed
+
+									          have hC_comp: "top1_compact_on C (subspace_topology Y TY' C)"
+									            by (rule Theorem_26_2[OF hCompY' hC_closed])
+
+									          have hC_compS: "top1_compact_on C (subspace_topology ?S ?TS' C)"
+									            by (subst hTopEq', rule hC_comp)
+									          have hC_compS': "top1_compact_on C (subspace_topology ?S ?TS C)"
+									            by (subst hTS_eq, rule hC_compS)
+									          have hC_comp': "top1_compact_on C (subspace_topology Y TY C)"
+									            by (subst hTopEq[symmetric], rule hC_compS')
+
+									          have hC_closed': "closedin_on Y TY C"
+									            by (rule Theorem_26_3[OF hHausY hCY hC_comp'])
+									          have "Y - C \<in> TY"
+									            by (rule closedin_diff_open[OF hC_closed'])
+									          thus "W \<in> TY"
+									            using hYC by simp
+									        qed
+									      qed
+									    qed
 					
 						    define h :: "'a option \<Rightarrow> 'a option" where "h = (\<lambda>z. z)"
 	
