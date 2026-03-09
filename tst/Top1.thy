@@ -40811,11 +40811,16 @@ proof -
   have hTopX: "is_topology_on X TX"
     using hT1 unfolding top1_T1_on_def by (rule conjunct1)
 
+  have hexU0:
+    "\<exists>U0. U0 \<in> TX \<and> U0 \<subseteq> X \<and> A \<subseteq> U0 \<and> closure_on X TX U0 \<subseteq> (X - B)"
+    by (rule normal_urysohn_initial_step[OF hN hA hB hdisj])
   obtain U0 where hU0:
     "U0 \<in> TX \<and> U0 \<subseteq> X \<and> A \<subseteq> U0 \<and> closure_on X TX U0 \<subseteq> (X - B)"
-    using normal_urysohn_initial_step[OF hN hA hB hdisj] by blast
-  have hU0_open: "U0 \<in> TX" and hU0_subX: "U0 \<subseteq> X"
-    using hU0 by blast+
+    using hexU0 by (elim exE)
+  have hU0_open: "U0 \<in> TX"
+    by (rule conjunct1[OF hU0])
+  have hU0_subX: "U0 \<subseteq> X"
+    by (rule conjunct1[OF conjunct2[OF hU0]])
 
   let ?U1 = "X - B"
   have hU1_open: "?U1 \<in> TX"
@@ -40823,7 +40828,7 @@ proof -
   have hU1_subX: "?U1 \<subseteq> X"
     by (rule Diff_subset)
   have hcl01: "closure_on X TX U0 \<subseteq> ?U1"
-    using hU0 by blast
+    by (rule conjunct2[OF conjunct2[OF conjunct2[OF hU0]]])
 
   define U where "U n k = top1_urysohn_U X TX U0 ?U1 n k" for n k
 
@@ -40834,9 +40839,27 @@ proof -
     by (rule top1_urysohn_U_basic_properties[OF hN hU0_open hU0_subX hU1_open hU1_subX hcl01])
 
   have U_open: "U n k \<in> TX" if hk: "k \<le> ((2::nat) ^ n)" for n k
-    using hU_basic hk by blast
+  proof -
+    have hbasic:
+      "\<forall>n k. k \<le> ((2::nat) ^ n) \<longrightarrow> (U n k \<in> TX \<and> U n k \<subseteq> X)"
+      by (rule conjunct1[OF hU_basic])
+    have hnk_imp: "k \<le> ((2::nat) ^ n) \<longrightarrow> (U n k \<in> TX \<and> U n k \<subseteq> X)"
+      by (rule spec[OF spec[OF hbasic, of n], of k])
+    have hnk: "U n k \<in> TX \<and> U n k \<subseteq> X"
+      by (rule mp[OF hnk_imp hk])
+    show ?thesis by (rule conjunct1[OF hnk])
+  qed
   have U_subX: "U n k \<subseteq> X" if hk: "k \<le> ((2::nat) ^ n)" for n k
-    using hU_basic hk by blast
+  proof -
+    have hbasic:
+      "\<forall>n k. k \<le> ((2::nat) ^ n) \<longrightarrow> (U n k \<in> TX \<and> U n k \<subseteq> X)"
+      by (rule conjunct1[OF hU_basic])
+    have hnk_imp: "k \<le> ((2::nat) ^ n) \<longrightarrow> (U n k \<in> TX \<and> U n k \<subseteq> X)"
+      by (rule spec[OF spec[OF hbasic, of n], of k])
+    have hnk: "U n k \<in> TX \<and> U n k \<subseteq> X"
+      by (rule mp[OF hnk_imp hk])
+    show ?thesis by (rule conjunct2[OF hnk])
+  qed
 
   have closure_U_subX: "closure_on X TX (U n k) \<subseteq> X" if hk: "k \<le> ((2::nat) ^ n)" for n k
     apply (rule closure_on_subset_carrier[OF hTopX])
@@ -40881,9 +40904,11 @@ proof -
     next
       case False
       have "r \<in> {top1_dyadic n k |n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k}"
-        using hr False unfolding S_def by blast
+        using hr False unfolding S_def by simp
+      have hex: "\<exists>n k. r = top1_dyadic n k \<and> k \<le> (2::nat) ^ n \<and> x \<in> U n k"
+        using \<open>r \<in> {top1_dyadic n k |n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k}\<close> by simp
       then obtain n k where hr_eq: "r = top1_dyadic n k"
-        by blast
+        by (elim exE conjE)
       show ?thesis
         unfolding hr_eq by (rule dyadic_nonneg)
     qed
@@ -40896,9 +40921,11 @@ proof -
   next
     case False
     have "r \<in> {top1_dyadic n k | n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k}"
-      using hr False unfolding S_def by blast
+      using hr False unfolding S_def by simp
+    have hex: "\<exists>n k. r = top1_dyadic n k \<and> k \<le> (2::nat) ^ n \<and> x \<in> U n k"
+      using \<open>r \<in> {top1_dyadic n k | n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k}\<close> by simp
     then obtain n k where hr_eq: "r = top1_dyadic n k"
-      by blast
+      by (elim exE conjE)
     show ?thesis
       unfolding hr_eq by (rule dyadic_nonneg)
   qed
@@ -40935,8 +40962,24 @@ proof -
     if hk: "k \<le> (2::nat) ^ n" and hxU: "x \<in> U n k"
     for x n k
   proof -
+    have hmem0: "top1_dyadic n k \<in> {top1_dyadic n' k' |n' k'. k' \<le> (2::nat) ^ n' \<and> x \<in> U n' k'}"
+    proof -
+      have "\<exists>n' k'. top1_dyadic n k = top1_dyadic n' k'
+            \<and> k' \<le> (2::nat) ^ n' \<and> x \<in> U n' k'"
+        apply (rule exI[where x=n])
+        apply (rule exI[where x=k])
+        apply (intro conjI)
+          apply simp
+         apply (rule hk)
+        apply (rule hxU)
+        done
+      thus ?thesis by simp
+    qed
     have hmem: "top1_dyadic n k \<in> S x"
-      unfolding S_def using hk hxU by blast
+      unfolding S_def
+      apply (rule insertI2)
+      apply (rule hmem0)
+      done
     show ?thesis
       unfolding f_def
       apply (rule cInf_lower)
@@ -40965,9 +41008,11 @@ proof -
       next
         case False
         have "r \<in> {top1_dyadic m l |m l. l \<le> (2::nat) ^ m \<and> x \<in> U m l}"
-          using hr False unfolding S_def by blast
+          using hr False unfolding S_def by simp
+        have hex: "\<exists>m l. r = top1_dyadic m l \<and> l \<le> (2::nat) ^ m \<and> x \<in> U m l"
+          using \<open>r \<in> {top1_dyadic m l |m l. l \<le> (2::nat) ^ m \<and> x \<in> U m l}\<close> by simp
         then obtain m l where hr_eq: "r = top1_dyadic m l" and hlm: "l \<le> (2::nat) ^ m" and hxUm: "x \<in> U m l"
-          by blast
+          by (elim exE conjE)
         have hnotlt: "\<not> top1_dyadic m l < top1_dyadic n k"
         proof
           assume hlt: "top1_dyadic m l < top1_dyadic n k"
@@ -41006,9 +41051,11 @@ proof -
       next
         case False
         have "r \<in> {top1_dyadic m l |m l. l \<le> (2::nat) ^ m \<and> x \<in> U m l}"
-          using hr False unfolding S_def by blast
+          using hr False unfolding S_def by simp
+        have hex: "\<exists>m l. r = top1_dyadic m l \<and> l \<le> (2::nat) ^ m \<and> x \<in> U m l"
+          using \<open>r \<in> {top1_dyadic m l |m l. l \<le> (2::nat) ^ m \<and> x \<in> U m l}\<close> by simp
         then obtain m l where hr_eq: "r = top1_dyadic m l" and hlm: "l \<le> (2::nat) ^ m" and hxUm: "x \<in> U m l"
-          by blast
+          by (elim exE conjE)
         have hnotlt: "\<not> top1_dyadic m l < top1_dyadic n k"
         proof
           assume hlt: "top1_dyadic m l < top1_dyadic n k"
@@ -41064,9 +41111,13 @@ proof -
         by (rule dyadic_nonneg)
       have hd_le1: "?d \<le> 1"
         using f_le1[of x] dyadic_le1[OF hk] by simp
+      have hex_ml:
+        "\<exists>m l. l \<le> (2::nat) ^ m
+          \<and> top1_dyadic n k < top1_dyadic m l \<and> top1_dyadic m l < ?d"
+        by (rule exists_top1_dyadic_between_01[OF hd0 hd1 hd_le1])
       obtain m l where hlm: "l \<le> (2::nat) ^ m"
         and hbetween: "top1_dyadic n k < top1_dyadic m l" "top1_dyadic m l < ?d"
-        using exists_top1_dyadic_between_01[OF hd0 hd1 hd_le1] by blast
+        using hex_ml by (elim exE conjE)
       have hcl_m: "closure_on X TX (U n k) \<subseteq> U m l"
         unfolding U_def
         by (rule top1_urysohn_U_closure_mono_dyadic[OF hN hU0_open hU0_subX hU1_open hU1_subX hcl01 hk hlm hbetween(1)])
@@ -41081,8 +41132,10 @@ proof -
 
   have f_on_A: "f x = 0" if hxA: "x \<in> A" for x
   proof -
+    have hA_sub_U0: "A \<subseteq> U0"
+      by (rule conjunct1[OF conjunct2[OF conjunct2[OF hU0]]])
     have hxU0': "x \<in> U0"
-      using hxA hU0 by blast
+      by (rule subsetD[OF hA_sub_U0 hxA])
     have hxU0: "x \<in> U 0 0"
       unfolding U_def by (simp add: top1_urysohn_U_endpoints hxU0')
     have hmem0: "0 \<in> S x"
@@ -41099,7 +41152,7 @@ proof -
             by (rule hxU0)
         qed
         thus ?thesis
-          by blast
+          by simp
       qed
       show ?thesis
         unfolding S_def using hmem0' by (intro insertI2)
@@ -41119,17 +41172,17 @@ proof -
   have f_on_B: "f x = 1" if hxB: "x \<in> B" for x
   proof -
     have hxnotU1: "x \<notin> ?U1"
-      using hxB by blast
+      using hxB by simp
     have hBsubX: "B \<subseteq> X"
       by (rule closedin_sub[OF hB])
     have hxX: "x \<in> X"
       by (rule subsetD[OF hBsubX hxB])
     have hnone:
       "\<not> (\<exists>n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k)"
-    proof
-      assume "\<exists>n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k"
-      then obtain n k where hk: "k \<le> (2::nat) ^ n" and hxUk: "x \<in> U n k"
-        by blast
+	    proof
+	      assume "\<exists>n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k"
+	      then obtain n k where hk: "k \<le> (2::nat) ^ n" and hxUk: "x \<in> U n k"
+	        by (elim exE conjE)
       have hU1_eq: "U n ((2::nat) ^ n) = ?U1"
         unfolding U_def by (simp add: top1_urysohn_U_endpoints)
       have hxU1': "x \<in> U n ((2::nat) ^ n)"
@@ -41149,20 +41202,32 @@ proof -
 	      fix r
 	      show "r \<in> S x \<longleftrightarrow> r \<in> {1}"
 	      proof
-	        assume hr: "r \<in> S x"
-	        have "r = 1 \<or> (\<exists>n k. r = top1_dyadic n k \<and> k \<le> (2::nat) ^ n \<and> x \<in> U n k)"
-	          using hr unfolding S_def by blast
-	        thus "r \<in> {1}"
-	        proof
-	          assume "r = 1"
-	          thus ?thesis by simp
-	        next
-	          assume "\<exists>n k. r = top1_dyadic n k \<and> k \<le> (2::nat) ^ n \<and> x \<in> U n k"
-	          then have "\<exists>n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k"
-	            by blast
-	          thus ?thesis
-	            using hnone by contradiction
-	        qed
+		        assume hr: "r \<in> S x"
+		        have "r = 1 \<or> (\<exists>n k. r = top1_dyadic n k \<and> k \<le> (2::nat) ^ n \<and> x \<in> U n k)"
+		          using hr unfolding S_def by simp
+		        thus "r \<in> {1}"
+		        proof
+		          assume "r = 1"
+		          thus ?thesis by simp
+		        next
+		          assume "\<exists>n k. r = top1_dyadic n k \<and> k \<le> (2::nat) ^ n \<and> x \<in> U n k"
+		          then have "\<exists>n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k"
+		          proof (elim exE conjE)
+		            fix n k
+		            assume "r = top1_dyadic n k"
+		            assume hk: "k \<le> (2::nat) ^ n"
+		            assume hxUk: "x \<in> U n k"
+		            show "\<exists>n k. k \<le> (2::nat) ^ n \<and> x \<in> U n k"
+		              apply (rule exI[where x=n])
+		              apply (rule exI[where x=k])
+		              apply (intro conjI)
+		               apply (rule hk)
+		              apply (rule hxUk)
+		              done
+		          qed
+		          thus ?thesis
+		            using hnone by contradiction
+		        qed
 	      next
 	        assume hr: "r \<in> {1}"
 	        show "r \<in> S x"
