@@ -799,12 +799,16 @@ proof -
           case Nil
           then show ?case
             by (simp add: mkF_def)
-	        next
-	          case (Cons p ps)
-	          obtain j V where hp: "p = (j, V)"
-	            by (cases p) simp
-	          have hij: "i \<noteq> j" and hnotps: "i \<notin> set (map fst ps)"
-	            using Cons.prems unfolding hp by simp_all
+		        next
+		          case (Cons p ps)
+		          obtain j V where hp: "p = (j, V)"
+		            by (cases p) simp
+		          have hij_hnotps: "i \<noteq> j \<and> i \<notin> set (map fst ps)"
+		            using Cons.prems unfolding hp by simp
+		          have hij: "i \<noteq> j"
+		            using hij_hnotps by (rule conjunct1)
+		          have hnotps: "i \<notin> set (map fst ps)"
+		            using hij_hnotps by (rule conjunct2)
 
           have "mkF (p # ps) i = mkF ps i"
             unfolding mkF_def hp using hij by simp
@@ -1989,13 +1993,17 @@ proof -
   show ?thesis
   proof (rule disjE[OF hcases])
     assume hbint: "\<exists>a c. a < c \<and> b = open_interval a c"
-    then obtain a c where hac: "a < c" and hbeq: "b = open_interval a c"
-      by blast
-    have ha: "a < x" and hx': "x < c"
-      using hx unfolding hbeq open_interval_def by simp_all
-    define e where "e = min (x - a) (c - x) / 2"
-    have he: "0 < e"
-    proof -
+	    then obtain a c where hac: "a < c" and hbeq: "b = open_interval a c"
+	      by blast
+	    have hax_hxc: "a < x \<and> x < c"
+	      using hx unfolding hbeq open_interval_def by simp
+	    have ha: "a < x"
+	      using hax_hxc by (rule conjunct1)
+	    have hx': "x < c"
+	      using hax_hxc by (rule conjunct2)
+	    define e where "e = min (x - a) (c - x) / 2"
+	    have he: "0 < e"
+	    proof -
       have "0 < x - a"
         using ha by linarith
       moreover have "0 < c - x"
@@ -2045,13 +2053,17 @@ proof -
     qed
 
     have hsub: "open_interval (x - e) (x + e) \<subseteq> open_interval a c"
-    proof (rule subsetI)
-      fix y assume hy: "y \<in> open_interval (x - e) (x + e)"
-      have hy1: "x - e < y" and hy2: "y < x + e"
-        using hy unfolding open_interval_def by simp_all
-      have "a < x - e"
-        using he_lt1 by linarith
-      hence "a < y"
+	    proof (rule subsetI)
+	      fix y assume hy: "y \<in> open_interval (x - e) (x + e)"
+	      have hy_conj: "x - e < y \<and> y < x + e"
+	        using hy unfolding open_interval_def by simp
+	      have hy1: "x - e < y"
+	        using hy_conj by (rule conjunct1)
+	      have hy2: "y < x + e"
+	        using hy_conj by (rule conjunct2)
+	      have "a < x - e"
+	        using he_lt1 by linarith
+	      hence "a < y"
         using hy1 by linarith
       moreover have "x + e < c"
         using he_lt2 by linarith
