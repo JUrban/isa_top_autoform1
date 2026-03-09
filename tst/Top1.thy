@@ -41752,10 +41752,16 @@ next
   have g_img: "g ` ?I \<subseteq> ?J"
   proof (rule subsetI)
     fix y assume hy: "y \<in> g ` ?I"
-    then obtain t where htI: "t \<in> ?I" and hyEq: "y = g t"
-      by blast
-    have ht0: "0 \<le> t" and ht1: "t \<le> 1"
-      using htI unfolding top1_closed_interval_def by blast+
+    have hex: "\<exists>t\<in>?I. y = g t"
+      using hy by (simp only: image_iff)
+    obtain t where htI: "t \<in> ?I" and hyEq: "y = g t"
+      using hex by (elim bexE)
+    have ht01: "0 \<le> t \<and> t \<le> 1"
+      using htI unfolding top1_closed_interval_def by simp
+    have ht0: "0 \<le> t"
+      by (rule conjunct1[OF ht01])
+    have ht1: "t \<le> 1"
+      by (rule conjunct2[OF ht01])
     have hba0: "0 \<le> b - a"
       using hab by simp
     have h0: "a \<le> g t"
@@ -41770,29 +41776,25 @@ next
         unfolding g_def by simp
     qed
     show "y \<in> ?J"
-      unfolding hyEq top1_closed_interval_def using h0 h1 by blast
+      unfolding hyEq top1_closed_interval_def using h0 h1 by simp
   qed
-
+  
   have g_cont_J: "top1_continuous_map_on ?I ?TI ?J ?TJ g"
   proof -
-    have hRestr:
-      "(\<forall>W h. top1_continuous_map_on ?I ?TI (UNIV::real set) order_topology_on_UNIV h
-	             \<and> W \<subseteq> (UNIV::real set) \<and> h ` ?I \<subseteq> W
-	             \<longrightarrow> top1_continuous_map_on ?I ?TI W (subspace_topology (UNIV::real set) order_topology_on_UNIV W) h)"
-      by (rule Theorem_18_2(5)[OF hTopI hTopUNIV hTopUNIV])
-    have "top1_continuous_map_on ?I ?TI ?J (subspace_topology (UNIV::real set) order_topology_on_UNIV ?J) g"
-    proof -
-      have "top1_continuous_map_on ?I ?TI (UNIV::real set) order_topology_on_UNIV g
-            \<and> ?J \<subseteq> (UNIV::real set)
-            \<and> g ` ?I \<subseteq> ?J"
-        using g_cont_order g_img by simp
-      thus ?thesis
-        using hRestr by blast
-    qed
-    thus ?thesis
-      unfolding top1_closed_interval_topology_def .
+    have hStep:
+      "top1_continuous_map_on ?I ?TI ?J (subspace_topology (UNIV::real set) order_topology_on_UNIV ?J) g"
+      apply (rule Theorem_18_2(5)[OF hTopI hTopUNIV hTopUNIV, rule_format, where W="?J" and f=g])
+      apply (rule conjI)
+       apply (rule g_cont_order)
+      apply (rule conjI)
+       apply simp
+      apply (rule g_img)
+      done
+    show ?thesis
+      unfolding top1_closed_interval_topology_def[of a b]
+      by (rule hStep)
   qed
-
+  
   have comp_cont: "top1_continuous_map_on X TX ?J ?TJ (g \<circ> f0)"
   proof -
     have hComp:
@@ -41800,9 +41802,24 @@ next
              \<longrightarrow> top1_continuous_map_on X TX ?J ?TJ (h \<circ> f))"
       by (rule Theorem_18_2(3)[OF hTopX' hTopI hTopJ])
     have hf0_cont: "top1_continuous_map_on X TX ?I ?TI f0"
-      using hf0 by blast
+      by (rule conjunct1[OF hf0])
+    have hImp:
+      "top1_continuous_map_on X TX ?I ?TI f0 \<and> top1_continuous_map_on ?I ?TI ?J ?TJ g
+        \<longrightarrow> top1_continuous_map_on X TX ?J ?TJ (g \<circ> f0)"
+    proof -
+      have h1:
+        "\<forall>h. top1_continuous_map_on X TX ?I ?TI f0 \<and> top1_continuous_map_on ?I ?TI ?J ?TJ h
+              \<longrightarrow> top1_continuous_map_on X TX ?J ?TJ (h \<circ> f0)"
+        by (rule spec[OF hComp, of f0])
+      show ?thesis
+        by (rule spec[OF h1, of g])
+    qed
     show ?thesis
-      using hComp hf0_cont g_cont_J by blast
+      apply (rule mp[OF hImp])
+      apply (intro conjI)
+       apply (rule hf0_cont)
+      apply (rule g_cont_J)
+      done
   qed
 
   show ?thesis
