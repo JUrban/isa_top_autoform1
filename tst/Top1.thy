@@ -34769,7 +34769,16 @@ proof -
   qed
 
   have hTopI: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
-    using hB0 by (metis basis_for_is_topology_on)
+  proof (intro ballI)
+    fix i
+    assume hiI: "i \<in> I"
+    have hB0i: "top1_countable (B0 i) \<and> basis_for (X i) (B0 i) (T i)"
+      using hB0 hiI by blast
+    have "basis_for (X i) (B0 i) (T i)"
+      using hB0i by (rule conjunct2)
+    thus "is_topology_on (X i) (T i)"
+      by (rule basis_for_is_topology_on)
+  qed
   have hXiTi: "\<forall>i\<in>I. X i \<in> T i"
     using hTopI unfolding is_topology_on_def by blast
 
@@ -51703,8 +51712,14 @@ proof -
       using hxU by blast
     have hyset: "y \<in> set xs"
       using hxs hyI by simp
-    obtain j where hj: "j < length xs" and hnth: "xs ! j = y"
-      using hyset by (metis in_set_conv_nth)
+    have hexj: "\<exists>j<length xs. xs ! j = y"
+      using hyset by (simp add: in_set_conv_nth)
+    obtain j where hjconj: "j < length xs \<and> xs ! j = y"
+      using hexj by blast
+    have hj: "j < length xs"
+      using hjconj by (rule conjunct1)
+    have hnth: "xs ! j = y"
+      using hjconj by (rule conjunct2)
     have hjn: "j < n"
       unfolding n_def using hj by simp
     have hxUj: "x \<in> U j"
