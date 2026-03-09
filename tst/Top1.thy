@@ -39897,15 +39897,21 @@ proof -
               show "{} \<subseteq> U \<inter> V" by simp
             qed
 
-            show ?thesis
-              apply (rule exI[where x=U])
-              apply (rule exI[where x=V])
-              using hUopen hVopen hA_sub hB_sub hUV_disj by blast
-          qed
-        qed
-      qed
-    qed
-  qed
+	            show ?thesis
+	              apply (rule exI[where x=U])
+	              apply (rule exI[where x=V])
+	              apply (intro conjI)
+	                   apply (rule hUopen)
+	                  apply (rule hVopen)
+	                 apply (rule hA_sub)
+	                apply (rule hB_sub)
+	              apply (rule hUV_disj)
+	              done
+	          qed
+	        qed
+	      qed
+	    qed
+	  qed
 qed
 
 section \<open>\<S>33 The Urysohn Lemma\<close>
@@ -39937,15 +39943,19 @@ proof -
     have hxnotB: "x \<notin> B"
     proof
       assume hxB: "x \<in> B"
-      have "x \<in> A \<inter> B" using hxA hxB by blast
-      thus False using hdisj by blast
+      have "x \<in> A \<inter> B"
+        by (rule IntI[OF hxA hxB])
+      thus False using hdisj by simp
     qed
-    show "x \<in> X - B" using hxX hxnotB by blast
+    show "x \<in> X - B" using hxX hxnotB by simp
   qed
 
+  have hexU0:
+    "\<exists>U0. U0 \<in> TX \<and> U0 \<subseteq> X \<and> A \<subseteq> U0 \<and> closure_on X TX U0 \<subseteq> (X - B)"
+    by (rule normal_refine_closed_into_open[OF hN hA hU1_open hU1_subX hA_sub_U1])
   obtain U0 where hU0:
       "U0 \<in> TX \<and> U0 \<subseteq> X \<and> A \<subseteq> U0 \<and> closure_on X TX U0 \<subseteq> (X - B)"
-    using normal_refine_closed_into_open[OF hN hA hU1_open hU1_subX hA_sub_U1] by blast
+    using hexU0 by (elim exE)
   show ?thesis by (rule exI[where x=U0], rule hU0)
 qed
 
@@ -40220,10 +40230,23 @@ proof -
         have hodd_props:
           "top1_urysohn_U X TX U0 U1 (Suc n) k \<in> TX
             \<and> top1_urysohn_U X TX U0 U1 (Suc n) k \<subseteq> X"
-          using top1_urysohn_U_odd_step_properties[OF hN hkodd
-                conjunct1[OF hL] conjunct2[OF hL]
-                conjunct1[OF hR] conjunct2[OF hR] hcl]
-          by blast
+        proof -
+          have hall:
+            "top1_urysohn_U X TX U0 U1 (Suc n) k \<in> TX
+              \<and> top1_urysohn_U X TX U0 U1 (Suc n) k \<subseteq> X
+              \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 n (k div (2::nat)))
+                    \<subseteq> top1_urysohn_U X TX U0 U1 (Suc n) k
+              \<and> closure_on X TX (top1_urysohn_U X TX U0 U1 (Suc n) k)
+                    \<subseteq> top1_urysohn_U X TX U0 U1 n (Suc (k div (2::nat)))"
+            by (rule top1_urysohn_U_odd_step_properties[OF hN hkodd
+                  conjunct1[OF hL] conjunct2[OF hL]
+                  conjunct1[OF hR] conjunct2[OF hR] hcl])
+          show ?thesis
+            apply (intro conjI)
+             apply (rule conjunct1[OF hall])
+            apply (rule conjunct1[OF conjunct2[OF hall]])
+            done
+        qed
         show ?thesis
           by (rule hodd_props)
       qed
@@ -41690,8 +41713,8 @@ next
     show "{t \<in> ?I. g t \<in> B} \<in> ?TI"
     proof (rule disjE[OF hCases])
       assume hInt: "\<exists>u v. u < v \<and> B = open_interval u v"
-      then obtain u v where hBeq: "B = open_interval u v"
-        by blast
+      from hInt obtain u v where huv: "u < v" and hBeq: "B = open_interval u v"
+        by (elim exE conjE)
       have hEq:
         "{t \<in> ?I. g t \<in> B} = {t \<in> ?I. g t \<in> open_ray_gt u} \<inter> {t \<in> ?I. g t \<in> open_ray_lt v}"
         unfolding hBeq open_interval_def open_ray_gt_def open_ray_lt_def
@@ -41710,7 +41733,7 @@ next
       proof (rule disjE[OF hRest])
         assume h1: "\<exists>u. B = open_ray_gt u"
         then obtain u where hBeq: "B = open_ray_gt u"
-          by blast
+          by (elim exE)
         show ?thesis
           unfolding hBeq by (rule pre_ray_gt_g)
       next
@@ -41719,13 +41742,13 @@ next
         proof (rule disjE[OF h2])
           assume h21: "\<exists>u. B = open_ray_lt u"
           then obtain u where hBeq: "B = open_ray_lt u"
-            by blast
+            by (elim exE)
           show ?thesis
             unfolding hBeq by (rule pre_ray_lt_g)
         next
           assume hBeq: "B = (UNIV::real set)"
           have hI_open: "?I \<in> ?TI"
-            using hTopI unfolding is_topology_on_def by blast
+            by (rule conjunct1[OF conjunct2[OF hTopI[unfolded is_topology_on_def]]])
           show ?thesis
             unfolding hBeq using hI_open by simp
         qed
@@ -41887,10 +41910,16 @@ proof -
     show "?G \<inter> ?L \<subseteq> {}"
     proof (rule subsetI)
       fix t assume ht: "t \<in> ?G \<inter> ?L"
-      have htG: "t \<in> open_ray_gt ?c" and htL: "t \<in> open_ray_lt ?c"
-        using ht by blast+
-      have "?c < t" using htG unfolding open_ray_gt_def by blast
-      moreover have "t < ?c" using htL unfolding open_ray_lt_def by blast
+      have htG0: "t \<in> ?G"
+        using ht by simp
+      have htL0: "t \<in> ?L"
+        using ht by simp
+      have htG: "t \<in> open_ray_gt ?c"
+        using htG0 by simp
+      have htL: "t \<in> open_ray_lt ?c"
+        using htL0 by simp
+      have "?c < t" using htG unfolding open_ray_gt_def by simp
+      moreover have "t < ?c" using htL unfolding open_ray_lt_def by simp
       ultimately have False by linarith
       thus "t \<in> {}" by simp
     qed
@@ -41907,8 +41936,10 @@ proof -
       fix x C
       assume hxX: "x \<in> X"
       assume hC: "closedin_on X TX C \<and> x \<notin> C"
-      have hCcl: "closedin_on X TX C" and hxC: "x \<notin> C"
-        using hC by blast+
+      have hCcl: "closedin_on X TX C"
+        by (rule conjunct1[OF hC])
+      have hxC: "x \<notin> C"
+        by (rule conjunct2[OF hC])
 
       have hSepx: "\<forall>A. closedin_on X TX A \<and> x \<notin> A \<longrightarrow>
          (\<exists>f::'a \<Rightarrow> real.
@@ -41930,15 +41961,25 @@ proof -
 
       obtain f where hfcont: "top1_continuous_map_on X TX ?I ?TI f"
           and hfx: "f x = 1" and hfC0: "\<forall>z\<in>C. f z = 0"
-        using hexF by blast
+        using hexF by (elim exE conjE)
 
       let ?U = "{z\<in>X. f z \<in> ?G}"
       let ?V = "{z\<in>X. f z \<in> ?L}"
 
       have hU_open: "?U \<in> TX"
-        using hfcont hG_open unfolding top1_continuous_map_on_def by blast
+      proof -
+        have hpre: "\<forall>V\<in>?TI. {z\<in>X. f z \<in> V} \<in> TX"
+          by (rule conjunct2[OF hfcont[unfolded top1_continuous_map_on_def]])
+        show ?thesis
+          using hpre hG_open by (rule bspec)
+      qed
       have hV_open: "?V \<in> TX"
-        using hfcont hL_open unfolding top1_continuous_map_on_def by blast
+      proof -
+        have hpre: "\<forall>V\<in>?TI. {z\<in>X. f z \<in> V} \<in> TX"
+          by (rule conjunct2[OF hfcont[unfolded top1_continuous_map_on_def]])
+        show ?thesis
+          using hpre hL_open by (rule bspec)
+      qed
 
       have hxc: "x \<in> ?U"
       proof -
@@ -41955,7 +41996,7 @@ proof -
       proof (rule subsetI)
         fix z assume hzC: "z \<in> C"
         have hzX: "z \<in> X" by (rule subsetD[OF closedin_sub[OF hCcl] hzC])
-        have hfz: "f z = 0" using hfC0 hzC by blast
+        have hfz: "f z = 0" using hfC0 hzC by (rule bspec)
         have h0I: "0 \<in> ?I"
           unfolding top1_closed_interval_def by simp
         have h0L: "0 \<in> open_ray_lt ?c"
@@ -41968,25 +42009,30 @@ proof -
       have hUV_disj: "?U \<inter> ?V = {}"
       proof (rule equalityI)
         show "?U \<inter> ?V \<subseteq> {}"
-	        proof (rule subsetI)
-	          fix z assume hz: "z \<in> ?U \<inter> ?V"
-	          have hzU: "z \<in> ?U"
-	            using hz by simp
-	          have hzV: "z \<in> ?V"
-	            using hz by simp
-	          have hzG: "f z \<in> ?G"
-	            using hzU by simp
-	          have hzL: "f z \<in> ?L"
-	            using hzV by simp
-	          have "f z \<in> ?G \<inter> ?L" using hzG hzL by blast
-	          hence "f z \<in> {}" using hdisj_cod by simp
-	          thus "z \<in> {}" by blast
-	        qed
-        show "{} \<subseteq> ?U \<inter> ?V" by (rule empty_subsetI)
-      qed
+		        proof (rule subsetI)
+		          fix z assume hz: "z \<in> ?U \<inter> ?V"
+		          have hzU: "z \<in> ?U"
+		            using hz by simp
+		          have hzV: "z \<in> ?V"
+		            using hz by simp
+		          have hzG: "f z \<in> ?G"
+		            using hzU by simp
+		          have hzL: "f z \<in> ?L"
+		            using hzV by simp
+		          have "f z \<in> ?G \<inter> ?L"
+		            by (rule IntI[OF hzG hzL])
+		          hence False using hdisj_cod by simp
+		          thus "z \<in> {}" by simp
+		        qed
+	        show "{} \<subseteq> ?U \<inter> ?V" by (rule empty_subsetI)
+	      qed
 
       have hnbhd: "neighborhood_of x X TX ?U"
-        unfolding neighborhood_of_def using hU_open hxc by blast
+        unfolding neighborhood_of_def
+        apply (intro conjI)
+         apply (rule hU_open)
+        apply (rule hxc)
+        done
 
       show "\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {}"
         apply (rule exI[where x="?U"])
