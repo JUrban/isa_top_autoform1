@@ -41493,49 +41493,55 @@ proof -
 	    qed
 	  qed
 	
-	  have hfimg: "f ` X \<subseteq> top1_closed_interval 0 1"
-	  proof (rule subsetI)
-	    fix y assume hy: "y \<in> f ` X"
-	    then obtain x where hxX: "x \<in> X" and hyEq: "y = f x"
-	      by blast
-	    show "y \<in> top1_closed_interval 0 1"
-	      unfolding hyEq by (rule f_in_I[OF hxX])
-	  qed
+		  have hfimg: "f ` X \<subseteq> top1_closed_interval 0 1"
+		  proof (rule subsetI)
+		    fix y assume hy: "y \<in> f ` X"
+		    have hex: "\<exists>x\<in>X. y = f x"
+		      using hy by (simp only: image_iff)
+		    obtain x where hxX: "x \<in> X" and hyEq: "y = f x"
+		      using hex by (elim bexE)
+		    show "y \<in> top1_closed_interval 0 1"
+		      unfolding hyEq by (rule f_in_I[OF hxX])
+		  qed
 	
 	  have f_cont_I:
 	    "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
-	  proof -
-	    have hTopUNIV: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
-	      by (rule order_topology_on_UNIV_is_topology_on)
-	    have hRestr:
-	      "(\<forall>W g. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV g
-	             \<and> W \<subseteq> (UNIV::real set) \<and> g ` X \<subseteq> W
-	             \<longrightarrow> top1_continuous_map_on X TX W (subspace_topology (UNIV::real set) order_topology_on_UNIV W) g)"
-	      by (rule Theorem_18_2(5)[OF hTopX hTopUNIV hTopUNIV])
-	    have "top1_continuous_map_on X TX (top1_closed_interval 0 1)
-	            (subspace_topology (UNIV::real set) order_topology_on_UNIV (top1_closed_interval 0 1)) f"
-	    proof -
-	      have "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV f
-	            \<and> top1_closed_interval 0 1 \<subseteq> (UNIV::real set)
-	            \<and> f ` X \<subseteq> top1_closed_interval 0 1"
-	        using f_cont_order hfimg by simp
-	      thus ?thesis
-	        using hRestr by blast
-	    qed
-	    thus ?thesis
-	      unfolding top1_closed_interval_topology_def .
-	  qed
+		  proof -
+		    have hTopUNIV: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+		      by (rule order_topology_on_UNIV_is_topology_on)
+		    have hStep:
+		      "top1_continuous_map_on X TX (top1_closed_interval 0 1)
+		        (subspace_topology (UNIV::real set) order_topology_on_UNIV (top1_closed_interval 0 1)) f"
+		      apply (rule Theorem_18_2(5)[OF hTopX hTopUNIV hTopUNIV, rule_format, where W="top1_closed_interval 0 1" and f=f])
+		      apply (rule conjI)
+		       apply (rule f_cont_order)
+		      apply (rule conjI)
+		       apply simp
+		      apply (rule hfimg)
+		      done
+		    show ?thesis
+		      unfolding top1_closed_interval_topology_def
+		      by (rule hStep)
+		  qed
 	
-	  show ?thesis
-	  proof (rule exI[where x=f], intro conjI)
-	    show "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
-	      by (rule f_cont_I)
-	    show "\<forall>x\<in>A. f x = 0"
-	      using f_on_A by blast
-	    show "\<forall>x\<in>B. f x = 1"
-	      using f_on_B by blast
-	  qed
-	qed
+		  show ?thesis
+		  proof (rule exI[where x=f], intro conjI)
+		    show "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
+		      by (rule f_cont_I)
+		    show "\<forall>x\<in>A. f x = 0"
+		    proof (intro ballI)
+		      fix x assume hxA: "x \<in> A"
+		      show "f x = 0"
+		        by (rule f_on_A[OF hxA])
+		    qed
+		    show "\<forall>x\<in>B. f x = 1"
+		    proof (intro ballI)
+		      fix x assume hxB: "x \<in> B"
+		      show "f x = 1"
+		        by (rule f_on_B[OF hxB])
+		    qed
+		  qed
+		qed
 
 text \<open>(Obsolete in-progress proof attempt removed; see backups.)\<close>
 
@@ -41555,7 +41561,12 @@ proof (cases "a = b")
   let ?TJ = "top1_closed_interval_topology a b"
 
   have hTopX': "is_topology_on X TX"
-    using hX unfolding top1_normal_on_def top1_T1_on_def by blast
+  proof -
+    have hT1: "top1_T1_on X TX"
+      using hX unfolding top1_normal_on_def by (rule conjunct1)
+    show ?thesis
+      using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+  qed
   have hTopJ: "is_topology_on ?J ?TJ"
     unfolding top1_closed_interval_topology_def
     by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on], simp)
@@ -41565,7 +41576,7 @@ proof (cases "a = b")
   have hConstAll: "\<forall>y0\<in>?J. top1_continuous_map_on X TX ?J ?TJ (\<lambda>x. y0)"
     by (rule Theorem_18_2(1)[OF hTopX' hTopJ hTopJ])
   have hconst: "top1_continuous_map_on X TX ?J ?TJ (\<lambda>x. a)"
-    using hConstAll haJ by blast
+    using hConstAll haJ by (rule bspec)
 
   show ?thesis
   proof (rule exI[where x="\<lambda>x. a"], intro conjI)
@@ -41587,7 +41598,12 @@ next
   let ?TJ = "top1_closed_interval_topology a b"
 
   have hTopX': "is_topology_on X TX"
-    using hX unfolding top1_normal_on_def top1_T1_on_def by blast
+  proof -
+    have hT1: "top1_T1_on X TX"
+      using hX unfolding top1_normal_on_def by (rule conjunct1)
+    show ?thesis
+      using hT1 unfolding top1_T1_on_def by (rule conjunct1)
+  qed
   have hTopI: "is_topology_on ?I ?TI"
     unfolding top1_closed_interval_topology_def
     by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on], simp)
@@ -41596,12 +41612,17 @@ next
     by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on], simp)
   have hTopUNIV: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
     by (rule order_topology_on_UNIV_is_topology_on)
-
+  
+  have hex_f0:
+    "\<exists>f0. top1_continuous_map_on X TX ?I ?TI f0
+       \<and> (\<forall>x\<in>A. f0 x = 0)
+       \<and> (\<forall>x\<in>B. f0 x = 1)"
+    by (rule top1_urysohn_unit_interval[OF hX hA hB hdisj])
   obtain f0 where hf0:
     "top1_continuous_map_on X TX ?I ?TI f0
      \<and> (\<forall>x\<in>A. f0 x = 0)
      \<and> (\<forall>x\<in>B. f0 x = 1)"
-    using top1_urysohn_unit_interval[OF hX hA hB hdisj] by blast
+    using hex_f0 by (elim exE)
 
   define g where "g t = a + (b - a) * t" for t
   have hSlope: "0 < b - a"
