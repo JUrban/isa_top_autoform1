@@ -8681,14 +8681,18 @@ next
       proof (rule set_eqI)
         fix a
         show "a \<in> {a\<in>A. f a \<in> top1_PiE I U} \<longleftrightarrow> a \<in> \<Inter>F"
-        proof (rule iffI)
-          assume ha: "a \<in> {a\<in>A. f a \<in> top1_PiE I U}"
-          have haA: "a \<in> A" and hfaU: "f a \<in> top1_PiE I U"
-            using ha by simp_all
-          have hmem: "\<forall>i\<in>I. f a i \<in> U i"
-            using hfaU unfolding top1_PiE_iff by blast
-          have "a \<in> \<Inter>F"
-          proof (rule InterI)
+	        proof (rule iffI)
+	          assume ha: "a \<in> {a\<in>A. f a \<in> top1_PiE I U}"
+	          have ha_conj: "a \<in> A \<and> f a \<in> top1_PiE I U"
+	            using ha by simp
+	          have haA: "a \<in> A"
+	            using ha_conj by (rule conjunct1)
+	          have hfaU: "f a \<in> top1_PiE I U"
+	            using ha_conj by (rule conjunct2)
+	          have hmem: "\<forall>i\<in>I. f a i \<in> U i"
+	            using hfaU unfolding top1_PiE_iff by blast
+	          have "a \<in> \<Inter>F"
+	          proof (rule InterI)
             fix W assume hW: "W \<in> F"
             obtain i where hiS: "i \<in> S" and hWeq: "W = {a\<in>A. (f a) i \<in> U i}"
               using hW unfolding F_def by blast
@@ -13348,9 +13352,23 @@ proof -
   let ?Sxy = "(\<lambda>i. abs (x i - y i)) ` I"
   let ?Syz = "(\<lambda>i. abs (y i - z i)) ` I"
   have hfinS: "finite ?Sxz" "finite ?Sxy" "finite ?Syz"
-    using hfin by simp_all
+  proof -
+    show "finite ?Sxz"
+      using hfin by simp
+    show "finite ?Sxy"
+      using hfin by simp
+    show "finite ?Syz"
+      using hfin by simp
+  qed
   have hneS: "?Sxz \<noteq> {}" "?Sxy \<noteq> {}" "?Syz \<noteq> {}"
-    using hne by simp_all
+  proof -
+    show "?Sxz \<noteq> {}"
+      using hne by simp
+    show "?Sxy \<noteq> {}"
+      using hne by simp
+    show "?Syz \<noteq> {}"
+      using hne by simp
+  qed
 
   have hSupxz: "top1_square_metric_real_on I x z = Max ?Sxz"
     unfolding top1_square_metric_real_on_def by (simp add: cSup_eq_Max[OF hfinS(1) hneS(1)])
