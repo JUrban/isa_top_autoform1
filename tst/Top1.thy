@@ -6335,14 +6335,18 @@ proof -
       proof (rule set_eqI)
         fix x
         show "x \<in> {x\<in>X. f x \<in> V} \<longleftrightarrow> x \<in> \<Union>PU"
-        proof (rule iffI)
-          assume hx: "x \<in> {x\<in>X. f x \<in> V}"
-          have hxX: "x \<in> X" and hfx: "f x \<in> V"
-            using hx by simp_all
-          have hfxU: "f x \<in> \<Union>U"
-            using hfx by (simp add: hVeq)
-          obtain b where hbU: "b \<in> U" and hfxb: "f x \<in> b"
-            using hfxU by blast
+	        proof (rule iffI)
+	          assume hx: "x \<in> {x\<in>X. f x \<in> V}"
+	          have hx_conj: "x \<in> X \<and> f x \<in> V"
+	            using hx by simp
+	          have hxX: "x \<in> X"
+	            using hx_conj by (rule conjunct1)
+	          have hfx: "f x \<in> V"
+	            using hx_conj by (rule conjunct2)
+	          have hfxU: "f x \<in> \<Union>U"
+	            using hfx by (simp add: hVeq)
+	          obtain b where hbU: "b \<in> U" and hfxb: "f x \<in> b"
+	            using hfxU by blast
           have "x \<in> {x\<in>X. f x \<in> b}"
             using hxX hfxb by simp
           have "{x\<in>X. f x \<in> b} \<in> PU"
@@ -6353,14 +6357,18 @@ proof -
           assume hx: "x \<in> \<Union>PU"
           then obtain W where hW: "W \<in> PU" and hxW: "x \<in> W"
             by blast
-          obtain b where hbU: "b \<in> U" and hWeq: "W = {x\<in>X. f x \<in> b}"
-            using hW unfolding PU_def by blast
-          have hxX: "x \<in> X" and hfxb: "f x \<in> b"
-            using hxW unfolding hWeq by simp_all
-          have hfxU: "f x \<in> \<Union>U"
-            using hbU hfxb by blast
-          have "f x \<in> V"
-            unfolding hVeq using hfxU by simp
+	          obtain b where hbU: "b \<in> U" and hWeq: "W = {x\<in>X. f x \<in> b}"
+	            using hW unfolding PU_def by blast
+	          have hxW_conj: "x \<in> X \<and> f x \<in> b"
+	            using hxW unfolding hWeq by simp
+	          have hxX: "x \<in> X"
+	            using hxW_conj by (rule conjunct1)
+	          have hfxb: "f x \<in> b"
+	            using hxW_conj by (rule conjunct2)
+	          have hfxU: "f x \<in> \<Union>U"
+	            using hbU hfxb by blast
+	          have "f x \<in> V"
+	            unfolding hVeq using hfxU by simp
           thus "x \<in> {x\<in>X. f x \<in> V}"
             using hxX by simp
         qed
@@ -6406,22 +6414,32 @@ proof -
       proof (rule set_eqI)
         fix x
         show "x \<in> {x \<in> X. (g \<circ> f) x \<in> V} \<longleftrightarrow> x \<in> {x \<in> X. f x \<in> {y\<in>Y. g y \<in> V}}"
-        proof
-          assume hx: "x \<in> {x \<in> X. (g \<circ> f) x \<in> V}"
-          have hxX: "x \<in> X" and hgf: "g (f x) \<in> V"
-            using hx by simp_all
-          have hfxY: "f x \<in> Y" using hfmap hxX by blast
-          have "f x \<in> {y\<in>Y. g y \<in> V}"
-            using hfxY hgf by simp
-          thus "x \<in> {x \<in> X. f x \<in> {y\<in>Y. g y \<in> V}}"
+	        proof
+	          assume hx: "x \<in> {x \<in> X. (g \<circ> f) x \<in> V}"
+	          have hx_conj: "x \<in> X \<and> g (f x) \<in> V"
+	            using hx by simp
+	          have hxX: "x \<in> X"
+	            using hx_conj by (rule conjunct1)
+	          have hgf: "g (f x) \<in> V"
+	            using hx_conj by (rule conjunct2)
+	          have hfxY: "f x \<in> Y" using hfmap hxX by blast
+	          have "f x \<in> {y\<in>Y. g y \<in> V}"
+	            using hfxY hgf by simp
+	          thus "x \<in> {x \<in> X. f x \<in> {y\<in>Y. g y \<in> V}}"
             using hxX by simp
-        next
-          assume hx: "x \<in> {x \<in> X. f x \<in> {y\<in>Y. g y \<in> V}}"
-          have hxX: "x \<in> X" and hgf: "g (f x) \<in> V"
-            using hx by simp_all
-          show "x \<in> {x \<in> X. (g \<circ> f) x \<in> V}"
-            using hxX hgf by simp
-        qed
+	        next
+	          assume hx: "x \<in> {x \<in> X. f x \<in> {y\<in>Y. g y \<in> V}}"
+	          have hx_conj: "x \<in> X \<and> f x \<in> {y\<in>Y. g y \<in> V}"
+	            using hx by simp
+	          have hxX: "x \<in> X"
+	            using hx_conj by (rule conjunct1)
+	          have hfx: "f x \<in> {y\<in>Y. g y \<in> V}"
+	            using hx_conj by (rule conjunct2)
+	          have hgf: "g (f x) \<in> V"
+	            using hfx by simp
+	          show "x \<in> {x \<in> X. (g \<circ> f) x \<in> V}"
+	            using hxX hgf by simp
+	        qed
       qed
       have "{x\<in>X. f x \<in> {y\<in>Y. g y \<in> V}} \<in> TX"
         using hfpre hpreV by blast
