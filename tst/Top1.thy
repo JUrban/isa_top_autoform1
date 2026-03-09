@@ -596,8 +596,8 @@ proof -
 		        assume hnot: "i \<notin> set (map fst (p # ps))"
 	        obtain j V where hp: "p = (j, V)"
 	          by (cases p) simp
-	        have hij: "i \<noteq> j" and hnotps: "i \<notin> set (map fst ps)"
-	          using hnot unfolding hp by simp_all
+		        have hij: "i \<noteq> j" and hnotps: "i \<notin> set (map fst ps)"
+		          using hnot unfolding hp by simp
 
 	        have hrec: "mkF (p # ps) = (mkF ps)(j := V)"
 	          unfolding mkF_def hp by (simp add: mkF_def[symmetric])
