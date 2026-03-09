@@ -48079,11 +48079,18 @@ proof -
       have hPsub: "P \<subseteq> ?Pos"
         unfolding P_def by simp
 
-      have hlocal: "\<forall>p\<in>P. \<exists>U\<in>?TPos. p \<in> U \<and> U \<subseteq> P"
-      proof (intro ballI)
-        fix p assume hpP: "p \<in> P"
-        have hpPos: "p \<in> ?Pos" and hpb: "?inv p \<in> b"
-          using hpP unfolding P_def by simp_all
+	      have hlocal: "\<forall>p\<in>P. \<exists>U\<in>?TPos. p \<in> U \<and> U \<subseteq> P"
+	      proof (intro ballI)
+	        fix p assume hpP: "p \<in> P"
+	        have hpPos: "p \<in> ?Pos" and hpb: "?inv p \<in> b"
+	        proof -
+	          have hp_conj: "p \<in> ?Pos \<and> ?inv p \<in> b"
+	            using hpP unfolding P_def by simp
+	          show "p \<in> ?Pos"
+	            using hp_conj by (rule conjunct1)
+	          show "?inv p \<in> b"
+	            using hp_conj by (rule conjunct2)
+	        qed
         have hpgt: "0 < p"
           using hpPos unfolding open_ray_gt_def by simp
 
@@ -48153,11 +48160,18 @@ proof -
           fix t assume htU: "t \<in> U"
           have htPos: "t \<in> ?Pos"
             using hUsubPos htU by blast
-          have htgt: "0 < t"
-            using htPos unfolding open_ray_gt_def by simp
-
-          have ht1: "p - d < t" and ht2: "t < p + d"
-            using htU unfolding U_def open_interval_def by simp_all
+	          have htgt: "0 < t"
+	            using htPos unfolding open_ray_gt_def by simp
+	
+	          have ht1: "p - d < t" and ht2: "t < p + d"
+	          proof -
+	            have ht_conj: "p - d < t \<and> t < p + d"
+	              using htU unfolding U_def open_interval_def by simp
+	            show "p - d < t"
+	              using ht_conj by (rule conjunct1)
+	            show "t < p + d"
+	              using ht_conj by (rule conjunct2)
+	          qed
           have habs_lt: "abs (t - p) < d"
             using ht1 ht2 by (simp add: abs_less_iff)
           have habs_le: "abs (t - p) \<le> d"
@@ -48645,11 +48659,18 @@ proof -
       assume hb: "b \<in> (basis_order_topology::real set set)"
       define P where "P = {x\<in>X. g x \<in> b}"
 
-      have hlocal: "\<forall>x\<in>P. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> P"
-      proof (intro ballI)
-        fix x assume hxP: "x \<in> P"
-        have hxX: "x \<in> X" and hgxb: "g x \<in> b"
-          using hxP unfolding P_def by simp_all
+	      have hlocal: "\<forall>x\<in>P. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> P"
+	      proof (intro ballI)
+	        fix x assume hxP: "x \<in> P"
+	        have hxX: "x \<in> X" and hgxb: "g x \<in> b"
+	        proof -
+	          have hx_conj: "x \<in> X \<and> g x \<in> b"
+	            using hxP unfolding P_def by simp
+	          show "x \<in> X"
+	            using hx_conj by (rule conjunct1)
+	          show "g x \<in> b"
+	            using hx_conj by (rule conjunct2)
+	        qed
 
         obtain e where he: "0 < e" and hI_sub: "open_interval (g x - e) (g x + e) \<subseteq> b"
           using basis_order_topology_contains_open_interval[OF hb hgxb] by blast
@@ -48705,15 +48726,29 @@ proof -
           unfolding U_def using hxX hsNxW by simp
 
         have hUsubP: "U \<subseteq> P"
-        proof (rule subsetI)
-          fix u assume huU: "u \<in> U"
-          have huX: "u \<in> X" and hsNuW: "s N u \<in> W"
-            using huU unfolding U_def by simp_all
-          have hNu: "abs (s N u - g u) < e/2"
-            using hN huX by simp
-
-          have hsNu1: "g x - e/2 < s N u" and hsNu2: "s N u < g x + e/2"
-            using hsNuW unfolding W_def open_interval_def by simp_all
+	        proof (rule subsetI)
+	          fix u assume huU: "u \<in> U"
+	          have huX: "u \<in> X" and hsNuW: "s N u \<in> W"
+	          proof -
+	            have hu_conj: "u \<in> X \<and> s N u \<in> W"
+	              using huU unfolding U_def by simp
+	            show "u \<in> X"
+	              using hu_conj by (rule conjunct1)
+	            show "s N u \<in> W"
+	              using hu_conj by (rule conjunct2)
+	          qed
+	          have hNu: "abs (s N u - g u) < e/2"
+	            using hN huX by simp
+	
+	          have hsNu1: "g x - e/2 < s N u" and hsNu2: "s N u < g x + e/2"
+	          proof -
+	            have hs_conj: "g x - e/2 < s N u \<and> s N u < g x + e/2"
+	              using hsNuW unfolding W_def open_interval_def by simp
+	            show "g x - e/2 < s N u"
+	              using hs_conj by (rule conjunct1)
+	            show "s N u < g x + e/2"
+	              using hs_conj by (rule conjunct2)
+	          qed
 
           have hboth: "s N u - g u < e/2 \<and> - (s N u - g u) < e/2"
             using hNu by (rule iffD1[OF abs_less_iff])
@@ -48891,12 +48926,19 @@ proof -
         by blast
       have huX: "u \<in> X"
         using hUsubX huU by blast
-      have hNu: "abs (s N u - g u) < e/2"
-        using hN huX by simp
-      have hsNu: "s N u \<in> open_interval (g x - e/2) (g x + e/2)"
-        using hUmap huU by blast
-      have hsNu1: "g x - e/2 < s N u" and hsNu2: "s N u < g x + e/2"
-        using hsNu unfolding open_interval_def by simp_all
+	      have hNu: "abs (s N u - g u) < e/2"
+	        using hN huX by simp
+	      have hsNu: "s N u \<in> open_interval (g x - e/2) (g x + e/2)"
+	        using hUmap huU by blast
+	      have hsNu1: "g x - e/2 < s N u" and hsNu2: "s N u < g x + e/2"
+	      proof -
+	        have hs_conj: "g x - e/2 < s N u \<and> s N u < g x + e/2"
+	          using hsNu unfolding open_interval_def by simp
+	        show "g x - e/2 < s N u"
+	          using hs_conj by (rule conjunct1)
+	        show "s N u < g x + e/2"
+	          using hs_conj by (rule conjunct2)
+	      qed
 
       have hboth: "s N u - g u < e/2 \<and> - (s N u - g u) < e/2"
         using hNu by (rule iffD1[OF abs_less_iff])
@@ -49283,12 +49325,19 @@ proof -
           have htail: "abs (s (n + k) x - s n x) \<le> (2/3::real) ^ n"
             by (rule top1_tietze_tail_bound[OF hsinc hx])
           have hpow: "(2/3::real) ^ n \<le> (2/3::real) ^ N"
-          proof -
-            have "N \<le> n"
-              using hn by simp
-            thus ?thesis
-              by (rule power_decreasing, simp_all)
-          qed
+	          proof -
+	            have "N \<le> n"
+	              using hn by simp
+	            thus ?thesis
+	            proof -
+	              have h0: "0 \<le> (2/3::real)"
+	                by simp
+	              have h1: "(2/3::real) \<le> 1"
+	                by simp
+	              show "(2/3::real) ^ n \<le> (2/3::real) ^ N"
+	                by (rule power_decreasing[OF \<open>N \<le> n\<close> h0 h1])
+	            qed
+	          qed
           have habs: "abs (s m x - s n x) \<le> (2/3::real) ^ N"
             unfolding hmk using order_trans[OF htail hpow] by simp
           show ?thesis
@@ -49301,12 +49350,19 @@ proof -
           have htail: "abs (s (m + k) x - s m x) \<le> (2/3::real) ^ m"
             by (rule top1_tietze_tail_bound[OF hsinc hx])
           have hpow: "(2/3::real) ^ m \<le> (2/3::real) ^ N"
-          proof -
-            have "N \<le> m"
-              using hm by simp
-            thus ?thesis
-              by (rule power_decreasing, simp_all)
-          qed
+	          proof -
+	            have "N \<le> m"
+	              using hm by simp
+	            thus ?thesis
+	            proof -
+	              have h0: "0 \<le> (2/3::real)"
+	                by simp
+	              have h1: "(2/3::real) \<le> 1"
+	                by simp
+	              show "(2/3::real) ^ m \<le> (2/3::real) ^ N"
+	                by (rule power_decreasing[OF \<open>N \<le> m\<close> h0 h1])
+	            qed
+	          qed
           have habs: "abs (s n x - s m x) \<le> (2/3::real) ^ N"
             unfolding hnk using order_trans[OF htail hpow] by simp
           have habs': "abs (s m x - s n x) \<le> (2/3::real) ^ N"
@@ -49377,7 +49433,14 @@ proof -
       have hbound: "abs (F x - s n x) \<le> (2/3::real) ^ n"
         using F_minus_sn_bound hx by blast
       have hpow: "(2/3::real) ^ n \<le> (2/3::real) ^ N"
-        using hn by (rule power_decreasing, simp_all)
+      proof -
+        have h0: "0 \<le> (2/3::real)"
+          by simp
+        have h1: "(2/3::real) \<le> 1"
+          by simp
+        show "(2/3::real) ^ n \<le> (2/3::real) ^ N"
+          by (rule power_decreasing[OF hn h0 h1])
+      qed
       have habs1: "abs (s n x - F x) \<le> (2/3::real) ^ n"
         using hbound by (simp add: abs_minus_commute)
       have habs: "abs (s n x - F x) \<le> (2/3::real) ^ N"
@@ -49502,14 +49565,21 @@ proof -
       show "\<exists>N. \<forall>n\<ge>N. dist (s n a) (f a) < e"
       proof (rule exI[where x=N], intro allI impI)
         fix n assume hn: "N \<le> n"
-        have herr: "abs (f a - s n a) \<le> (2/3::real) ^ n"
-          using hserr ha by blast
-        have hpow: "(2/3::real) ^ n \<le> (2/3::real) ^ N"
-          using hn by (rule power_decreasing, simp_all)
-        have hdist: "dist (s n a) (f a) = abs (f a - s n a)"
-          by (simp add: dist_real_def abs_minus_commute)
-        have habs: "dist (s n a) (f a) \<le> (2/3::real) ^ N"
-          unfolding hdist using order_trans[OF herr hpow] by simp
+	        have herr: "abs (f a - s n a) \<le> (2/3::real) ^ n"
+	          using hserr ha by blast
+	        have hpow: "(2/3::real) ^ n \<le> (2/3::real) ^ N"
+	        proof -
+	          have h0: "0 \<le> (2/3::real)"
+	            by simp
+	          have h1: "(2/3::real) \<le> 1"
+	            by simp
+	          show "(2/3::real) ^ n \<le> (2/3::real) ^ N"
+	            by (rule power_decreasing[OF hn h0 h1])
+	        qed
+	        have hdist: "dist (s n a) (f a) = abs (f a - s n a)"
+	          by (simp add: dist_real_def abs_minus_commute)
+	        have habs: "dist (s n a) (f a) \<le> (2/3::real) ^ N"
+	          unfolding hdist using order_trans[OF herr hpow] by simp
         show "dist (s n a) (f a) < e"
           using le_less_trans[OF habs hN] by simp
       qed
@@ -49667,8 +49737,16 @@ proof -
       using hxA unfolding A_def by blast
     have hphi0: "\<phi> x = 0"
       by (rule top1_support_on_complement_imp_zero[OF hxX hxns])
-    show "f x = 0"
-      unfolding f_def using hphi0 by (cases "x \<in> U", simp_all)
+  show "f x = 0"
+  proof (cases "x \<in> U")
+    case True
+    show ?thesis
+      unfolding f_def using True hphi0 by simp
+  next
+    case False
+    show ?thesis
+      unfolding f_def using False by simp
+  qed
   qed
 
   have hconstA: "top1_continuous_map_on A (subspace_topology X TX A) (UNIV::real set) order_topology_on_UNIV (\<lambda>x. (0::real))"
@@ -49855,10 +49933,12 @@ proof -
       have in_succ: "i \<in> {k..<n} \<Longrightarrow> i \<noteq> k \<Longrightarrow> i \<in> {Suc k..<n}" for i :: nat
       proof -
         fix i :: nat
-        assume hi: "i \<in> {k..<n}"
-        assume hne: "i \<noteq> k"
-        have hk_le: "k \<le> i" and hi_lt: "i < n"
-          using hi by simp_all
+	        assume hi: "i \<in> {k..<n}"
+	        assume hne: "i \<noteq> k"
+	        have hk_le: "k \<le> i"
+	          using hi by simp
+	        have hi_lt: "i < n"
+	          using hi by simp
         have hne': "k \<noteq> i"
           using hne by simp
         have hk_lt: "k < i"
@@ -50278,10 +50358,17 @@ proof -
     using Theorem_33_1[OF hN hXV_closed hA hdisj, of 0 1] by simp blast
 
   have hnz_sub: "{x \<in> X. \<psi> x \<noteq> 0} \<subseteq> V"
-  proof (rule subsetI)
-    fix x assume hx: "x \<in> {x \<in> X. \<psi> x \<noteq> 0}"
-    have hxX: "x \<in> X" and hx0: "\<psi> x \<noteq> 0"
-      using hx by simp_all
+	  proof (rule subsetI)
+	    fix x assume hx: "x \<in> {x \<in> X. \<psi> x \<noteq> 0}"
+	    have hxX: "x \<in> X" and hx0: "\<psi> x \<noteq> 0"
+	    proof -
+	      have hx_conj: "x \<in> X \<and> \<psi> x \<noteq> 0"
+	        using hx by simp
+	      show "x \<in> X"
+	        using hx_conj by (rule conjunct1)
+	      show "\<psi> x \<noteq> 0"
+	        using hx_conj by (rule conjunct2)
+	    qed
     show "x \<in> V"
     proof (rule ccontr)
       assume hxnotV: "x \<notin> V"
@@ -50942,14 +51029,21 @@ proof -
           assume hx: "x \<in> {x \<in> A. f x \<in> (f ` A) \<inter> V}"
           then show "x \<in> {x \<in> A. f x \<in> V}"
             by simp
-        next
-          assume hx: "x \<in> {x \<in> A. f x \<in> V}"
-          have hxA: "x \<in> A" and hfxV: "f x \<in> V"
-            using hx by simp_all
-          have hfxImg: "f x \<in> f ` A"
-            using hmapImg hxA by blast
-          show "x \<in> {x \<in> A. f x \<in> (f ` A) \<inter> V}"
-            using hxA hfxImg hfxV by blast
+	        next
+	          assume hx: "x \<in> {x \<in> A. f x \<in> V}"
+	          have hxA: "x \<in> A" and hfxV: "f x \<in> V"
+	          proof -
+	            have hx_conj: "x \<in> A \<and> f x \<in> V"
+	              using hx by simp
+	            show "x \<in> A"
+	              using hx_conj by (rule conjunct1)
+	            show "f x \<in> V"
+	              using hx_conj by (rule conjunct2)
+	          qed
+	          have hfxImg: "f x \<in> f ` A"
+	            using hmapImg hxA by blast
+	          show "x \<in> {x \<in> A. f x \<in> (f ` A) \<inter> V}"
+	            using hxA hfxImg hfxV by blast
         qed
       qed
       show "{x \<in> A. f x \<in> V} \<in> TA"
