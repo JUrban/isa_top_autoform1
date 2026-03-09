@@ -17020,14 +17020,24 @@ proof -
 	            have hstep2_le:
 	              "abs (pi1 q) * abs (pi2 q - pi2 p) + abs (pi2 p) * abs (pi1 q - pi1 p)
 	               \<le> abs (pi1 q) * d + abs (pi2 p) * d"
-	            proof -
-	              have hA: "abs (pi1 q) * abs (pi2 q - pi2 p) \<le> abs (pi1 q) * d"
-	                using habs2_le by (intro mult_left_mono) simp_all
-	              have hB: "abs (pi2 p) * abs (pi1 q - pi1 p) \<le> abs (pi2 p) * d"
-	                using habs1_le by (intro mult_left_mono) simp_all
-	              show ?thesis
-	                using hA hB by (rule add_mono)
-	            qed
+		            proof -
+		              have hA: "abs (pi1 q) * abs (pi2 q - pi2 p) \<le> abs (pi1 q) * d"
+		              proof (rule mult_left_mono)
+		                show "abs (pi2 q - pi2 p) \<le> d"
+		                  by (rule habs2_le)
+		                show "0 \<le> abs (pi1 q)"
+		                  by simp
+		              qed
+		              have hB: "abs (pi2 p) * abs (pi1 q - pi1 p) \<le> abs (pi2 p) * d"
+		              proof (rule mult_left_mono)
+		                show "abs (pi1 q - pi1 p) \<le> d"
+		                  by (rule habs1_le)
+		                show "0 \<le> abs (pi2 p)"
+		                  by simp
+		              qed
+		              show ?thesis
+		                using hA hB by (rule add_mono)
+		            qed
 
 	            have hpi1q_lt: "abs (pi1 q) < abs (pi1 p) + 1"
 	            proof -
@@ -17270,14 +17280,18 @@ proof -
 	          have hPsub: "P \<subseteq> ?W"
 	            unfolding P_def by blast
           have hlocal: "\<forall>p\<in>P. \<exists>U\<in>?TW. p \<in> U \<and> U \<subseteq> P"
-          proof (intro ballI)
-            fix p assume hpP: "p \<in> P"
-            have hpW: "p \<in> ?W" and hpb: "?inv p \<in> b"
-              using hpP unfolding P_def by simp_all
-            have hp0: "p \<noteq> 0"
-              using hpW by simp
-	            obtain e where he: "0 < e"
-	              and hI_sub: "open_interval (?inv p - e) (?inv p + e) \<subseteq> b"
+	          proof (intro ballI)
+	            fix p assume hpP: "p \<in> P"
+	            have hp_conj: "p \<in> ?W \<and> ?inv p \<in> b"
+	              using hpP unfolding P_def by simp
+	            have hpW: "p \<in> ?W"
+	              using hp_conj by (rule conjunct1)
+	            have hpb: "?inv p \<in> b"
+	              using hp_conj by (rule conjunct2)
+	            have hp0: "p \<noteq> 0"
+	              using hpW by simp
+		            obtain e where he: "0 < e"
+		              and hI_sub: "open_interval (?inv p - e) (?inv p + e) \<subseteq> b"
 	              using basis_order_topology_contains_open_interval[OF hb hpb] by blast
             define d1 where "d1 = abs p / 2"
             define d2 where "d2 = e * (abs p)\<^sup>2 / 4"
@@ -17314,15 +17328,22 @@ proof -
                 unfolding U_def TR_def by (rule open_interval_in_order_topology)
             qed
 
-            have hUsubW: "U \<subseteq> ?W"
-            proof (rule subsetI)
-              fix t assume htU: "t \<in> U"
-              have ht1: "p - d < t" and ht2: "t < p + d"
-                using htU unfolding U_def open_interval_def by simp_all
-	              have habs_lt: "abs (t - p) < d"
-	                using ht1 ht2 by (simp add: abs_less_iff)
-	              have habs_p2: "abs (t - p) < abs p / 2"
+	            have hUsubW: "U \<subseteq> ?W"
+	            proof (rule subsetI)
+	              fix t assume htU: "t \<in> U"
+	              have ht1: "p - d < t" and ht2: "t < p + d"
 	              proof -
+	                have ht_conj: "p - d < t \<and> t < p + d"
+	                  using htU unfolding U_def open_interval_def by simp
+	                show "p - d < t"
+	                  using ht_conj by (rule conjunct1)
+	                show "t < p + d"
+	                  using ht_conj by (rule conjunct2)
+	              qed
+		              have habs_lt: "abs (t - p) < d"
+		                using ht1 ht2 by (simp add: abs_less_iff)
+		              have habs_p2: "abs (t - p) < abs p / 2"
+		              proof -
 	                have "abs (t - p) < d1"
 	                  using habs_lt hd_le_d1 by linarith
 	                thus ?thesis
@@ -17367,17 +17388,24 @@ proof -
             have hpU: "p \<in> U"
               unfolding U_def open_interval_def using hd by simp
 
-            have hUsubP: "U \<subseteq> P"
-            proof (rule subsetI)
-              fix t assume htU: "t \<in> U"
-              have htW: "t \<in> ?W"
-                using hUsubW htU by blast
-              have ht1: "p - d < t" and ht2: "t < p + d"
-                using htU unfolding U_def open_interval_def by simp_all
-              have habs_lt: "abs (t - p) < d"
-                using ht1 ht2 by (simp add: abs_less_iff)
-              have habs_le: "abs (t - p) \<le> d"
-                using habs_lt by (rule less_imp_le)
+	            have hUsubP: "U \<subseteq> P"
+	            proof (rule subsetI)
+	              fix t assume htU: "t \<in> U"
+	              have htW: "t \<in> ?W"
+	                using hUsubW htU by blast
+	              have ht1: "p - d < t" and ht2: "t < p + d"
+	              proof -
+	                have ht_conj: "p - d < t \<and> t < p + d"
+	                  using htU unfolding U_def open_interval_def by simp
+	                show "p - d < t"
+	                  using ht_conj by (rule conjunct1)
+	                show "t < p + d"
+	                  using ht_conj by (rule conjunct2)
+	              qed
+	              have habs_lt: "abs (t - p) < d"
+	                using ht1 ht2 by (simp add: abs_less_iff)
+	              have habs_le: "abs (t - p) \<le> d"
+	                using habs_lt by (rule less_imp_le)
               have habs_t_ge: "abs p / 2 < abs t"
 	              proof -
 	                have habs_p2: "abs (t - p) < abs p / 2"
@@ -17847,14 +17875,21 @@ proof -
       unfolding P_def by blast
 
     have hlocal: "\<forall>x\<in>P. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> P"
-    proof (intro ballI)
-      fix x assume hxP: "x \<in> P"
-      have hxX: "x \<in> X" and hfxb: "f x \<in> b"
-        using hxP unfolding P_def by simp_all
-      have hfxY: "f x \<in> Y"
-        using hmap hxX by blast
-      have hdist_fx: "dY y0 (f x) < e"
-        using hfxb unfolding hbdef top1_ball_on_def by simp
+	    proof (intro ballI)
+	      fix x assume hxP: "x \<in> P"
+	      have hxX: "x \<in> X" and hfxb: "f x \<in> b"
+	      proof -
+	        have hx_conj: "x \<in> X \<and> f x \<in> b"
+	          using hxP unfolding P_def by simp
+	        show "x \<in> X"
+	          using hx_conj by (rule conjunct1)
+	        show "f x \<in> b"
+	          using hx_conj by (rule conjunct2)
+	      qed
+	      have hfxY: "f x \<in> Y"
+	        using hmap hxX by blast
+	      have hdist_fx: "dY y0 (f x) < e"
+	        using hfxb unfolding hbdef top1_ball_on_def by simp
 
       define m where "m = e - dY y0 (f x)"
       have hmpos: "0 < m"
@@ -17907,14 +17942,21 @@ proof -
       qed
 
       have hUsubP: "U \<subseteq> P"
-      proof (rule subsetI)
-        fix u assume huU: "u \<in> U"
-        have huX: "u \<in> X" and hfnNuW: "fn N u \<in> W"
-          using huU unfolding U_def by simp_all
-        have hfuY: "f u \<in> Y"
-          using hmap huX by blast
-        have hfnNuY: "fn N u \<in> Y"
-          using hfnN_map huX by blast
+	      proof (rule subsetI)
+	        fix u assume huU: "u \<in> U"
+	        have huX: "u \<in> X" and hfnNuW: "fn N u \<in> W"
+	        proof -
+	          have hu_conj: "u \<in> X \<and> fn N u \<in> W"
+	            using huU unfolding U_def by simp
+	          show "u \<in> X"
+	            using hu_conj by (rule conjunct1)
+	          show "fn N u \<in> W"
+	            using hu_conj by (rule conjunct2)
+	        qed
+	        have hfuY: "f u \<in> Y"
+	          using hmap huX by blast
+	        have hfnNuY: "fn N u \<in> Y"
+	          using hfnN_map huX by blast
 
         have hdist_u: "dY (fn N u) (f u) < eps"
           using hNspec huX by blast
