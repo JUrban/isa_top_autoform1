@@ -19606,7 +19606,14 @@ proof -
       proof (rule subsetI)
         fix x assume hx: "x \<in> {x\<in>X. p x \<in> \<Inter>F}"
         have hxX: "x \<in> X" and hpx: "p x \<in> \<Inter>F"
-          using hx by simp_all
+        proof -
+          have hx_conj: "x \<in> X \<and> p x \<in> \<Inter>F"
+            using hx by simp
+          show "x \<in> X"
+            using hx_conj by (rule conjunct1)
+          show "p x \<in> \<Inter>F"
+            using hx_conj by (rule conjunct2)
+        qed
         show "x \<in> \<Inter>((\<lambda>V. {x\<in>X. p x \<in> V}) ` F)"
         proof (rule InterI)
           fix A assume hA: "A \<in> (\<lambda>V. {x\<in>X. p x \<in> V}) ` F"
@@ -19766,7 +19773,14 @@ proof -
       proof (rule iffI)
         assume hy: "y \<in> {y \<in> Y. inv_into X f y \<in> {x \<in> X. f x \<in> V}}"
         have hyY: "y \<in> Y" and hinv: "inv_into X f y \<in> {x \<in> X. f x \<in> V}"
-          using hy by simp_all
+        proof -
+          have hy_conj: "y \<in> Y \<and> inv_into X f y \<in> {x \<in> X. f x \<in> V}"
+            using hy by simp
+          show "y \<in> Y"
+            using hy_conj by (rule conjunct1)
+          show "inv_into X f y \<in> {x \<in> X. f x \<in> V}"
+            using hy_conj by (rule conjunct2)
+        qed
         have hyIm: "y \<in> f ` X"
           using hsurj hyY by simp
         have hfy: "f (inv_into X f y) = y"
@@ -19870,7 +19884,14 @@ proof -
         proof (rule subsetI)
           fix x assume hx: "x \<in> {x\<in>X. f x \<in> f ` W}"
           have hxX: "x \<in> X" and hfx: "f x \<in> f ` W"
-            using hx by simp_all
+          proof -
+            have hx_conj: "x \<in> X \<and> f x \<in> f ` W"
+              using hx by simp
+            show "x \<in> X"
+              using hx_conj by (rule conjunct1)
+            show "f x \<in> f ` W"
+              using hx_conj by (rule conjunct2)
+          qed
           obtain w where hwW: "w \<in> W" and hfw: "f x = f w"
             using hfx by blast
           have hwX: "w \<in> X"
@@ -19917,14 +19938,21 @@ proof -
       proof (rule set_eqI)
         fix y
         show "y \<in> {y\<in>Y. inv_into X f y \<in> U} \<longleftrightarrow> y \<in> f ` W"
-        proof (rule iffI)
-          assume hy: "y \<in> {y\<in>Y. inv_into X f y \<in> U}"
-          have hyY: "y \<in> Y" and hinvU: "inv_into X f y \<in> U"
-            using hy by simp_all
-          have hyIm: "y \<in> f ` X"
-            using hsurj hyY by simp
-          have hinvX: "inv_into X f y \<in> X"
-            by (rule inv_into_into[OF hyIm])
+      proof (rule iffI)
+        assume hy: "y \<in> {y\<in>Y. inv_into X f y \<in> U}"
+        have hyY: "y \<in> Y" and hinvU: "inv_into X f y \<in> U"
+        proof -
+          have hy_conj: "y \<in> Y \<and> inv_into X f y \<in> U"
+            using hy by simp
+          show "y \<in> Y"
+            using hy_conj by (rule conjunct1)
+          show "inv_into X f y \<in> U"
+            using hy_conj by (rule conjunct2)
+        qed
+        have hyIm: "y \<in> f ` X"
+          using hsurj hyY by simp
+        have hinvX: "inv_into X f y \<in> X"
+          by (rule inv_into_into[OF hyIm])
           have hfy: "f (inv_into X f y) = y"
             using f_inv_into_f[OF hyIm] by simp
           have "inv_into X f y \<in> W"
