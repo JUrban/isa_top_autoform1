@@ -18315,7 +18315,14 @@ proof (rule equalityI)
   proof (rule subsetI)
     fix x assume hx: "x \<in> {x \<in> X. p x \<in> p ` A}"
     have hxX: "x \<in> X" and hpx: "p x \<in> p ` A"
-      using hx by simp_all
+    proof -
+      have hx_conj: "x \<in> X \<and> p x \<in> p ` A"
+        using hx by simp
+      show "x \<in> X"
+        using hx_conj by (rule conjunct1)
+      show "p x \<in> p ` A"
+        using hx_conj by (rule conjunct2)
+    qed
     obtain a where haA: "a \<in> A" and hpa: "p x = p a"
       using hpx by blast
     have hprop: "\<forall>x\<in>A. \<forall>y\<in>X. p y = p x \<longrightarrow> y \<in> A"
@@ -19032,24 +19039,38 @@ proof -
       proof (rule set_eqI)
         fix x
         show "x \<in> {x \<in> X. (q \<circ> p) x \<in> V} \<longleftrightarrow> x \<in> {x \<in> X. p x \<in> {y \<in> Y. q y \<in> V}}"
-        proof
-          assume hx: "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
-          have hxX: "x \<in> X" and hqpx: "q (p x) \<in> V"
-            using hx by simp_all
-          have hpxY: "p x \<in> Y"
-            using hpmap hxX by blast
-          have "p x \<in> {y \<in> Y. q y \<in> V}"
-            using hpxY hqpx by blast
+	        proof
+	          assume hx: "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+	          have hxX: "x \<in> X" and hqpx: "q (p x) \<in> V"
+	          proof -
+	            have hx_conj: "x \<in> X \<and> q (p x) \<in> V"
+	              using hx by simp
+	            show "x \<in> X"
+	              using hx_conj by (rule conjunct1)
+	            show "q (p x) \<in> V"
+	              using hx_conj by (rule conjunct2)
+	          qed
+	          have hpxY: "p x \<in> Y"
+	            using hpmap hxX by blast
+	          have "p x \<in> {y \<in> Y. q y \<in> V}"
+	            using hpxY hqpx by blast
           thus "x \<in> {x \<in> X. p x \<in> {y \<in> Y. q y \<in> V}}"
             using hxX by simp
-        next
-          assume hx: "x \<in> {x \<in> X. p x \<in> {y \<in> Y. q y \<in> V}}"
-          have hxX: "x \<in> X" and hpx: "p x \<in> {y \<in> Y. q y \<in> V}"
-            using hx by simp_all
-          have "q (p x) \<in> V"
-            using hpx by blast
-          thus "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
-            using hxX by simp
+	        next
+	          assume hx: "x \<in> {x \<in> X. p x \<in> {y \<in> Y. q y \<in> V}}"
+	          have hxX: "x \<in> X" and hpx: "p x \<in> {y \<in> Y. q y \<in> V}"
+	          proof -
+	            have hx_conj: "x \<in> X \<and> p x \<in> {y \<in> Y. q y \<in> V}"
+	              using hx by simp
+	            show "x \<in> X"
+	              using hx_conj by (rule conjunct1)
+	            show "p x \<in> {y \<in> Y. q y \<in> V}"
+	              using hx_conj by (rule conjunct2)
+	          qed
+	          have "q (p x) \<in> V"
+	            using hpx by blast
+	          thus "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+	            using hxX by simp
         qed
       qed
       show "{x \<in> X. (q \<circ> p) x \<in> V} \<in> TX"
@@ -19081,24 +19102,38 @@ proof -
 		      proof (rule set_eqI)
 		        fix x
 		        show "x \<in> {x \<in> X. p x \<in> W} \<longleftrightarrow> x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
-		        proof
-		          assume hx: "x \<in> {x \<in> X. p x \<in> W}"
-		          have hxX: "x \<in> X" and hpx: "p x \<in> W"
-		            using hx by simp_all
-		          have hpxY: "p x \<in> Y"
-		            using hpmap hxX by blast
-		          have hqpx: "q (p x) \<in> V"
-		            using hpx unfolding W_def by blast
+			        proof
+			          assume hx: "x \<in> {x \<in> X. p x \<in> W}"
+			          have hxX: "x \<in> X" and hpx: "p x \<in> W"
+			          proof -
+			            have hx_conj: "x \<in> X \<and> p x \<in> W"
+			              using hx by simp
+			            show "x \<in> X"
+			              using hx_conj by (rule conjunct1)
+			            show "p x \<in> W"
+			              using hx_conj by (rule conjunct2)
+			          qed
+			          have hpxY: "p x \<in> Y"
+			            using hpmap hxX by blast
+			          have hqpx: "q (p x) \<in> V"
+			            using hpx unfolding W_def by blast
 		          show "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
 		            using hxX hqpx by simp
-		        next
-		          assume hx: "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
-		          have hxX: "x \<in> X" and hqpx: "q (p x) \<in> V"
-		            using hx by simp_all
-		          have hpxY: "p x \<in> Y"
-		            using hpmap hxX by blast
-		          have "p x \<in> W"
-		            unfolding W_def using hpxY hqpx by blast
+			        next
+			          assume hx: "x \<in> {x \<in> X. (q \<circ> p) x \<in> V}"
+			          have hxX: "x \<in> X" and hqpx: "q (p x) \<in> V"
+			          proof -
+			            have hx_conj: "x \<in> X \<and> q (p x) \<in> V"
+			              using hx by simp
+			            show "x \<in> X"
+			              using hx_conj by (rule conjunct1)
+			            show "q (p x) \<in> V"
+			              using hx_conj by (rule conjunct2)
+			          qed
+			          have hpxY: "p x \<in> Y"
+			            using hpmap hxX by blast
+			          have "p x \<in> W"
+			            unfolding W_def using hpxY hqpx by blast
 		          thus "x \<in> {x \<in> X. p x \<in> W}"
 		            using hxX by simp
 		        qed
