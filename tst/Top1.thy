@@ -11909,8 +11909,12 @@ proof -
     proof (intro ballI)
       fix x :: real
       assume hx: "x \<in> open_interval a b"
-      have hax: "a < x" and hxb: "x < b"
-        using hx unfolding open_interval_def by simp_all
+      have hax_hxb: "a < x \<and> x < b"
+        using hx unfolding open_interval_def by simp
+      have hax: "a < x"
+        using hax_hxb by (rule conjunct1)
+      have hxb: "x < b"
+        using hax_hxb by (rule conjunct2)
 
       define e0 where "e0 = min ((x - a) / 2) ((b - x) / 2)"
       define e where "e = min e0 (1/2)"
@@ -13070,12 +13074,16 @@ proof -
         using ht unfolding open_interval_def by auto
       have h2: "t < y + e"
         using ht unfolding open_interval_def by auto
-      have he1: "e \<le> (y - a) / 2" and he2: "e \<le> (c - y) / 2"
-        unfolding e_def by simp_all
-	      have hae: "a < y - e"
-		      proof -
-		        have hyapos: "0 < y - a"
-		          using hay by linarith
+      have he_conj: "e \<le> (y - a) / 2 \<and> e \<le> (c - y) / 2"
+        unfolding e_def by simp
+      have he1: "e \<le> (y - a) / 2"
+        using he_conj by (rule conjunct1)
+      have he2: "e \<le> (c - y) / 2"
+        using he_conj by (rule conjunct2)
+		  have hae: "a < y - e"
+			  proof -
+			    have hyapos: "0 < y - a"
+			      using hay by linarith
 		        have hhalf: "(y - a) / 2 \<le> y - a"
 	        proof -
 	          have hnonneg: "0 \<le> y - a"
