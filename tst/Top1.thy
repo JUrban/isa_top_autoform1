@@ -55832,7 +55832,11 @@ qed
 
 (** from \S43 Theorem 43.4 [top1.tex:6194] **)
 theorem Theorem_43_4:
-  shows "\<exists>d. top1_complete_metric_on (top1_PiE (UNIV::nat set) (\<lambda>_. (UNIV::real set))) d"
+  shows "\<exists>D.
+    top1_complete_metric_on (top1_PiE (UNIV::nat set) (\<lambda>_. (UNIV::real set))) D
+    \<and> top1_metric_topology_on (top1_PiE (UNIV::nat set) (\<lambda>_. (UNIV::real set))) D
+        = top1_product_topology_on (UNIV::nat set) (\<lambda>_. (UNIV::real set))
+            (\<lambda>_. top1_metric_topology_on (UNIV::real set) (top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>)))"
   sorry
 
 definition top1_uniform_metric_on ::
