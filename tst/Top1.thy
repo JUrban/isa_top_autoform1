@@ -57433,6 +57433,66 @@ proof -
   qed
 qed
 
+(** Helpers for metric balls/closures used in the Baire arguments (\<S>48). **)
+
+lemma top1_metric_ball_self_mem:
+  assumes hd: "top1_metric_on X d"
+  assumes hxX: "x \<in> X"
+  assumes he: "0 < e"
+  shows "x \<in> top1_ball_on X d x e"
+proof -
+  have "d x x = 0"
+    using hd hxX unfolding top1_metric_on_def by blast
+  thus ?thesis
+    unfolding top1_ball_on_def using hxX he by simp
+qed
+
+lemma top1_ball_on_mono_radius:
+  assumes hre: "r \<le> e"
+  shows "top1_ball_on X d x r \<subseteq> top1_ball_on X d x e"
+proof (rule subsetI)
+  fix y
+  assume hy: "y \<in> top1_ball_on X d x r"
+  have hyX: "y \<in> X" and hyr: "d x y < r"
+    using hy unfolding top1_ball_on_def by blast+
+  have "d x y < e"
+    by (rule less_le_trans[OF hyr hre])
+  show "y \<in> top1_ball_on X d x e"
+    unfolding top1_ball_on_def using hyX \<open>d x y < e\<close> by blast
+qed
+
+lemma top1_metric_closure_ball_imp_dist_le:
+  assumes hd: "top1_metric_on X d"
+  assumes hxX: "x \<in> X"
+  assumes hr: "0 < r"
+  assumes hycl: "y \<in> closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)"
+  shows "d x y \<le> r"
+  sorry
+
+lemma top1_metric_closure_ball_subset_closed_ball:
+  assumes hd: "top1_metric_on X d"
+  assumes hxX: "x \<in> X"
+  assumes hr: "0 < r"
+  shows "closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)
+          \<subseteq> {y \<in> X. d x y \<le> r}"
+  sorry
+
+lemma top1_metric_closure_ball_subset_ball:
+  assumes hd: "top1_metric_on X d"
+  assumes hxX: "x \<in> X"
+  assumes hr: "0 < r"
+  assumes hre: "r < e"
+  shows "closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)
+          \<subseteq> top1_ball_on X d x e"
+  sorry
+
+lemma top1_metric_diameter_closure_ball_le:
+  assumes hd: "top1_metric_on X d"
+  assumes hxX: "x \<in> X"
+  assumes hr: "0 < r"
+  shows "top1_diameter_on d (closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)) \<le> 2 * r"
+  sorry
+
 theorem Theorem_48_2:
   shows "top1_compact_on X TX \<and> is_hausdorff_on X TX \<longrightarrow> top1_baire_on X TX"
     and "top1_complete_metric_on X d \<longrightarrow> top1_baire_on X (top1_metric_topology_on X d)"
@@ -57448,7 +57508,18 @@ proof -
 
   show "top1_complete_metric_on X d \<longrightarrow> top1_baire_on X (top1_metric_topology_on X d)"
     sorry
+
 qed
+
+(** Helper: diameter control implies pairwise distance control (intended meaning of diameter). **)
+lemma top1_diameter_on_lt_imp_dist_lt:
+  assumes hd: "top1_metric_on X d"
+  assumes hAX: "A \<subseteq> X"
+  assumes hxA: "x \<in> A"
+  assumes hyA: "y \<in> A"
+  assumes hdiam: "top1_diameter_on d A < e"
+  shows "d x y < e"
+  sorry
 
 (** from \S48 Lemma 48.3 [top1.tex:7208] **)
 lemma Lemma_48_3:
@@ -57458,7 +57529,196 @@ lemma Lemma_48_3:
   assumes hnest: "\<forall>n. C (Suc n) \<subseteq> C n"
   assumes hdiam: "\<forall>e>0. \<exists>N. \<forall>n\<ge>N. top1_diameter_on d (C n) < e"
   shows "(\<Inter>n. C n) \<noteq> {}"
-  sorry
+proof -
+  have hmetric: "top1_metric_on X d"
+    using hd unfolding top1_complete_metric_on_def by blast
+  have hTop: "is_topology_on X (top1_metric_topology_on X d)"
+    by (rule top1_metric_topology_on_is_topology_on[OF hmetric])
+
+  have hCsubX: "\<forall>n. C n \<subseteq> X"
+    using hCcl unfolding closedin_on_def by blast
+
+  obtain s0 where hs0: "\<forall>n. s0 n \<in> C n"
+  proof -
+    have hchoose: "\<forall>n. \<exists>x. x \<in> C n"
+    proof (intro allI)
+      fix n
+      have "C n \<noteq> {}"
+        using hCne by simp
+      thus "\<exists>x. x \<in> C n"
+        by blast
+    qed
+    obtain s0 where hs0: "\<forall>n. s0 n \<in> C n"
+      using choice[OF hchoose] by blast
+    show ?thesis
+      by (rule that[OF hs0])
+  qed
+
+  define s where "s = s0"
+  have hsC: "\<forall>n. s n \<in> C n"
+    unfolding s_def using hs0 by blast
+
+  have hnest_add: "\<forall>n k. C (n + k) \<subseteq> C n"
+  proof (intro allI)
+    fix n k
+    show "C (n + k) \<subseteq> C n"
+    proof (induction k)
+      case 0
+      show ?case
+        by simp
+    next
+      case (Suc k)
+      have "C (n + Suc k) = C (Suc (n + k))"
+        by simp
+      also have "... \<subseteq> C (n + k)"
+        using hnest by simp
+      also have "... \<subseteq> C n"
+        using Suc.IH by simp
+      finally show ?case .
+    qed
+  qed
+
+  have hnest_le: "\<forall>m n. n \<le> m \<longrightarrow> C m \<subseteq> C n"
+  proof (intro allI impI)
+    fix m n :: nat
+    assume hnm: "n \<le> m"
+    have "\<exists>k. m = n + k"
+      using hnm by (simp add: nat_le_iff_add)
+    then obtain k where hmk: "m = n + k"
+      by blast
+    show "C m \<subseteq> C n"
+      unfolding hmk by (rule hnest_add[rule_format, of n k])
+  qed
+
+  have hcauchy: "top1_cauchy_seq_on X d s"
+    unfolding top1_cauchy_seq_on_def
+  proof (intro allI impI)
+    fix e :: real
+    assume he: "0 < e"
+    obtain N where hN: "\<forall>n\<ge>N. top1_diameter_on d (C n) < e"
+      using hdiam he by blast
+    show "\<exists>N. \<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> X \<and> s n \<in> X \<and> d (s m) (s n) < e"
+    proof (rule exI[where x=N], intro allI impI)
+      fix m assume hm: "m \<ge> N"
+      fix n assume hn: "n \<ge> N"
+
+      have hsmCN: "s m \<in> C N"
+      proof -
+        have hsmCm: "s m \<in> C m"
+          using hsC by simp
+        have hCm_sub: "C m \<subseteq> C N"
+        proof -
+          have hall: "\<forall>n. n \<le> m \<longrightarrow> C m \<subseteq> C n"
+            by (rule allE[OF hnest_le, of m])
+          have himp: "N \<le> m \<longrightarrow> C m \<subseteq> C N"
+            by (rule allE[OF hall, of N])
+          have hNle: "N \<le> m"
+            using hm by simp
+          show ?thesis
+            using himp hNle by blast
+        qed
+        show ?thesis
+          by (rule subsetD[OF hCm_sub hsmCm])
+      qed
+      have hsnCN: "s n \<in> C N"
+      proof -
+        have hsnCn: "s n \<in> C n"
+          using hsC by simp
+        have hCn_sub: "C n \<subseteq> C N"
+        proof -
+          have hall: "\<forall>m'. m' \<le> n \<longrightarrow> C n \<subseteq> C m'"
+            by (rule allE[OF hnest_le, of n])
+          have himp: "N \<le> n \<longrightarrow> C n \<subseteq> C N"
+            by (rule allE[OF hall, of N])
+          have hNle: "N \<le> n"
+            using hn by simp
+          show ?thesis
+            using himp hNle by blast
+        qed
+        show ?thesis
+          by (rule subsetD[OF hCn_sub hsnCn])
+      qed
+
+      have hsNX: "s m \<in> X" and htNX: "s n \<in> X"
+        using hCsubX hsmCN hsnCN by blast+
+
+      have hdiamN: "top1_diameter_on d (C N) < e"
+        using hN by simp
+      have hdist: "d (s m) (s n) < e"
+        by (rule top1_diameter_on_lt_imp_dist_lt[OF hmetric hCsubX[rule_format, of N] hsmCN hsnCN hdiamN])
+
+      show "s m \<in> X \<and> s n \<in> X \<and> d (s m) (s n) < e"
+        using hsNX htNX hdist by simp
+    qed
+  qed
+
+  obtain x where hxX: "x \<in> X"
+    and hconv: "seq_converges_to_on s x X (top1_metric_topology_on X d)"
+    using hd hcauchy unfolding top1_complete_metric_on_def by blast
+
+  have hxAll: "\<forall>k. x \<in> C k"
+  proof (intro allI)
+    fix k
+    have hCk_subX: "C k \<subseteq> X"
+      using hCsubX by simp
+
+    have hClChar:
+      "x \<in> closure_on X (top1_metric_topology_on X d) (C k)
+        \<longleftrightarrow> (\<forall>U. neighborhood_of x X (top1_metric_topology_on X d) U \<longrightarrow> intersects U (C k))"
+      by (rule Theorem_17_5a[OF hTop hxX hCk_subX])
+
+    have hxcl: "x \<in> closure_on X (top1_metric_topology_on X d) (C k)"
+    proof (rule iffD2[OF hClChar], intro allI impI)
+      fix U
+      assume hU: "neighborhood_of x X (top1_metric_topology_on X d) U"
+      obtain N where hNU: "\<forall>n\<ge>N. s n \<in> U"
+        using hconv hU unfolding seq_converges_to_on_def by blast
+      define m where "m = max N k"
+      have hmN: "N \<le> m" and hmk: "k \<le> m"
+        unfolding m_def by simp_all
+      have hsmU: "s m \<in> U"
+        by (rule hNU[rule_format, OF hmN])
+      have hsmCm: "s m \<in> C m"
+        using hsC by simp
+      have hCm_sub: "C m \<subseteq> C k"
+      proof -
+        have hall: "\<forall>k'. k' \<le> m \<longrightarrow> C m \<subseteq> C k'"
+          by (rule allE[OF hnest_le, of m])
+        have himp: "k \<le> m \<longrightarrow> C m \<subseteq> C k"
+          by (rule allE[OF hall, of k])
+        show ?thesis
+          using himp hmk by blast
+      qed
+      have hsmCk: "s m \<in> C k"
+        by (rule subsetD[OF hCm_sub hsmCm])
+      show "intersects U (C k)"
+        unfolding intersects_def
+      proof
+        assume hempty: "U \<inter> C k = {}"
+        have hsmUC: "s m \<in> U \<inter> C k"
+          using hsmU hsmCk by blast
+        have "s m \<in> {}"
+          using hsmUC unfolding hempty by simp
+        thus False
+          by simp
+      qed
+    qed
+
+    have hcl_sub: "closure_on X (top1_metric_topology_on X d) (C k) \<subseteq> C k"
+      unfolding closure_on_def
+    proof (rule Inter_lower)
+      show "C k \<in> {C'. closedin_on X (top1_metric_topology_on X d) C' \<and> C k \<subseteq> C'}"
+        using hCcl by blast
+    qed
+    show "x \<in> C k"
+      by (rule subsetD[OF hcl_sub hxcl])
+  qed
+
+  have hxInter: "x \<in> (\<Inter>n. C n)"
+    using hxAll by simp
+  show "(\<Inter>n. C n) \<noteq> {}"
+    using hxInter by blast
+qed
 
 (** from \S48 Lemma 48.4 [top1.tex:7216] **)
 lemma Lemma_48_4:
