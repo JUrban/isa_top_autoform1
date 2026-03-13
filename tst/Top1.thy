@@ -58221,6 +58221,58 @@ definition top1_finite_dimensional_on :: "'a set \<Rightarrow> 'a set set \<Righ
 definition top1_dim_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> nat" where
   "top1_dim_on X TX = (LEAST m. top1_dim_le_on X TX m)"
 
+(** Basic monotonicity properties of cover order / dimension predicates. **)
+lemma top1_cover_order_le_on_subset:
+  assumes h: "top1_cover_order_le_on X \<A> m"
+  assumes hsub: "\<A>' \<subseteq> \<A>"
+  shows "top1_cover_order_le_on X \<A>' m"
+proof (unfold top1_cover_order_le_on_def, intro ballI)
+  fix x
+  assume hxX: "x \<in> X"
+  have hfin: "finite {U \<in> \<A>. x \<in> U}"
+    using h hxX unfolding top1_cover_order_le_on_def by blast
+  have hcard: "card {U \<in> \<A>. x \<in> U} \<le> Suc m"
+    using h hxX unfolding top1_cover_order_le_on_def by blast
+
+  have hsub': "{U \<in> \<A>'. x \<in> U} \<subseteq> {U \<in> \<A>. x \<in> U}"
+    using hsub by blast
+  have hfin': "finite {U \<in> \<A>'. x \<in> U}"
+    by (rule finite_subset[OF hsub' hfin])
+
+  have hcard': "card {U \<in> \<A>'. x \<in> U} \<le> card {U \<in> \<A>. x \<in> U}"
+    by (rule card_mono[OF hfin hsub'])
+
+  show "finite {U \<in> \<A>'. x \<in> U} \<and> card {U \<in> \<A>'. x \<in> U} \<le> Suc m"
+  proof
+    show "finite {U \<in> \<A>'. x \<in> U}"
+      by (rule hfin')
+    have "card {U \<in> \<A>'. x \<in> U} \<le> card {U \<in> \<A>. x \<in> U}"
+      by (rule hcard')
+    also have "... \<le> Suc m"
+      by (rule hcard)
+    finally show "card {U \<in> \<A>'. x \<in> U} \<le> Suc m" .
+  qed
+qed
+
+lemma top1_cover_order_le_on_mono_m:
+  assumes h: "top1_cover_order_le_on X \<A> m"
+  assumes hmn: "m \<le> n"
+  shows "top1_cover_order_le_on X \<A> n"
+proof (unfold top1_cover_order_le_on_def, intro ballI)
+  fix x
+  assume hxX: "x \<in> X"
+  have hfin: "finite {U \<in> \<A>. x \<in> U}"
+    using h hxX unfolding top1_cover_order_le_on_def by blast
+  have hcard: "card {U \<in> \<A>. x \<in> U} \<le> Suc m"
+    using h hxX unfolding top1_cover_order_le_on_def by blast
+  have hSuc: "Suc m \<le> Suc n"
+    using hmn by simp
+  have "card {U \<in> \<A>. x \<in> U} \<le> Suc n"
+    by (rule order_trans[OF hcard hSuc])
+  thus "finite {U \<in> \<A>. x \<in> U} \<and> card {U \<in> \<A>. x \<in> U} \<le> Suc n"
+    using hfin by blast
+qed
+
 (** from \S50 Theorem 50.1 [top1.tex:7556] **)
 theorem Theorem_50_1:
   assumes hdim: "top1_finite_dimensional_on X TX"
