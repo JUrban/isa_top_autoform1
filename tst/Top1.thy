@@ -58340,6 +58340,21 @@ proof -
     by (rule LeastI_ex) (rule hex)
 qed
 
+lemma top1_dim_le_on_iff_dim_on_le:
+  assumes hfd: "top1_finite_dimensional_on X TX"
+  shows "top1_dim_le_on X TX m \<longleftrightarrow> top1_dim_on X TX \<le> m"
+proof
+  assume hdim: "top1_dim_le_on X TX m"
+  show "top1_dim_on X TX \<le> m"
+    by (rule top1_dim_on_le_of_dim_le[OF hfd hdim])
+next
+  assume hle: "top1_dim_on X TX \<le> m"
+  have hdim0: "top1_dim_le_on X TX (top1_dim_on X TX)"
+    by (rule top1_dim_le_on_dim_on[OF hfd])
+  show "top1_dim_le_on X TX m"
+    by (rule top1_dim_le_on_mono_m[OF hdim0 hle])
+qed
+
 (** from \S50 Theorem 50.1 [top1.tex:7556] **)
 theorem Theorem_50_1:
   assumes hdim: "top1_finite_dimensional_on X TX"
