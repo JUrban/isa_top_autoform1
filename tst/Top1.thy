@@ -58317,6 +58317,12 @@ lemma top1_dim_le_on_imp_finite_dimensional:
   unfolding top1_finite_dimensional_on_def
   by (rule exI[where x=m]) (rule hdim)
 
+lemma top1_dim_on_le_of_dim_le':
+  assumes hdim: "top1_dim_le_on X TX m"
+  shows "top1_dim_on X TX \<le> m"
+  unfolding top1_dim_on_def
+  by (rule Least_le) (rule hdim)
+
 lemma top1_dim_on_le_of_dim_le:
   assumes hex: "top1_finite_dimensional_on X TX"
   assumes hdim: "top1_dim_le_on X TX m"
@@ -58325,8 +58331,7 @@ proof -
   have hex': "\<exists>k. top1_dim_le_on X TX k"
     by (rule hex[unfolded top1_finite_dimensional_on_def])
   show ?thesis
-    unfolding top1_dim_on_def
-    by (rule Least_le) (rule hdim)
+    by (rule top1_dim_on_le_of_dim_le'[OF hdim])
 qed
 
 lemma top1_dim_le_on_dim_on:
