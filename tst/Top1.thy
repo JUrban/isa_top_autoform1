@@ -53562,7 +53562,20 @@ lemma Lemma_39_1:
   shows "(\<forall>\<A>'. \<A>' \<subseteq> \<A> \<longrightarrow> top1_locally_finite_family_on X TX \<A>')"
     and "top1_locally_finite_family_on X TX (closure_on X TX ` \<A>)"
     and "closure_on X TX (\<Union>\<A>) = (\<Union>(closure_on X TX ` \<A>))"
-  sorry
+proof -
+  show "(\<forall>\<A>'. \<A>' \<subseteq> \<A> \<longrightarrow> top1_locally_finite_family_on X TX \<A>')"
+  proof (intro allI impI)
+    fix \<A>' assume hA'sub: "\<A>' \<subseteq> \<A>"
+    show "top1_locally_finite_family_on X TX \<A>'"
+      by (rule top1_locally_finite_family_on_subset[OF hLF hA'sub])
+  qed
+
+  show "top1_locally_finite_family_on X TX (closure_on X TX ` \<A>)"
+    by (rule top1_locally_finite_family_on_closure_image[OF hTopX hSubX hLF])
+
+  show "closure_on X TX (\<Union>\<A>) = (\<Union>(closure_on X TX ` \<A>))"
+    sorry
+qed
 
 (** from \S39 Lemma 39.2 (Metrizable spaces admit countably locally finite refinements) [top1.tex:5567] **)
 lemma Lemma_39_2:
