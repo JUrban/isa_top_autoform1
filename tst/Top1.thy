@@ -55314,7 +55314,353 @@ lemma top1_compact_convergence_topology_on_superset_pointwise:
   assumes hd: "top1_metric_on Y d"
   shows "top1_compact_convergence_topology_on X TX Y d
     \<supseteq> top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)"
-  sorry
+proof -
+  let ?Xfun = "top1_PiE X (\<lambda>_. Y)"
+  let ?Bpw = "top1_product_basis_on X (\<lambda>_. Y) (\<lambda>_. top1_metric_topology_on Y d)"
+  let ?Bcc = "top1_compact_convergence_basis_on X TX Y d"
+
+  have hpw_sub_cc:
+    "topology_generated_by_basis ?Xfun ?Bpw \<subseteq> topology_generated_by_basis ?Xfun ?Bcc"
+  proof (rule topology_generated_by_basis_mono_via_basis_elems)
+    fix b
+    assume hb: "b \<in> ?Bpw"
+    obtain U where
+      hbdef: "b = top1_PiE X U"
+      and hU: "\<forall>x\<in>X. U x \<in> top1_metric_topology_on Y d \<and> U x \<subseteq> Y"
+      and hfin: "finite {x \<in> X. U x \<noteq> Y}"
+      using hb unfolding top1_product_basis_on_def by blast
+
+    let ?S = "{x \<in> X. U x \<noteq> Y}"
+    have hSfin: "finite ?S"
+      using hfin by simp
+    have hSsubX: "?S \<subseteq> X"
+      by blast
+
+    have hb_sub: "b \<subseteq> ?Xfun"
+    proof -
+      have hmono: "\<forall>x\<in>X. U x \<subseteq> Y"
+        using hU by simp
+      have "top1_PiE X U \<subseteq> top1_PiE X (\<lambda>_. Y)"
+        by (rule top1_PiE_mono[OF hmono])
+      thus ?thesis
+        unfolding hbdef by simp
+    qed
+
+    show "b \<in> topology_generated_by_basis ?Xfun ?Bcc"
+      unfolding topology_generated_by_basis_def
+    proof (rule CollectI, intro conjI)
+      show "b \<subseteq> ?Xfun"
+        by (rule hb_sub)
+
+      show "\<forall>g\<in>b. \<exists>bc\<in>?Bcc. g \<in> bc \<and> bc \<subseteq> b"
+      proof (intro ballI)
+        fix g
+        assume hg: "g \<in> b"
+        have hgU: "g \<in> top1_PiE X U"
+          using hg unfolding hbdef by simp
+        have hgXfun: "g \<in> ?Xfun"
+          using hb_sub hg by blast
+
+        have hScomp: "top1_compact_on ?S (subspace_topology X TX ?S)"
+          by (rule top1_compact_on_finite_subspace[OF hTopX hSsubX hSfin])
+
+        have hBall_each: "\<forall>x\<in>?S. \<exists>e>0. top1_ball_on Y d (g x) e \<subseteq> U x"
+        proof (intro ballI)
+          fix x
+          assume hxS: "x \<in> ?S"
+          have hxX: "x \<in> X"
+            using hxS by simp
+          have hUx: "U x \<in> top1_metric_topology_on Y d"
+            using hU hxX by simp
+          have hgxUx: "g x \<in> U x"
+            using hgU hxX unfolding top1_PiE_iff by blast
+          show "\<exists>e>0. top1_ball_on Y d (g x) e \<subseteq> U x"
+            by (rule top1_metric_open_contains_ball[OF hd hUx hgxUx])
+        qed
+
+        have hBall_each':
+          "\<forall>x\<in>?S. \<exists>e. 0 < e \<and> top1_ball_on Y d (g x) e \<subseteq> U x"
+          using hBall_each by simp
+
+        have hex_eps:
+          "\<exists>eps. \<forall>x\<in>?S. 0 < eps x \<and> top1_ball_on Y d (g x) (eps x) \<subseteq> U x"
+          by (rule bchoice[OF hBall_each'])
+
+        obtain eps where heps:
+          "\<forall>x\<in>?S. 0 < eps x \<and> top1_ball_on Y d (g x) (eps x) \<subseteq> U x"
+          using hex_eps
+          by (erule exE)
+
+        define e where
+          "e = (if ?S = {} then 1/2 else min (Min (eps ` ?S)) (1/2))"
+
+        have hepos: "0 < e"
+        proof (cases "?S = {}")
+          case True
+          show ?thesis
+            unfolding e_def True by simp
+        next
+          case False
+          have hSimg_fin: "finite (eps ` ?S)"
+            using hSfin by simp
+          have hSimg_ne: "eps ` ?S \<noteq> {}"
+            using False by simp
+          have hSimg_pos: "\<forall>r\<in>eps ` ?S. 0 < r"
+            using heps by blast
+	          have hMin_mem: "Min (eps ` ?S) \<in> eps ` ?S"
+	            by (rule Min_in[OF hSimg_fin hSimg_ne])
+	          have hMin_pos: "0 < Min (eps ` ?S)"
+	            by (rule bspec[OF hSimg_pos hMin_mem])
+	          show ?thesis
+	            unfolding e_def using False hMin_pos by simp
+	        qed
+
+        have hele1: "e \<le> 1"
+        proof (cases "?S = {}")
+          case True
+          show ?thesis
+            unfolding e_def True by simp
+        next
+          case False
+          have "e \<le> (1 / 2 :: real)"
+            unfolding e_def using False by simp
+          thus ?thesis
+            by simp
+        qed
+
+        have hele_eps: "\<forall>x\<in>?S. e \<le> eps x"
+        proof (intro ballI)
+          fix x
+          assume hxS: "x \<in> ?S"
+          show "e \<le> eps x"
+          proof (cases "?S = {}")
+            case True
+            show ?thesis
+              using hxS True by simp
+	          next
+	            case False
+	            have hSimg_fin: "finite (eps ` ?S)"
+	              using hSfin by simp
+	            have hxmem: "eps x \<in> eps ` ?S"
+	              by (rule imageI[OF hxS])
+	            have hMin_le: "Min (eps ` ?S) \<le> eps x"
+	              by (rule Min_le[OF hSimg_fin hxmem])
+	            have he_alt: "e = min (Min (eps ` ?S)) (1 / 2)"
+	              unfolding e_def by (rule if_not_P[OF False])
+	            have hle_Min: "e \<le> Min (eps ` ?S)"
+	              unfolding he_alt by simp
+	            show ?thesis
+	              by (rule order_trans[OF hle_Min hMin_le])
+	          qed
+	        qed
+
+	        have hball_mono:
+	          "\<And>x (r::real) (r'::real). r \<le> r' \<Longrightarrow> top1_ball_on Y d (g x) r \<subseteq> top1_ball_on Y d (g x) r'"
+	        proof -
+	          fix x and r :: real and r' :: real
+	          assume hr: "r \<le> r'"
+	          show "top1_ball_on Y d (g x) r \<subseteq> top1_ball_on Y d (g x) r'"
+	          unfolding top1_ball_on_def
+	          using hr by (intro subsetI; simp; linarith)
+	        qed
+
+        have hball_subU: "\<forall>x\<in>?S. top1_ball_on Y d (g x) e \<subseteq> U x"
+        proof (intro ballI)
+          fix x
+	          assume hxS: "x \<in> ?S"
+	          have hsub1: "top1_ball_on Y d (g x) e \<subseteq> top1_ball_on Y d (g x) (eps x)"
+	            by (rule hball_mono[OF hele_eps[rule_format, OF hxS]])
+	          have hsub2: "top1_ball_on Y d (g x) (eps x) \<subseteq> U x"
+	            using heps hxS by simp
+	          show "top1_ball_on Y d (g x) e \<subseteq> U x"
+	            by (rule subset_trans[OF hsub1 hsub2])
+	        qed
+
+        let ?bc =
+          "{h \<in> ?Xfun.
+              (if ?S = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (g x) (h x)) ` ?S)) < e}"
+
+	        have hbc_inB: "?bc \<in> ?Bcc"
+	          unfolding top1_compact_convergence_basis_on_def
+	          apply (rule CollectI)
+	          apply (rule exI[where x=g])
+	          apply (rule exI[where x="{x \<in> X. U x \<noteq> Y}"])
+	          apply (rule exI[where x=e])
+	          apply (intro conjI)
+	             apply simp
+	             apply (rule hgXfun)
+	            apply (rule hScomp)
+	           apply (rule hSsubX)
+	          apply (rule hepos)
+	          done
+
+        have hg_in_bc: "g \<in> ?bc"
+        proof -
+          have h0iff: "\<forall>x\<in>Y. \<forall>y\<in>Y. d x y = 0 \<longleftrightarrow> x = y"
+            using hd unfolding top1_metric_on_def by blast
+          have hvals0: "\<forall>x\<in>X. top1_bounded_metric d (g x) (g x) = 0"
+          proof (intro ballI)
+            fix x assume hxX: "x \<in> X"
+            have hgx: "g x \<in> Y"
+              using hgXfun hxX unfolding top1_PiE_iff by blast
+            have "d (g x) (g x) = 0"
+              using h0iff hgx by simp
+            thus "top1_bounded_metric d (g x) (g x) = 0"
+              unfolding top1_bounded_metric_def by simp
+          qed
+          have hdist0:
+            "(if ?S = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (g x) (g x)) ` ?S)) = 0"
+          proof (cases "?S = {}")
+            case True
+            show ?thesis
+              using True by simp
+          next
+            case False
+            let ?T = "((\<lambda>x. top1_bounded_metric d (g x) (g x)) ` ?S)"
+            have hTsub: "?T \<subseteq> {0}"
+            proof
+              fix t assume ht: "t \<in> ?T"
+              then obtain x where hxS: "x \<in> ?S" and htdef: "t = top1_bounded_metric d (g x) (g x)"
+                by blast
+              have hxX: "x \<in> X"
+                using hxS by simp
+              have "top1_bounded_metric d (g x) (g x) = 0"
+                using hvals0 hxX by blast
+              thus "t \<in> {0}"
+                unfolding htdef by simp
+            qed
+            have hTne: "?T \<noteq> {}"
+            proof -
+              obtain x0 where hx0: "x0 \<in> ?S"
+                using False by blast
+              have "top1_bounded_metric d (g x0) (g x0) \<in> ?T"
+                by (rule imageI[OF hx0])
+              thus ?thesis by blast
+            qed
+            have hSup_le0: "Sup ?T \<le> 0"
+            proof (rule cSup_least[OF hTne])
+              fix t assume ht: "t \<in> ?T"
+              have "t \<in> {0}"
+                using hTsub ht by blast
+              thus "t \<le> 0"
+                by simp
+            qed
+            have hSup_ge0: "0 \<le> Sup ?T"
+            proof -
+              obtain x0 where hx0: "x0 \<in> ?S"
+                using False by blast
+              have hmem0: "0 \<in> ?T"
+                using hvals0 hx0 by force
+	              have hbdd: "bdd_above ?T"
+	                unfolding bdd_above_def
+	                apply (rule exI[where x=1])
+	                apply (intro ballI)
+	                apply (erule imageE)
+	                apply (simp add: top1_bounded_metric_def)
+	                done
+              have "0 \<le> Sup ?T"
+                using cSup_upper[OF hmem0 hbdd] by simp
+              thus ?thesis .
+            qed
+            have "Sup ?T = 0"
+              using hSup_le0 hSup_ge0 by linarith
+            thus ?thesis
+              using False by simp
+          qed
+          have hcond: "(if ?S = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (g x) (g x)) ` ?S)) < e"
+            using hdist0 hepos by simp
+          show ?thesis
+            using hgXfun hcond by simp
+        qed
+
+        have hbc_sub_b: "?bc \<subseteq> b"
+        proof (rule subsetI)
+          fix h
+          assume hh: "h \<in> ?bc"
+          have hhXfun: "h \<in> ?Xfun"
+            using hh by simp
+          have hsup: "(if ?S = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (g x) (h x)) ` ?S)) < e"
+            using hh by simp
+
+          have hcoords: "\<forall>x\<in>X. h x \<in> U x"
+          proof (intro ballI)
+            fix x
+            assume hxX: "x \<in> X"
+            show "h x \<in> U x"
+            proof (cases "x \<in> ?S")
+              case False
+              have hUx: "U x = Y"
+                using False hxX by simp
+              have hhxY: "h x \<in> Y"
+                using hhXfun hxX unfolding top1_PiE_iff by blast
+              show ?thesis
+                unfolding hUx using hhxY .
+            next
+              case True
+              have hxS: "x \<in> ?S"
+                using True .
+
+	              have hSne: "?S \<noteq> {}"
+	                using hxS by blast
+	              have hSup_lt: "Sup ((\<lambda>t. top1_bounded_metric d (g t) (h t)) ` ?S) < e"
+	                using hsup unfolding if_not_P[OF hSne] by assumption
+
+	              let ?T = "((\<lambda>t. top1_bounded_metric d (g t) (h t)) ` ?S)"
+	              have hbdd: "bdd_above ?T"
+	                unfolding bdd_above_def
+	                apply (rule exI[where x=1])
+	                apply (intro ballI)
+	                apply (erule imageE)
+	                apply (simp add: top1_bounded_metric_def)
+	                done
+              have hmem: "top1_bounded_metric d (g x) (h x) \<in> ?T"
+                by (rule imageI[OF hxS])
+              have hleSup: "top1_bounded_metric d (g x) (h x) \<le> Sup ?T"
+                by (rule cSup_upper[OF hmem hbdd])
+              have hlt_bdd: "top1_bounded_metric d (g x) (h x) < e"
+                using hleSup hSup_lt by linarith
+
+              have hlt_d: "d (g x) (h x) < e"
+                by (rule top1_bounded_metric_lt_imp_lt[OF hlt_bdd hele1])
+
+              have hhx_ball: "h x \<in> top1_ball_on Y d (g x) e"
+              proof -
+                have hhxY: "h x \<in> Y"
+                  using hhXfun hxX unfolding top1_PiE_iff by blast
+                show ?thesis
+                  unfolding top1_ball_on_def using hhxY hlt_d by blast
+              qed
+
+              have hsubU: "top1_ball_on Y d (g x) e \<subseteq> U x"
+                using hball_subU hxS by blast
+
+              show ?thesis
+                by (rule subsetD[OF hsubU hhx_ball])
+            qed
+          qed
+
+          have hext: "\<forall>x. x \<notin> X \<longrightarrow> h x = undefined"
+            using hhXfun unfolding top1_PiE_iff by blast
+
+          show "h \<in> b"
+            unfolding hbdef top1_PiE_iff using hcoords hext by blast
+        qed
+
+        show "\<exists>bc\<in>?Bcc. g \<in> bc \<and> bc \<subseteq> b"
+          apply (rule bexI[where x="?bc"])
+           apply (intro conjI)
+            apply (rule hg_in_bc)
+           apply (rule hbc_sub_b)
+          apply (rule hbc_inB)
+          done
+      qed
+    qed
+  qed
+
+  show ?thesis
+    unfolding top1_compact_convergence_topology_on_def top1_pointwise_topology_on_def top1_product_topology_on_def
+    using hpw_sub_cc by simp
+qed
 
 text \<open>
   Proof idea for @{thm top1_compact_convergence_topology_on_superset_pointwise}: unfold both sides
