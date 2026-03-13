@@ -57592,7 +57592,84 @@ lemma top1_metric_diameter_closure_ball_le:
   assumes hxX: "x \<in> X"
   assumes hr: "0 < r"
   shows "top1_diameter_on d (closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)) \<le> 2 * r"
-  sorry
+proof -
+  let ?T = "top1_metric_topology_on X d"
+  let ?B = "top1_ball_on X d x r"
+  let ?C = "closure_on X ?T ?B"
+  let ?D = "{d u v | u v. u \<in> ?C \<and> v \<in> ?C}"
+
+  have hTop: "is_topology_on X ?T"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+
+  have hBsubX: "?B \<subseteq> X"
+    unfolding top1_ball_on_def by blast
+
+  have hxx0: "d x x = 0"
+    using hd hxX unfolding top1_metric_on_def by blast
+
+  have hxB: "x \<in> ?B"
+    unfolding top1_ball_on_def using hxX hxx0 hr by simp
+
+  have hBsubC: "?B \<subseteq> ?C"
+    by (rule subset_closure_on)
+
+  have hxC: "x \<in> ?C"
+    by (rule subsetD[OF hBsubC hxB])
+
+  have hDne: "?D \<noteq> {}"
+  proof -
+    have hxD: "d x x \<in> ?D"
+    proof -
+      have "\<exists>u v. d x x = d u v \<and> u \<in> ?C \<and> v \<in> ?C"
+        by (rule exI[where x=x], rule exI[where x=x]) (use hxC in simp)
+      thus ?thesis
+        by simp
+    qed
+    show ?thesis
+      using hxD by blast
+  qed
+
+  have hCsubX: "?C \<subseteq> X"
+    by (rule closure_on_subset_carrier[OF hTop hBsubX])
+
+  show ?thesis
+    unfolding top1_diameter_on_def
+  proof (rule cSup_least)
+    show "?D \<noteq> {}"
+      by (rule hDne)
+    fix t
+    assume ht: "t \<in> ?D"
+    obtain u v where huvC: "u \<in> ?C" "v \<in> ?C" and htuv: "t = d u v"
+      using ht by blast
+
+    have huX: "u \<in> X"
+      using hCsubX huvC(1) by blast
+    have hvX: "v \<in> X"
+      using hCsubX huvC(2) by blast
+
+    have hsymu: "d u x = d x u"
+      using hd huX hxX unfolding top1_metric_on_def by blast
+
+    have htri: "d u v \<le> d u x + d x v"
+      using hd huX hxX hvX unfolding top1_metric_on_def by blast
+
+    have hxu_le: "d x u \<le> r"
+      by (rule top1_metric_closure_ball_imp_dist_le[OF hd hxX hr huvC(1)])
+    have hxv_le: "d x v \<le> r"
+      by (rule top1_metric_closure_ball_imp_dist_le[OF hd hxX hr huvC(2)])
+
+    have hux_le: "d u x \<le> r"
+      unfolding hsymu using hxu_le .
+
+    have "t \<le> d u x + d x v"
+      unfolding htuv by (rule htri)
+    also have "... \<le> r + r"
+      by (rule add_mono[OF hux_le hxv_le])
+    also have "... = 2 * r"
+      by simp
+    finally show "t \<le> 2 * r" .
+  qed
+qed
 
 theorem Theorem_48_2:
   shows "top1_compact_on X TX \<and> is_hausdorff_on X TX \<longrightarrow> top1_baire_on X TX"
