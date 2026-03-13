@@ -53433,18 +53433,19 @@ definition top1_equiv_compactification_via_on ::
 
 (** from \S38 Lemma 38.1 (Compactifications induced by embeddings) [top1.tex:5348] **)
 lemma Lemma_38_1:
+  fixes X :: "'a set" and TX :: "'a set set"
+    and Z :: "'b set" and TZ :: "'b set set"
+    and h :: "'a \<Rightarrow> 'b"
   assumes hEmb: "top1_embedding_on X TX Z TZ h"
   assumes hCompZ: "top1_compact_on Z TZ"
   assumes hHausZ: "is_hausdorff_on Z TZ"
-  shows "\<exists>Y TY e H.
+  shows "\<exists>Y TY (e::'a \<Rightarrow> 'b) H.
     top1_compactification_via_on X TX Y TY e
     \<and> top1_embedding_on Y TY Z TZ H
     \<and> (\<forall>x\<in>X. H (e x) = h x)"
 proof -
-  let ?Y = "closure_on Z TZ (h ` X)"
-  let ?TY = "subspace_topology Z TZ ?Y"
-  let ?e = "h"
-  let ?H = "id"
+  define Y0 where "Y0 = closure_on Z TZ (h ` X)"
+  define TY0 where "TY0 = subspace_topology Z TZ Y0"
 
   have hTopZ: "is_topology_on Z TZ"
   proof -
@@ -53463,28 +53464,29 @@ proof -
       by (rule conjunct1)
   qed
 
-  have hYsubZ: "?Y \<subseteq> Z"
-    by (rule closure_on_subset_carrier[OF hTopZ hImgSubZ])
+  have hYsubZ: "Y0 \<subseteq> Z"
+    unfolding Y0_def by (rule closure_on_subset_carrier[OF hTopZ hImgSubZ])
 
-  have hYclosed: "closedin_on Z TZ ?Y"
-    by (rule closure_on_closed[OF hTopZ hImgSubZ])
+  have hYclosed: "closedin_on Z TZ Y0"
+    unfolding Y0_def by (rule closure_on_closed[OF hTopZ hImgSubZ])
 
-  have hCompY: "top1_compact_on ?Y ?TY"
-    by (rule Theorem_26_2[OF hCompZ hYclosed])
+  have hCompY: "top1_compact_on Y0 TY0"
+    unfolding TY0_def by (rule Theorem_26_2[OF hCompZ hYclosed])
 
   have hHausSub:
     "(\<forall>X0 T0 Y0. is_hausdorff_on X0 T0 \<and> Y0 \<subseteq> X0 \<longrightarrow> is_hausdorff_on Y0 (subspace_topology X0 T0 Y0))"
     by (rule conjunct2[OF conjunct2[OF Theorem_17_11]])
 
-  have hHausY: "is_hausdorff_on ?Y ?TY"
+  have hHausY: "is_hausdorff_on Y0 TY0"
+    unfolding TY0_def
     apply (rule hHausSub[rule_format])
     apply (intro conjI)
      apply (rule hHausZ)
     apply (rule hYsubZ)
     done
 
-  have hImgSubY: "h ` X \<subseteq> ?Y"
-    by (rule subset_closure_on)
+  have hImgSubY: "h ` X \<subseteq> Y0"
+    unfolding Y0_def by (rule subset_closure_on)
 
   have hHomeoZ: "top1_homeomorphism_on X TX (h ` X) (subspace_topology Z TZ (h ` X)) h"
   proof -
@@ -53494,42 +53496,42 @@ proof -
       by (rule conjunct2)
   qed
 
-  have hTopEq: "subspace_topology ?Y ?TY (h ` X) = subspace_topology Z TZ (h ` X)"
+  have hTopEq: "subspace_topology Y0 TY0 (h ` X) = subspace_topology Z TZ (h ` X)"
   proof -
-    have "subspace_topology ?Y (subspace_topology Z TZ ?Y) (h ` X) = subspace_topology Z TZ (h ` X)"
+    have "subspace_topology Y0 (subspace_topology Z TZ Y0) (h ` X) = subspace_topology Z TZ (h ` X)"
       by (rule subspace_topology_trans[OF hImgSubY])
     thus ?thesis
-      by simp
+      unfolding TY0_def by simp
   qed
 
-  have hHomeoY: "top1_homeomorphism_on X TX (h ` X) (subspace_topology ?Y ?TY (h ` X)) h"
+  have hHomeoY: "top1_homeomorphism_on X TX (h ` X) (subspace_topology Y0 TY0 (h ` X)) h"
     apply (subst hTopEq)
     apply (rule hHomeoZ)
     done
 
-  have hEmbY: "top1_embedding_on X TX ?Y ?TY h"
+  have hEmbY: "top1_embedding_on X TX Y0 TY0 h"
     unfolding top1_embedding_on_def
     apply (intro conjI)
      apply (rule hImgSubY)
     apply (rule hHomeoY)
     done
 
-  have hClosureImg: "closure_on ?Y ?TY (h ` X) = ?Y"
+  have hClosureImg: "closure_on Y0 TY0 (h ` X) = Y0"
   proof -
-    have hEq: "closure_on ?Y ?TY (h ` X) = closure_on Z TZ (h ` X) \<inter> ?Y"
-      by (rule Theorem_17_4[OF hTopZ hImgSubY hYsubZ])
+    have hEq: "closure_on Y0 TY0 (h ` X) = closure_on Z TZ (h ` X) \<inter> Y0"
+      unfolding TY0_def by (rule Theorem_17_4[OF hTopZ hImgSubY hYsubZ])
     show ?thesis
-      unfolding hEq by simp
+      unfolding hEq by (simp add: Y0_def)
   qed
 
-  have hDenseImg: "top1_dense_image_via_on X TX ?Y ?TY h"
+  have hDenseImg: "top1_dense_image_via_on X TX Y0 TY0 h"
     unfolding top1_dense_image_via_on_def
     apply (intro conjI)
      apply (rule hEmbY)
     apply (rule hClosureImg)
     done
 
-  have hCompVia: "top1_compactification_via_on X TX ?Y ?TY h"
+  have hCompVia: "top1_compactification_via_on X TX Y0 TY0 h"
     unfolding top1_compactification_via_on_def
     apply (intro conjI)
       apply (rule hCompY)
@@ -53537,109 +53539,109 @@ proof -
     apply (rule hDenseImg)
     done
 
-  have hTopY: "is_topology_on ?Y ?TY"
+  have hTopY: "is_topology_on Y0 TY0"
   proof -
-    have "is_topology_on ?Y ?TY \<and>
-      (\<forall>Uc. Uc \<subseteq> ?TY \<and> ?Y \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> ?Y \<subseteq> \<Union>F))"
+    have "is_topology_on Y0 TY0 \<and>
+      (\<forall>Uc. Uc \<subseteq> TY0 \<and> Y0 \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> Y0 \<subseteq> \<Union>F))"
       using hCompY unfolding top1_compact_on_def .
     thus ?thesis
       by (rule conjunct1)
   qed
 
-  have hYinTY: "?Y \<in> ?TY"
+  have hYinTY: "Y0 \<in> TY0"
   proof -
-    have "{} \<in> ?TY \<and> ?Y \<in> ?TY \<and>
-      (\<forall>U. U \<subseteq> ?TY \<longrightarrow> \<Union>U \<in> ?TY) \<and>
-      (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> ?TY \<longrightarrow> \<Inter>F \<in> ?TY)"
+    have "{} \<in> TY0 \<and> Y0 \<in> TY0 \<and>
+      (\<forall>U. U \<subseteq> TY0 \<longrightarrow> \<Union>U \<in> TY0) \<and>
+      (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> TY0 \<longrightarrow> \<Inter>F \<in> TY0)"
       using hTopY unfolding is_topology_on_def .
     thus ?thesis
       by (rule conjunct1[OF conjunct2])
   qed
 
-  have hContId: "top1_continuous_map_on ?Y ?TY ?Y ?TY id"
+  have hContId: "top1_continuous_map_on Y0 TY0 Y0 TY0 id"
     unfolding top1_continuous_map_on_def
   proof (intro conjI)
-    show "\<forall>x\<in>?Y. id x \<in> ?Y"
+    show "\<forall>x\<in>Y0. id x \<in> Y0"
       by simp
-    show "\<forall>V\<in>?TY. {x \<in> ?Y. id x \<in> V} \<in> ?TY"
+    show "\<forall>V\<in>TY0. {x \<in> Y0. id x \<in> V} \<in> TY0"
     proof (intro ballI)
       fix V
-      assume hV: "V \<in> ?TY"
-      have hInter: "?Y \<inter> V \<in> ?TY"
+      assume hV: "V \<in> TY0"
+      have hInter: "Y0 \<inter> V \<in> TY0"
         by (rule topology_inter2[OF hTopY hYinTY hV])
-      have "{x \<in> ?Y. id x \<in> V} = ?Y \<inter> V"
+      have "{x \<in> Y0. id x \<in> V} = Y0 \<inter> V"
         by (rule set_eqI) simp
-      thus "{x \<in> ?Y. id x \<in> V} \<in> ?TY"
+      thus "{x \<in> Y0. id x \<in> V} \<in> TY0"
         using hInter by simp
     qed
   qed
 
-  have hInvPoint: "\<And>x. x \<in> ?Y \<Longrightarrow> inv_into ?Y id x = x"
+  have hInvPoint: "\<And>x. x \<in> Y0 \<Longrightarrow> inv_into Y0 id x = x"
   proof -
     fix x
-    assume hxY: "x \<in> ?Y"
-    have hinj: "inj_on id ?Y"
+    assume hxY: "x \<in> Y0"
+    have hinj: "inj_on id Y0"
       by simp
-    have "inv_into ?Y id (id x) = x"
+    have "inv_into Y0 id (id x) = x"
       by (rule inv_into_f_f[OF hinj hxY])
-    thus "inv_into ?Y id x = x"
+    thus "inv_into Y0 id x = x"
       by simp
   qed
 
-  have hContInv: "top1_continuous_map_on ?Y ?TY ?Y ?TY (inv_into ?Y id)"
+  have hContInv: "top1_continuous_map_on Y0 TY0 Y0 TY0 (inv_into Y0 id)"
     unfolding top1_continuous_map_on_def
   proof (intro conjI)
-    show "\<forall>x\<in>?Y. inv_into ?Y id x \<in> ?Y"
+    show "\<forall>x\<in>Y0. inv_into Y0 id x \<in> Y0"
     proof (intro ballI)
       fix x
-      assume hxY: "x \<in> ?Y"
-      have "inv_into ?Y id x = x"
+      assume hxY: "x \<in> Y0"
+      have "inv_into Y0 id x = x"
         by (rule hInvPoint[OF hxY])
-      thus "inv_into ?Y id x \<in> ?Y"
+      thus "inv_into Y0 id x \<in> Y0"
         using hxY by simp
     qed
-    show "\<forall>V\<in>?TY. {x \<in> ?Y. inv_into ?Y id x \<in> V} \<in> ?TY"
+    show "\<forall>V\<in>TY0. {x \<in> Y0. inv_into Y0 id x \<in> V} \<in> TY0"
     proof (intro ballI)
       fix V
-      assume hV: "V \<in> ?TY"
-      have hInter: "?Y \<inter> V \<in> ?TY"
+      assume hV: "V \<in> TY0"
+      have hInter: "Y0 \<inter> V \<in> TY0"
         by (rule topology_inter2[OF hTopY hYinTY hV])
-      have "{x \<in> ?Y. inv_into ?Y id x \<in> V} = ?Y \<inter> V"
+      have "{x \<in> Y0. inv_into Y0 id x \<in> V} = Y0 \<inter> V"
       proof (rule set_eqI)
         fix x
-        show "x \<in> {x \<in> ?Y. inv_into ?Y id x \<in> V} \<longleftrightarrow> x \<in> ?Y \<inter> V"
+        show "x \<in> {x \<in> Y0. inv_into Y0 id x \<in> V} \<longleftrightarrow> x \<in> Y0 \<inter> V"
         proof
-          assume hx: "x \<in> {x \<in> ?Y. inv_into ?Y id x \<in> V}"
-          have hxY: "x \<in> ?Y"
+          assume hx: "x \<in> {x \<in> Y0. inv_into Y0 id x \<in> V}"
+          have hxY: "x \<in> Y0"
             using hx by simp
-          have hxinV: "inv_into ?Y id x \<in> V"
+          have hxinV: "inv_into Y0 id x \<in> V"
             using hx by simp
-          have hInv: "inv_into ?Y id x = x"
+          have hInv: "inv_into Y0 id x = x"
             by (rule hInvPoint[OF hxY])
           have hxV: "x \<in> V"
             using hxinV unfolding hInv by simp
-          show "x \<in> ?Y \<inter> V"
+          show "x \<in> Y0 \<inter> V"
             using hxY hxV by simp
         next
-          assume hx: "x \<in> ?Y \<inter> V"
-          have hxY: "x \<in> ?Y"
+          assume hx: "x \<in> Y0 \<inter> V"
+          have hxY: "x \<in> Y0"
             using hx by simp
           have hxV: "x \<in> V"
             using hx by simp
-          have hInv: "inv_into ?Y id x = x"
+          have hInv: "inv_into Y0 id x = x"
             by (rule hInvPoint[OF hxY])
-          have hxinV: "inv_into ?Y id x \<in> V"
+          have hxinV: "inv_into Y0 id x \<in> V"
             using hxV unfolding hInv by simp
-          show "x \<in> {x \<in> ?Y. inv_into ?Y id x \<in> V}"
+          show "x \<in> {x \<in> Y0. inv_into Y0 id x \<in> V}"
             using hxY hxinV by simp
         qed
       qed
-      thus "{x \<in> ?Y. inv_into ?Y id x \<in> V} \<in> ?TY"
+      thus "{x \<in> Y0. inv_into Y0 id x \<in> V} \<in> TY0"
         using hInter by simp
     qed
   qed
 
-  have hHomeoId: "top1_homeomorphism_on ?Y ?TY ?Y ?TY id"
+  have hHomeoId: "top1_homeomorphism_on Y0 TY0 Y0 TY0 id"
     unfolding top1_homeomorphism_on_def
     apply (intro conjI)
         apply (rule hTopY)
@@ -53649,15 +53651,24 @@ proof -
     apply (rule hContInv)
     done
 
-  have hEmbIncl: "top1_embedding_on ?Y ?TY Z TZ id"
+  have hEmbIncl: "top1_embedding_on Y0 TY0 Z TZ id"
     unfolding top1_embedding_on_def
     apply (intro conjI)
      apply (simp add: hYsubZ)
-    apply (simp add: hHomeoId)
+    apply (simp add: TY0_def[symmetric])
+    apply (rule hHomeoId)
     done
 
   show ?thesis
-    sorry
+    apply (rule_tac x=Y0 in exI)
+    apply (rule_tac x=TY0 in exI)
+    apply (rule_tac x=h in exI)
+    apply (rule_tac x=id in exI)
+    apply (intro conjI)
+      apply (rule hCompVia)
+     apply (rule hEmbIncl)
+    apply simp
+    done
 qed
 
 definition top1_bounded_on :: "'a set \<Rightarrow> ('a \<Rightarrow> real) \<Rightarrow> bool" where
