@@ -53723,6 +53723,52 @@ next
   qed
 qed
 
+lemma top1_open_of_local_subsets:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  assumes hLoc: "\<forall>x\<in>A. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> A"
+  shows "A \<in> TX"
+proof -
+  let ?G = "{U\<in>TX. U \<subseteq> A}"
+
+  have hGsub: "?G \<subseteq> TX"
+    by blast
+
+  have hUnionT: "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
+    using hTopX unfolding is_topology_on_def by blast
+
+  have hUnionG: "\<Union>?G \<in> TX"
+    using hUnionT hGsub by blast
+
+  have hUnionG_sub: "\<Union>?G \<subseteq> A"
+    by blast
+
+  have hA_sub_UnionG: "A \<subseteq> \<Union>?G"
+  proof (rule subsetI)
+    fix x assume hx: "x \<in> A"
+    obtain U where hU: "U \<in> TX" and hxU: "x \<in> U" and hUsub: "U \<subseteq> A"
+      using hLoc hx by blast
+    have hUinG: "U \<in> ?G"
+      using hU hUsub by simp
+    show "x \<in> \<Union>?G"
+      using hxU hUinG by blast
+  qed
+
+  have hEq: "\<Union>?G = A"
+    by (rule subset_antisym[OF hUnionG_sub hA_sub_UnionG])
+
+  show ?thesis
+    using hUnionG unfolding hEq by simp
+qed
+
+lemma top1_closedin_Union_locally_finite:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hSubX: "\<forall>C\<in>F. C \<subseteq> X"
+  assumes hClosed: "\<forall>C\<in>F. closedin_on X TX C"
+  assumes hLF: "top1_locally_finite_family_on X TX F"
+  shows "closedin_on X TX (\<Union>F)"
+  sorry
+
 lemma top1_closure_on_Union_locally_finite:
   assumes hTopX: "is_topology_on X TX"
   assumes hSubX: "\<forall>A\<in>\<A>. A \<subseteq> X"
