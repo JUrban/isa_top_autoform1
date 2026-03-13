@@ -55451,7 +55451,110 @@ theorem Theorem_46_2:
 lemma Lemma_46_3:
   assumes hLC: "top1_locally_compact_on X TX"
   shows "top1_compactly_generated_on X TX"
-  sorry
+proof -
+  have hTopX: "is_topology_on X TX"
+    using hLC unfolding top1_locally_compact_on_def by simp
+
+  have hLCprop:
+    "\<forall>x\<in>X. \<exists>U. neighborhood_of x X TX U \<and> U \<subseteq> X
+        \<and> top1_compact_on (closure_on X TX U) (subspace_topology X TX (closure_on X TX U))"
+    using hLC unfolding top1_locally_compact_on_def by simp
+
+  show ?thesis
+    unfolding top1_compactly_generated_on_def
+  proof (intro conjI allI impI)
+    show "is_topology_on X TX"
+      by (rule hTopX)
+
+    fix A
+    assume hAX: "A \<subseteq> X"
+
+    show "A \<in> TX \<longleftrightarrow>
+        (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+              \<longrightarrow> A \<inter> C \<in> subspace_topology X TX C)"
+    proof (intro iffI)
+      assume hA: "A \<in> TX"
+      show "\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+              \<longrightarrow> A \<inter> C \<in> subspace_topology X TX C"
+      proof (intro allI impI)
+        fix C
+        assume hC: "top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X"
+        have "A \<inter> C = C \<inter> A"
+          by (simp add: Int_commute)
+        also have "... \<in> subspace_topology X TX C"
+          unfolding subspace_topology_def using hA by blast
+        finally show "A \<inter> C \<in> subspace_topology X TX C" .
+      qed
+    next
+      assume hInter:
+        "\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+              \<longrightarrow> A \<inter> C \<in> subspace_topology X TX C"
+
+      have hLoc: "\<forall>x\<in>A. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> A"
+      proof (intro ballI)
+        fix x
+        assume hxA: "x \<in> A"
+        have hxX: "x \<in> X"
+          using hAX hxA by blast
+
+        obtain U0 where hU0: "neighborhood_of x X TX U0"
+          and hU0subX: "U0 \<subseteq> X"
+          and hCompCl: "top1_compact_on (closure_on X TX U0) (subspace_topology X TX (closure_on X TX U0))"
+          using hLCprop hxX by blast
+
+        define C0 where "C0 = closure_on X TX U0"
+        have hC0subX: "C0 \<subseteq> X"
+          unfolding C0_def by (rule closure_on_subset_carrier[OF hTopX hU0subX])
+
+        have hAintC0:
+          "A \<inter> C0 \<in> subspace_topology X TX C0"
+          using hInter hCompCl hC0subX unfolding C0_def by blast
+
+        obtain W where hW: "W \<in> TX" and hEq: "A \<inter> C0 = C0 \<inter> W"
+          using hAintC0 unfolding subspace_topology_def by blast
+
+        have hxU0: "x \<in> U0"
+          using hU0 unfolding neighborhood_of_def by simp
+        have hxC0: "x \<in> C0"
+          unfolding C0_def by (rule subsetD[OF subset_closure_on hxU0])
+        have hxAintC0: "x \<in> A \<inter> C0"
+          using hxA hxC0 by simp
+        have hxW: "x \<in> W"
+          using hxAintC0 unfolding hEq by simp
+
+        let ?U = "U0 \<inter> W"
+        have hUin: "?U \<in> TX"
+          by (rule topology_inter2[OF hTopX], rule conjunct1[OF hU0[unfolded neighborhood_of_def]], rule hW)
+        have hxU: "x \<in> ?U"
+          using hxU0 hxW by simp
+
+        have hUsubA: "?U \<subseteq> A"
+        proof
+          fix y
+          assume hy: "y \<in> ?U"
+          have hyU0: "y \<in> U0"
+            using hy by simp
+          have hyC0: "y \<in> C0"
+            unfolding C0_def by (rule subsetD[OF subset_closure_on hyU0])
+          have hyW: "y \<in> W"
+            using hy by simp
+          have "y \<in> C0 \<inter> W"
+            using hyC0 hyW by simp
+          hence "y \<in> A \<inter> C0"
+            unfolding hEq by simp
+          thus "y \<in> A"
+            by simp
+        qed
+
+        show "\<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> A"
+          using hUin hxU hUsubA by blast
+      qed
+
+      show "A \<in> TX"
+        by (rule top1_open_of_local_subsets[OF hTopX hAX hLoc])
+    qed
+  qed
+qed
 
 (** from \S46 Lemma 46.4 [top1.tex:6807] **)
 lemma Lemma_46_4:
