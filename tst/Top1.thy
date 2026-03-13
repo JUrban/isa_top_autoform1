@@ -57467,7 +57467,79 @@ lemma top1_metric_closure_ball_imp_dist_le:
   assumes hr: "0 < r"
   assumes hycl: "y \<in> closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)"
   shows "d x y \<le> r"
-  sorry
+proof (rule ccontr)
+  have hTop: "is_topology_on X (top1_metric_topology_on X d)"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+
+  have hball_subX: "top1_ball_on X d x r \<subseteq> X"
+    unfolding top1_ball_on_def by blast
+
+  have hyX: "y \<in> X"
+    using hycl closure_on_subset_carrier[OF hTop hball_subX] by blast
+
+  assume hgt: "\<not> (d x y \<le> r)"
+  have hlt: "r < d x y"
+    using hgt by simp
+
+  define e where "e = (d x y - r) / 2"
+  have he_pos: "0 < e"
+    unfolding e_def using hlt by simp
+
+  have hVopen: "top1_ball_on X d y e \<in> top1_metric_topology_on X d"
+    by (rule top1_ball_open_in_metric_topology[OF hd hyX he_pos])
+  have hyV: "y \<in> top1_ball_on X d y e"
+    by (rule top1_metric_ball_self_mem[OF hd hyX he_pos])
+  have hVnbh: "neighborhood_of y X (top1_metric_topology_on X d) (top1_ball_on X d y e)"
+    unfolding neighborhood_of_def using hVopen hyV by blast
+
+  have hclChar:
+    "y \<in> closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)
+      \<longleftrightarrow> (\<forall>U. neighborhood_of y X (top1_metric_topology_on X d) U \<longrightarrow> intersects U (top1_ball_on X d x r))"
+    by (rule Theorem_17_5a[OF hTop hyX hball_subX])
+
+  have hInt: "intersects (top1_ball_on X d y e) (top1_ball_on X d x r)"
+    using hycl hclChar hVnbh by blast
+
+  have hempty: "(top1_ball_on X d y e) \<inter> (top1_ball_on X d x r) = {}"
+  proof (rule ccontr)
+    assume hne: "(top1_ball_on X d y e) \<inter> (top1_ball_on X d x r) \<noteq> {}"
+    then obtain z where hz: "z \<in> (top1_ball_on X d y e) \<inter> (top1_ball_on X d x r)"
+      by blast
+    have hzX: "z \<in> X"
+      using hz unfolding top1_ball_on_def by blast
+    have hdyz: "d y z < e"
+      using hz unfolding top1_ball_on_def by blast
+    have hdxz: "d x z < r"
+      using hz unfolding top1_ball_on_def by blast
+
+    have htri: "d x y \<le> d x z + d z y"
+      using hd hxX hzX hyX unfolding top1_metric_on_def by blast
+    have hsym: "d z y = d y z"
+      using hd hzX hyX unfolding top1_metric_on_def by blast
+
+    have "d x y < r + e"
+    proof -
+      have "d x y \<le> d x z + d z y"
+        by (rule htri)
+      also have "... < r + e"
+        unfolding hsym using hdxz hdyz by simp
+      finally show ?thesis .
+    qed
+    moreover have "r + e = (r + d x y) / 2"
+      unfolding e_def by (simp add: field_simps algebra_simps)
+    ultimately have "d x y < (r + d x y) / 2"
+      by simp
+    hence "2 * d x y < r + d x y"
+      by (simp add: field_simps)
+    hence "d x y < r"
+      by simp
+    thus False
+      using hlt by simp
+  qed
+
+  show False
+    using hInt unfolding intersects_def hempty by simp
+qed
 
 lemma top1_metric_closure_ball_subset_closed_ball:
   assumes hd: "top1_metric_on X d"
@@ -57475,7 +57547,21 @@ lemma top1_metric_closure_ball_subset_closed_ball:
   assumes hr: "0 < r"
   shows "closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)
           \<subseteq> {y \<in> X. d x y \<le> r}"
-  sorry
+proof (rule subsetI)
+  fix y
+  assume hy:
+    "y \<in> closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)"
+  have hTop: "is_topology_on X (top1_metric_topology_on X d)"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+  have hball_subX: "top1_ball_on X d x r \<subseteq> X"
+    unfolding top1_ball_on_def by blast
+  have hyX: "y \<in> X"
+    using hy closure_on_subset_carrier[OF hTop hball_subX] by blast
+  have "d x y \<le> r"
+    by (rule top1_metric_closure_ball_imp_dist_le[OF hd hxX hr hy])
+  thus "y \<in> {y \<in> X. d x y \<le> r}"
+    using hyX by blast
+qed
 
 lemma top1_metric_closure_ball_subset_ball:
   assumes hd: "top1_metric_on X d"
@@ -57484,7 +57570,22 @@ lemma top1_metric_closure_ball_subset_ball:
   assumes hre: "r < e"
   shows "closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)
           \<subseteq> top1_ball_on X d x e"
-  sorry
+proof (rule subsetI)
+  fix y
+  assume hy:
+    "y \<in> closure_on X (top1_metric_topology_on X d) (top1_ball_on X d x r)"
+  have hy' :
+    "y \<in> {y \<in> X. d x y \<le> r}"
+    by (rule subsetD[OF top1_metric_closure_ball_subset_closed_ball[OF hd hxX hr] hy])
+  have hyX: "y \<in> X"
+    using hy' by blast
+  have hle: "d x y \<le> r"
+    using hy' by blast
+  have "d x y < e"
+    by (rule le_less_trans[OF hle hre])
+  thus "y \<in> top1_ball_on X d x e"
+    unfolding top1_ball_on_def using hyX by blast
+qed
 
 lemma top1_metric_diameter_closure_ball_le:
   assumes hd: "top1_metric_on X d"
