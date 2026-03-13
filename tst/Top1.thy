@@ -58335,14 +58335,19 @@ proof -
 qed
 
 lemma top1_dim_le_on_dim_on:
+  assumes hex: "\<exists>m. top1_dim_le_on X TX m"
+  shows "top1_dim_le_on X TX (top1_dim_on X TX)"
+  unfolding top1_dim_on_def
+  by (rule LeastI_ex) (rule hex)
+
+lemma top1_dim_le_on_dim_on_finite:
   assumes hfd: "top1_finite_dimensional_on X TX"
   shows "top1_dim_le_on X TX (top1_dim_on X TX)"
 proof -
   have hex: "\<exists>m. top1_dim_le_on X TX m"
     by (rule hfd[unfolded top1_finite_dimensional_on_def])
   show ?thesis
-    unfolding top1_dim_on_def
-    by (rule LeastI_ex) (rule hex)
+    by (rule top1_dim_le_on_dim_on[OF hex])
 qed
 
 lemma top1_dim_le_on_iff_dim_on_le:
@@ -58355,7 +58360,7 @@ proof
 next
   assume hle: "top1_dim_on X TX \<le> m"
   have hdim0: "top1_dim_le_on X TX (top1_dim_on X TX)"
-    by (rule top1_dim_le_on_dim_on[OF hfd])
+    by (rule top1_dim_le_on_dim_on_finite[OF hfd])
   show "top1_dim_le_on X TX m"
     by (rule top1_dim_le_on_mono_m[OF hdim0 hle])
 qed
