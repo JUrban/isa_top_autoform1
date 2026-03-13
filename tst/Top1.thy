@@ -54597,7 +54597,175 @@ lemma Lemma_48_4:
   assumes hUX: "U \<subseteq> X"
   assumes hU: "U \<in> TX"
   shows "top1_baire_on U (subspace_topology X TX U)"
-  sorry
+proof -
+  let ?TU = "subspace_topology X TX U"
+  have hTopU: "is_topology_on U ?TU"
+    by (rule subspace_topology_is_topology_on[OF hTop hUX])
+
+  have hClU_closed: "closedin_on X TX (closure_on X TX U)"
+    by (rule closure_on_closed[OF hTop hUX])
+  have hXminusClU_open: "X - closure_on X TX U \<in> TX"
+    using hClU_closed unfolding closedin_on_def by blast
+
+  show ?thesis
+    unfolding top1_baire_on_def
+  proof (intro allI impI)
+    fix V :: "nat \<Rightarrow> 'a set"
+    assume hV: "\<forall>n. V n \<in> ?TU \<and> top1_densein_on U ?TU (V n)"
+
+    have hVsubU: "\<forall>n. V n \<subseteq> U"
+    proof (intro allI)
+      fix n
+      have hVnTU: "V n \<in> ?TU"
+        using hV by blast
+      then obtain A where hA: "V n = U \<inter> A"
+        unfolding subspace_topology_def by blast
+      show "V n \<subseteq> U"
+        unfolding hA by blast
+    qed
+
+    have hVopenX: "\<forall>n. V n \<in> TX"
+    proof (intro allI)
+      fix n
+      have hVnTU: "V n \<in> ?TU"
+        using hV by blast
+      then obtain A where hA: "V n = U \<inter> A" and hAT: "A \<in> TX"
+        unfolding subspace_topology_def by blast
+      have "U \<inter> A \<in> TX"
+        by (rule topology_inter2[OF hTop hU hAT])
+      thus "V n \<in> TX"
+        unfolding hA .
+    qed
+
+    define D where "D n = V n \<union> (X - closure_on X TX U)" for n
+
+    have hDopen: "\<forall>n. D n \<in> TX"
+    proof (intro allI)
+      fix n
+      show "D n \<in> TX"
+        unfolding D_def
+        by (rule topology_union2[OF hTop hVopenX[rule_format, of n] hXminusClU_open])
+    qed
+
+    have hUsub_clV: "\<forall>n. closure_on X TX U \<subseteq> closure_on X TX (V n)"
+    proof (intro allI)
+      fix n
+      have hVn_denseU: "closure_on U ?TU (V n) = U"
+        using hV unfolding top1_densein_on_def by blast
+
+      have hcl_subspace:
+        "closure_on U ?TU (V n) = closure_on X TX (V n) \<inter> U"
+        by (rule Theorem_17_4[OF hTop hVsubU[rule_format, of n] hUX])
+
+      have hUsub_clVn: "U \<subseteq> closure_on X TX (V n)"
+      proof -
+        have "U = closure_on X TX (V n) \<inter> U"
+          using hVn_denseU hcl_subspace by simp
+        thus ?thesis
+          by blast
+      qed
+
+      have hclV_closed: "closedin_on X TX (closure_on X TX (V n))"
+      proof -
+        have hVnX: "V n \<subseteq> X"
+          using hVsubU hUX by blast
+        show ?thesis
+          by (rule closure_on_closed[OF hTop hVnX])
+      qed
+
+      show "closure_on X TX U \<subseteq> closure_on X TX (V n)"
+        by (rule closure_on_subset_of_closed[OF hclV_closed], rule hUsub_clVn)
+    qed
+
+    have hDdense: "\<forall>n. top1_densein_on X TX (D n)"
+    proof (intro allI)
+      fix n
+
+      have hVn_sub_Dn: "V n \<subseteq> D n"
+        unfolding D_def by blast
+
+      have hclVn_sub_clDn: "closure_on X TX (V n) \<subseteq> closure_on X TX (D n)"
+        by (rule closure_on_mono[OF hVn_sub_Dn])
+
+      have hClU_sub_clDn: "closure_on X TX U \<subseteq> closure_on X TX (D n)"
+        using hUsub_clV hclVn_sub_clDn by blast
+
+      have hXminus_sub_Dn: "X - closure_on X TX U \<subseteq> D n"
+        unfolding D_def by blast
+
+      have hXminus_sub_clDn: "X - closure_on X TX U \<subseteq> closure_on X TX (D n)"
+        by (rule subset_trans[OF hXminus_sub_Dn subset_closure_on])
+
+      have hDn_sub_X: "D n \<subseteq> X"
+        unfolding D_def using hVsubU hUX by blast
+
+      have hclDn_sub_X: "closure_on X TX (D n) \<subseteq> X"
+        by (rule closure_on_subset_carrier[OF hTop hDn_sub_X])
+
+      have hX_sub_clDn: "X \<subseteq> closure_on X TX (D n)"
+      proof (rule subsetI)
+        fix x assume hx: "x \<in> X"
+        have "x \<in> closure_on X TX U \<or> x \<in> X - closure_on X TX U"
+          using hx by blast
+        thus "x \<in> closure_on X TX (D n)"
+        proof
+          assume hxclU: "x \<in> closure_on X TX U"
+          show ?thesis
+            using hClU_sub_clDn hxclU by blast
+        next
+          assume hxnot: "x \<in> X - closure_on X TX U"
+          show ?thesis
+            using hXminus_sub_clDn hxnot by blast
+        qed
+      qed
+
+      show "top1_densein_on X TX (D n)"
+        unfolding top1_densein_on_def
+        by (rule equalityI[OF hclDn_sub_X hX_sub_clDn])
+    qed
+
+    have hDenseX: "top1_densein_on X TX (\<Inter>n. D n)"
+    proof -
+      have hCond: "\<forall>n. D n \<in> TX \<and> top1_densein_on X TX (D n)"
+        using hDopen hDdense by blast
+      have hB': "\<forall>U0::nat \<Rightarrow> 'a set. (\<forall>n. U0 n \<in> TX \<and> top1_densein_on X TX (U0 n))
+          \<longrightarrow> top1_densein_on X TX (\<Inter>n. U0 n)"
+        using hB unfolding top1_baire_on_def by blast
+      show ?thesis
+        using hB'[rule_format, of D] hCond by blast
+    qed
+
+    have hIntDU: "(\<Inter>n. D n) \<inter> U = (\<Inter>n. V n)"
+    proof -
+      have hUsubClU: "U \<subseteq> closure_on X TX U"
+        by (rule subset_closure_on)
+      have hXminusClU_disj_U: "(X - closure_on X TX U) \<inter> U = {}"
+        using hUsubClU by blast
+      have hDnIntU: "\<forall>n. D n \<inter> U = V n"
+      proof (intro allI)
+        fix n
+        show "D n \<inter> U = V n"
+          unfolding D_def using hVsubU hXminusClU_disj_U by blast
+      qed
+      show ?thesis
+        using hDnIntU by blast
+    qed
+
+    have hIntD_subX: "(\<Inter>n. D n) \<subseteq> X"
+    proof -
+      have "\<forall>n. D n \<subseteq> X"
+        unfolding D_def using hVsubU hUX by blast
+      thus ?thesis
+        by blast
+    qed
+
+    have hDenseU: "top1_densein_on U ?TU ((\<Inter>n. D n) \<inter> U)"
+      by (rule top1_densein_on_open_subspace[OF hTop hDenseX hIntD_subX hUX hU])
+
+    show "top1_densein_on U ?TU (\<Inter>n. V n)"
+      using hDenseU hIntDU by simp
+  qed
+qed
 
 (** from \S48 Theorem 48.5 [top1.tex:7222] **)
 theorem Theorem_48_5:
