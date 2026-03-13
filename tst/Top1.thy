@@ -38,6 +38,44 @@ proof -
   show ?thesis using hInter by simp
 qed
 
+lemma top1_open_of_local_subsets:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  assumes hLoc: "\<forall>x\<in>A. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> A"
+  shows "A \<in> TX"
+proof -
+  let ?G = "{U\<in>TX. U \<subseteq> A}"
+
+  have hGsub: "?G \<subseteq> TX"
+    by blast
+
+  have hUnionT: "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
+    using hTopX unfolding is_topology_on_def by blast
+
+  have hUnionG: "\<Union>?G \<in> TX"
+    using hUnionT hGsub by blast
+
+  have hUnionG_sub: "\<Union>?G \<subseteq> A"
+    by blast
+
+  have hA_sub_UnionG: "A \<subseteq> \<Union>?G"
+  proof (rule subsetI)
+    fix x assume hx: "x \<in> A"
+    obtain U where hU: "U \<in> TX" and hxU: "x \<in> U" and hUsub: "U \<subseteq> A"
+      using hLoc hx by blast
+    have hUinG: "U \<in> ?G"
+      using hU hUsub by simp
+    show "x \<in> \<Union>?G"
+      using hxU hUinG by blast
+  qed
+
+  have hEq: "\<Union>?G = A"
+    by (rule subset_antisym[OF hUnionG_sub hA_sub_UnionG])
+
+  show ?thesis
+    using hUnionG unfolding hEq by simp
+qed
+
 (*
   DRAFT: The following two §30 product-countability theorems were accidentally placed
   here (in §12). They are kept commented out as a reference draft; the actual
@@ -53421,6 +53459,135 @@ theorem Theorem_38_2:
                           \<longrightarrow> top1_eq_on Y g g')))"
   sorry
 
+lemma top1_closedin_equalizer_of_continuous_maps:
+  fixes f g :: "'a \<Rightarrow> 'b"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hHausY: "is_hausdorff_on Y TY"
+  assumes hf: "top1_continuous_map_on X TX Y TY f"
+  assumes hg: "top1_continuous_map_on X TX Y TY g"
+  shows "closedin_on X TX {x\<in>X. f x = g x}"
+proof -
+  let ?E = "{x\<in>X. f x = g x}"
+  let ?D = "X - ?E"
+
+  have hEsubX: "?E \<subseteq> X"
+    by blast
+  have hDsubX: "?D \<subseteq> X"
+    by blast
+
+  have hImgf: "\<forall>x\<in>X. f x \<in> Y"
+    using hf unfolding top1_continuous_map_on_def by blast
+  have hImgg: "\<forall>x\<in>X. g x \<in> Y"
+    using hg unfolding top1_continuous_map_on_def by blast
+
+  have hPreimf: "\<forall>V\<in>TY. {x\<in>X. f x \<in> V} \<in> TX"
+    using hf unfolding top1_continuous_map_on_def by blast
+  have hPreimg: "\<forall>V\<in>TY. {x\<in>X. g x \<in> V} \<in> TX"
+    using hg unfolding top1_continuous_map_on_def by blast
+
+  have hHaus: "\<forall>a\<in>Y. \<forall>b\<in>Y. a \<noteq> b \<longrightarrow>
+      (\<exists>U V. neighborhood_of a Y TY U \<and> neighborhood_of b Y TY V \<and> U \<inter> V = {})"
+    using hHausY unfolding is_hausdorff_on_def by blast
+
+  have hLoc: "\<forall>x\<in>?D. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> ?D"
+  proof (intro ballI)
+    fix x
+    assume hx: "x \<in> ?D"
+    have hxX: "x \<in> X"
+      using hx by simp
+    have hneq: "f x \<noteq> g x"
+    proof
+      assume hEq: "f x = g x"
+      have "x \<in> ?E"
+        using hxX hEq by simp
+      thus False
+        using hx by simp
+    qed
+
+    have hfx: "f x \<in> Y"
+      using hImgf hxX by blast
+    have hgx: "g x \<in> Y"
+      using hImgg hxX by blast
+
+    obtain U V where hU: "neighborhood_of (f x) Y TY U"
+      and hV: "neighborhood_of (g x) Y TY V"
+      and hdisj: "U \<inter> V = {}"
+      using hHaus hfx hgx hneq by blast
+
+    have hUT: "U \<in> TY" and hfxU: "f x \<in> U"
+      using hU unfolding neighborhood_of_def by blast+
+    have hVT: "V \<in> TY" and hgxV: "g x \<in> V"
+      using hV unfolding neighborhood_of_def by blast+
+
+    let ?Uf = "{z\<in>X. f z \<in> U}"
+    let ?Vg = "{z\<in>X. g z \<in> V}"
+    have hUfTX: "?Uf \<in> TX"
+      using hPreimf hUT by blast
+    have hVgTX: "?Vg \<in> TX"
+      using hPreimg hVT by blast
+
+    let ?W = "?Uf \<inter> ?Vg"
+    have hWTX: "?W \<in> TX"
+      by (rule topology_inter2[OF hTopX hUfTX hVgTX])
+    have hxW: "x \<in> ?W"
+      using hxX hfxU hgxV by blast
+
+    have hWsub: "?W \<subseteq> ?D"
+    proof
+      fix y
+      assume hy: "y \<in> ?W"
+      have hyX: "y \<in> X"
+        using hy by blast
+      have hfy: "f y \<in> U"
+        using hy by blast
+      have hgy: "g y \<in> V"
+        using hy by blast
+
+      have "f y \<noteq> g y"
+      proof
+        assume hEq: "f y = g y"
+        have hfV: "f y \<in> V"
+          using hgy hEq by simp
+        have "f y \<in> U \<inter> V"
+          using hfy hfV by blast
+        thus False
+          using hdisj by simp
+      qed
+
+      have "y \<notin> ?E"
+      proof
+        assume hyE: "y \<in> ?E"
+        have "f y = g y"
+          using hyE by simp
+        thus False
+          using \<open>f y \<noteq> g y\<close> by contradiction
+      qed
+
+      show "y \<in> ?D"
+        using hyX \<open>y \<notin> ?E\<close> by simp
+    qed
+
+    show "\<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> ?D"
+      apply (rule bexI[where x="?W"])
+       apply (intro conjI)
+        apply (rule hxW)
+       apply (rule hWsub)
+      apply (rule hWTX)
+      done
+  qed
+
+  have hDopen: "?D \<in> TX"
+    by (rule top1_open_of_local_subsets[OF hTopX hDsubX hLoc])
+
+  show ?thesis
+  proof (rule closedin_intro)
+    show "?E \<subseteq> X"
+      by (rule hEsubX)
+    show "X - ?E \<in> TX"
+      by (rule hDopen)
+  qed
+qed
+
 (** from \S38 Lemma 38.3 (Uniqueness of continuous extensions to the closure) [top1.tex:5442] **)
 lemma Lemma_38_3:
   assumes hTopX: "is_topology_on X TX"
@@ -53432,7 +53599,76 @@ lemma Lemma_38_3:
     \<and> top1_continuous_map_on (closure_on X TX A) (subspace_topology X TX (closure_on X TX A)) Z TZ g2
     \<and> (\<forall>x\<in>A. g1 x = f x) \<and> (\<forall>x\<in>A. g2 x = f x)
     \<longrightarrow> top1_eq_on (closure_on X TX A) g1 g2"
-  sorry
+proof (intro allI impI)
+  fix g1 g2
+  assume h:
+    "top1_continuous_map_on (closure_on X TX A) (subspace_topology X TX (closure_on X TX A)) Z TZ g1
+      \<and> top1_continuous_map_on (closure_on X TX A) (subspace_topology X TX (closure_on X TX A)) Z TZ g2
+      \<and> (\<forall>x\<in>A. g1 x = f x) \<and> (\<forall>x\<in>A. g2 x = f x)"
+
+  let ?C = "closure_on X TX A"
+  let ?TC = "subspace_topology X TX ?C"
+  let ?E = "{x\<in>?C. g1 x = g2 x}"
+
+  have hCsubX: "?C \<subseteq> X"
+    by (rule closure_on_subset_carrier[OF hTopX hA_sub])
+  have hTopC: "is_topology_on ?C ?TC"
+    by (rule subspace_topology_is_topology_on[OF hTopX hCsubX])
+
+  have hg1: "top1_continuous_map_on ?C ?TC Z TZ g1"
+    using h by simp
+  have hg2: "top1_continuous_map_on ?C ?TC Z TZ g2"
+    using h by simp
+
+  have hClosedE: "closedin_on ?C ?TC ?E"
+    by (rule top1_closedin_equalizer_of_continuous_maps[OF hTopC hHausZ hg1 hg2])
+
+  have hAsubC: "A \<subseteq> ?C"
+    by (rule subset_closure_on)
+
+  have hAsubE: "A \<subseteq> ?E"
+  proof
+    fix x
+    assume hxA: "x \<in> A"
+    have hxC: "x \<in> ?C"
+      using hAsubC hxA by blast
+    have hEq1: "g1 x = f x"
+      using h hxA by blast
+    have hEq2: "g2 x = f x"
+      using h hxA by blast
+    have "g1 x = g2 x"
+      using hEq1 hEq2 by simp
+    thus "x \<in> ?E"
+      using hxC by simp
+  qed
+
+  have hclAinC: "closure_on ?C ?TC A = ?C"
+  proof -
+    have "closure_on ?C ?TC A = closure_on X TX A \<inter> ?C"
+      by (rule Theorem_17_4[OF hTopX hAsubC hCsubX])
+    thus ?thesis
+      by simp
+  qed
+
+  have hCsubE: "?C \<subseteq> ?E"
+  proof -
+    have "closure_on ?C ?TC A \<subseteq> ?E"
+      by (rule closure_on_subset_of_closed[OF hClosedE hAsubE])
+    thus ?thesis
+      unfolding hclAinC by simp
+  qed
+
+  show "top1_eq_on ?C g1 g2"
+    unfolding top1_eq_on_def
+  proof (intro ballI)
+    fix x
+    assume hxC: "x \<in> ?C"
+    have hxE: "x \<in> ?E"
+      using hCsubE hxC by blast
+    show "g1 x = g2 x"
+      using hxE by simp
+  qed
+qed
 
 (** from \S38 Theorem 38.4 (Extension to compact Hausdorff codomains) [top1.tex:5446] **)
 theorem Theorem_38_4:
@@ -53799,44 +54035,6 @@ next
       by (simp only: hRHS[symmetric])
     finally show ?thesis .
   qed
-qed
-
-lemma top1_open_of_local_subsets:
-  assumes hTopX: "is_topology_on X TX"
-  assumes hAX: "A \<subseteq> X"
-  assumes hLoc: "\<forall>x\<in>A. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> A"
-  shows "A \<in> TX"
-proof -
-  let ?G = "{U\<in>TX. U \<subseteq> A}"
-
-  have hGsub: "?G \<subseteq> TX"
-    by blast
-
-  have hUnionT: "\<forall>U. U \<subseteq> TX \<longrightarrow> \<Union>U \<in> TX"
-    using hTopX unfolding is_topology_on_def by blast
-
-  have hUnionG: "\<Union>?G \<in> TX"
-    using hUnionT hGsub by blast
-
-  have hUnionG_sub: "\<Union>?G \<subseteq> A"
-    by blast
-
-  have hA_sub_UnionG: "A \<subseteq> \<Union>?G"
-  proof (rule subsetI)
-    fix x assume hx: "x \<in> A"
-    obtain U where hU: "U \<in> TX" and hxU: "x \<in> U" and hUsub: "U \<subseteq> A"
-      using hLoc hx by blast
-    have hUinG: "U \<in> ?G"
-      using hU hUsub by simp
-    show "x \<in> \<Union>?G"
-      using hxU hUinG by blast
-  qed
-
-  have hEq: "\<Union>?G = A"
-    by (rule subset_antisym[OF hUnionG_sub hA_sub_UnionG])
-
-  show ?thesis
-    using hUnionG unfolding hEq by simp
 qed
 
 lemma top1_closedin_Union_locally_finite:
@@ -55099,12 +55297,55 @@ proof -
 qed
 
 (** from \S46 Theorem 46.7 [top1.tex:6824] **)
+lemma top1_bounded_metric_lt_imp_lt:
+  assumes hlt: "top1_bounded_metric d x y < r"
+  assumes hr: "r \<le> 1"
+  shows "d x y < r"
+proof -
+  have "d x y < r \<or> 1 < r"
+    using hlt unfolding top1_bounded_metric_def
+    by (simp add: min_less_iff_disj)
+  thus ?thesis
+    using hr by linarith
+qed
+
+lemma top1_compact_convergence_topology_on_superset_pointwise:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  shows "top1_compact_convergence_topology_on X TX Y d
+    \<supseteq> top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)"
+  sorry
+
+text \<open>
+  Proof idea for @{thm top1_compact_convergence_topology_on_superset_pointwise}: unfold both sides
+  as topologies generated by bases. Use @{thm topology_generated_by_basis_mono_via_basis_elems} with
+  the product basis on @{term "top1_PiE X (\<lambda>_. Y)"} as \<open>B1\<close> and the compact-convergence basis as
+  \<open>B2\<close>. For a product-basis element @{term "top1_PiE X U"} and a point @{term g} in it, let
+  @{term "F = {x \<in> X. U x \<noteq> Y}"} (finite), pick radii around @{term "g x"} inside each @{term "U x"},
+  and use the compact set @{term F} to build a compact-convergence basic neighborhood contained in the
+  cylinder.
+\<close>
+
+lemma top1_uniform_topology_on_superset_compact_convergence:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  shows "top1_uniform_topology_on X Y d \<supseteq> top1_compact_convergence_topology_on X TX Y d"
+  sorry
+
 theorem Theorem_46_7:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
   shows "top1_uniform_topology_on X Y d \<supseteq> top1_compact_convergence_topology_on X TX Y d
     \<and> top1_compact_convergence_topology_on X TX Y d \<supseteq> top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)"
-  sorry
+proof -
+  have h1: "top1_uniform_topology_on X Y d \<supseteq> top1_compact_convergence_topology_on X TX Y d"
+    by (rule top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd])
+  have h2: "top1_compact_convergence_topology_on X TX Y d
+      \<supseteq> top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)"
+    by (rule top1_compact_convergence_topology_on_superset_pointwise[OF hTopX hd])
+  show ?thesis
+    using h1 h2 by simp
+qed
 
 (*
 proof -
