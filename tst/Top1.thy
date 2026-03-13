@@ -53823,6 +53823,16 @@ definition top1_bounded_maps_metric_on ::
   "top1_bounded_maps_metric_on X Y d =
      {f \<in> top1_PiE X (\<lambda>_. Y). top1_bounded_map_on X Y d f}"
 
+(** Sup metric on function spaces (untruncated); useful when \(X\) is compact so the supremum is finite. **)
+definition top1_sup_metric_on ::
+  "'a set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> real" where
+  "top1_sup_metric_on X d f g = Sup ((\<lambda>x. d (f x) (g x)) ` X)"
+
+definition top1_sup_topology_on ::
+  "'a set \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) set set" where
+  "top1_sup_topology_on X Y d =
+     top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_sup_metric_on X d)"
+
 (** from \S43 Theorem 43.5 [top1.tex:6242] **)
 theorem Theorem_43_5:
   assumes hIne: "I \<noteq> {}"
@@ -53951,7 +53961,7 @@ corollary Corollary_45_5:
           (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
           (subspace_topology
              (top1_PiE X (\<lambda>_. Y))
-             (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
+             (top1_sup_topology_on X Y d)
              (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)))
           \<F>)
     \<longleftrightarrow>
@@ -53959,11 +53969,11 @@ corollary Corollary_45_5:
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
        (subspace_topology
           (top1_PiE X (\<lambda>_. Y))
-          (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
+          (top1_sup_topology_on X Y d)
           (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)))
        \<F>
-     \<and> top1_equicontinuous_family_on X TX Y d \<F>
-     \<and> top1_pointwise_bounded_family_on X Y d \<F>)"
+     \<and> top1_metric_bounded_subset_on (top1_PiE X (\<lambda>_. Y)) (top1_sup_metric_on X d) \<F>
+     \<and> top1_equicontinuous_family_on X TX Y d \<F>)"
   sorry
 
 section \<open>\<S>46 Pointwise and Compact Convergence\<close>
