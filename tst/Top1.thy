@@ -58273,6 +58273,73 @@ proof (unfold top1_cover_order_le_on_def, intro ballI)
     using hfin by blast
 qed
 
+lemma top1_dim_le_on_mono_m:
+  assumes hdim: "top1_dim_le_on X TX m"
+  assumes hmn: "m \<le> n"
+  shows "top1_dim_le_on X TX n"
+proof (unfold top1_dim_le_on_def, intro allI impI)
+  fix \<A>
+  assume hCov: "top1_open_covering_on X TX \<A>"
+  have hdim':
+    "\<forall>\<A>. top1_open_covering_on X TX \<A> \<longrightarrow>
+      (\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_cover_order_le_on X \<B> m)"
+    by (rule hdim[unfolded top1_dim_le_on_def])
+
+  have hEx:
+    "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_cover_order_le_on X \<B> m"
+    by (rule hdim'[rule_format, of \<A>], rule hCov)
+
+  obtain \<B> where hBcov: "top1_open_covering_on X TX \<B>"
+    and hBref: "top1_refines \<B> \<A>"
+    and hBord: "top1_cover_order_le_on X \<B> m"
+    using hEx
+    apply (elim exE conjE)
+    apply assumption+
+    done
+
+  have hBord': "top1_cover_order_le_on X \<B> n"
+    by (rule top1_cover_order_le_on_mono_m[OF hBord hmn])
+
+  show "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_cover_order_le_on X \<B> n"
+  proof (rule exI[where x=\<B>], intro conjI)
+    show "top1_open_covering_on X TX \<B>"
+      by (rule hBcov)
+    show "top1_refines \<B> \<A>"
+      by (rule hBref)
+    show "top1_cover_order_le_on X \<B> n"
+      by (rule hBord')
+  qed
+qed
+
+lemma top1_dim_le_on_imp_finite_dimensional:
+  assumes hdim: "top1_dim_le_on X TX m"
+  shows "top1_finite_dimensional_on X TX"
+  unfolding top1_finite_dimensional_on_def
+  by (rule exI[where x=m]) (rule hdim)
+
+lemma top1_dim_on_le_of_dim_le:
+  assumes hex: "top1_finite_dimensional_on X TX"
+  assumes hdim: "top1_dim_le_on X TX m"
+  shows "top1_dim_on X TX \<le> m"
+proof -
+  have hex': "\<exists>k. top1_dim_le_on X TX k"
+    by (rule hex[unfolded top1_finite_dimensional_on_def])
+  show ?thesis
+    unfolding top1_dim_on_def
+    by (rule Least_le) (rule hdim)
+qed
+
+lemma top1_dim_le_on_dim_on:
+  assumes hfd: "top1_finite_dimensional_on X TX"
+  shows "top1_dim_le_on X TX (top1_dim_on X TX)"
+proof -
+  have hex: "\<exists>m. top1_dim_le_on X TX m"
+    by (rule hfd[unfolded top1_finite_dimensional_on_def])
+  show ?thesis
+    unfolding top1_dim_on_def
+    by (rule LeastI_ex) (rule hex)
+qed
+
 (** from \S50 Theorem 50.1 [top1.tex:7556] **)
 theorem Theorem_50_1:
   assumes hdim: "top1_finite_dimensional_on X TX"
