@@ -54495,6 +54495,51 @@ section \<open>\<S>48 Baire Spaces\<close>
 definition top1_densein_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set \<Rightarrow> bool" where
   "top1_densein_on X TX A \<longleftrightarrow> closure_on X TX A = X"
 
+lemma top1_densein_on_subset_carrier:
+  assumes hD: "top1_densein_on X TX A"
+  shows "A \<subseteq> X"
+proof -
+  have "A \<subseteq> closure_on X TX A"
+    by (rule subset_closure_on)
+  thus ?thesis
+    using hD unfolding top1_densein_on_def by simp
+qed
+
+lemma top1_densein_on_intersects_neighborhood:
+  assumes hTop: "is_topology_on X TX"
+  assumes hD: "top1_densein_on X TX A"
+  assumes hxX: "x \<in> X"
+  assumes hN: "neighborhood_of x X TX U"
+  shows "intersects U A"
+proof -
+  have hAX: "A \<subseteq> X"
+    by (rule top1_densein_on_subset_carrier[OF hD])
+  have hxcl: "x \<in> closure_on X TX A"
+    using hD hxX unfolding top1_densein_on_def by simp
+  have hClChar: "\<forall>V. neighborhood_of x X TX V \<longrightarrow> intersects V A"
+    by (rule iffD1[OF Theorem_17_5a[OF hTop hxX hAX], OF hxcl])
+  show ?thesis
+    using hClChar hN by blast
+qed
+
+lemma top1_densein_on_intersects_nonempty_open:
+  assumes hTop: "is_topology_on X TX"
+  assumes hD: "top1_densein_on X TX A"
+  assumes hU: "U \<in> TX"
+  assumes hUX: "U \<subseteq> X"
+  assumes hUne: "U \<noteq> {}"
+  shows "intersects U A"
+proof -
+  obtain x where hxU: "x \<in> U"
+    using hUne by blast
+  have hxX: "x \<in> X"
+    using hUX hxU by blast
+  have hN: "neighborhood_of x X TX U"
+    unfolding neighborhood_of_def using hU hxU by simp
+  show ?thesis
+    by (rule top1_densein_on_intersects_neighborhood[OF hTop hD hxX hN])
+qed
+
 definition top1_baire_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "top1_baire_on X TX \<longleftrightarrow>
      (\<forall>U::nat \<Rightarrow> 'a set. (\<forall>n. U n \<in> TX \<and> top1_densein_on X TX (U n)) \<longrightarrow>
