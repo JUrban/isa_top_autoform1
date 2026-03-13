@@ -55330,7 +55330,277 @@ lemma top1_uniform_topology_on_superset_compact_convergence:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
   shows "top1_uniform_topology_on X Y d \<supseteq> top1_compact_convergence_topology_on X TX Y d"
-  sorry
+proof -
+  let ?Xfun = "top1_PiE X (\<lambda>_. Y)"
+  let ?Buni = "top1_metric_basis_on ?Xfun (top1_uniform_metric_on X d)"
+  let ?Bcc = "top1_compact_convergence_basis_on X TX Y d"
+
+  have hcc_sub_uni:
+    "topology_generated_by_basis ?Xfun ?Bcc \<subseteq> topology_generated_by_basis ?Xfun ?Buni"
+  proof (rule topology_generated_by_basis_mono_via_basis_elems)
+    fix b
+    assume hb: "b \<in> ?Bcc"
+    obtain f C \<epsilon> where
+      hbdef: "b = {g \<in> ?Xfun.
+        (if C = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C)) < \<epsilon>}"
+      and hf: "f \<in> ?Xfun"
+      and hcomp: "top1_compact_on C (subspace_topology X TX C)"
+      and hCX: "C \<subseteq> X"
+      and heps: "0 < \<epsilon>"
+      using hb unfolding top1_compact_convergence_basis_on_def by blast
+
+    show "b \<in> topology_generated_by_basis ?Xfun ?Buni"
+      unfolding topology_generated_by_basis_def
+    proof (rule CollectI, intro conjI)
+      show "b \<subseteq> ?Xfun"
+        unfolding hbdef by blast
+
+      show "\<forall>g\<in>b. \<exists>bu\<in>?Buni. g \<in> bu \<and> bu \<subseteq> b"
+      proof (intro ballI)
+        fix g
+        assume hg: "g \<in> b"
+        have hgX: "g \<in> ?Xfun"
+          using hg unfolding hbdef by blast
+        have hdist_fg:
+          "(if C = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C)) < \<epsilon>"
+          using hg unfolding hbdef by blast
+
+        define \<alpha> where
+          "\<alpha> = (if C = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C))"
+        have halpha_lt: "\<alpha> < \<epsilon>"
+          unfolding \<alpha>_def using hdist_fg by simp
+
+        define \<delta> where "\<delta> = (\<epsilon> - \<alpha>) / 2"
+        have hdelta_pos: "\<delta> > 0"
+          unfolding \<delta>_def using halpha_lt by simp
+
+        let ?bu = "top1_ball_on ?Xfun (top1_uniform_metric_on X d) g \<delta>"
+
+        have hbu_mem: "?bu \<in> ?Buni"
+          unfolding top1_metric_basis_on_def
+          apply (rule CollectI)
+          apply (rule exI[where x=g])
+          apply (rule exI[where x=\<delta>])
+          using hgX hdelta_pos by simp
+
+        have hgg_in: "g \<in> ?bu"
+        proof -
+          have h0iff: "\<forall>x\<in>Y. \<forall>y\<in>Y. d x y = 0 \<longleftrightarrow> x = y"
+            using hd unfolding top1_metric_on_def by blast
+
+          have hvals0: "\<forall>x\<in>X. top1_bounded_metric d (g x) (g x) = 0"
+          proof (intro ballI)
+            fix x assume hx: "x \<in> X"
+            have hgx: "g x \<in> Y"
+              using hgX hx unfolding top1_PiE_iff by blast
+            have hdx: "d (g x) (g x) = 0"
+              using h0iff hgx by simp
+            show "top1_bounded_metric d (g x) (g x) = 0"
+              unfolding top1_bounded_metric_def using hdx by simp
+          qed
+
+          let ?S = "((\<lambda>x. top1_bounded_metric d (g x) (g x)) ` X)"
+          have hSsub: "?S \<subseteq> {0}"
+          proof
+            fix t assume ht: "t \<in> ?S"
+            then obtain x where hxX: "x \<in> X" and htdef: "t = top1_bounded_metric d (g x) (g x)"
+              by blast
+            have "top1_bounded_metric d (g x) (g x) = 0"
+              using hvals0 hxX by blast
+            then show "t \<in> {0}"
+              unfolding htdef by simp
+          qed
+
+          have "top1_uniform_metric_on X d g g < \<delta>"
+          proof (cases "X = {}")
+            case True
+            show ?thesis
+              unfolding top1_uniform_metric_on_def True using hdelta_pos by simp
+          next
+            case False
+            have hSne: "?S \<noteq> {}"
+              using False by simp
+            have hSup_le0: "Sup ?S \<le> 0"
+            proof (rule cSup_least[OF hSne])
+              fix t
+              assume ht: "t \<in> ?S"
+              have "t \<in> {0}"
+                using hSsub ht by blast
+              thus "t \<le> 0"
+                by simp
+            qed
+            have "top1_uniform_metric_on X d g g = Sup ?S"
+              unfolding top1_uniform_metric_on_def using False by simp
+            then show ?thesis
+              using hSup_le0 hdelta_pos by linarith
+          qed
+          then show ?thesis
+            unfolding top1_ball_on_def using hgX by simp
+        qed
+
+        have hbu_sub: "?bu \<subseteq> b"
+        proof
+          fix h
+          assume hh: "h \<in> ?bu"
+          have hhX: "h \<in> ?Xfun"
+            using hh unfolding top1_ball_on_def by blast
+          have hgh: "top1_uniform_metric_on X d g h < \<delta>"
+            using hh unfolding top1_ball_on_def by blast
+
+          have hdist_fh:
+            "(if C = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (h x)) ` C)) < \<epsilon>"
+          proof (cases "C = {}")
+            case True
+            show ?thesis
+              using heps unfolding True by simp
+          next
+            case False
+            let ?Sfg = "((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C)"
+            let ?SghX = "((\<lambda>x. top1_bounded_metric d (g x) (h x)) ` X)"
+            let ?Sfh = "((\<lambda>x. top1_bounded_metric d (f x) (h x)) ` C)"
+
+            have hSfg_bdd: "bdd_above ?Sfg"
+              unfolding bdd_above_def
+              apply (rule exI[where x=1])
+              apply (intro ballI)
+              subgoal for t
+              proof -
+                assume ht: "t \<in> ?Sfg"
+                obtain x where hxC: "x \<in> C" and htdef: "t = top1_bounded_metric d (f x) (g x)"
+                  using ht by blast
+                show "t \<le> 1"
+                  unfolding htdef top1_bounded_metric_def by simp
+              qed
+              done
+
+            have hSghX_bdd: "bdd_above ?SghX"
+              unfolding bdd_above_def
+              apply (rule exI[where x=1])
+              apply (intro ballI)
+              subgoal for t
+              proof -
+                assume ht: "t \<in> ?SghX"
+                obtain x where hxX: "x \<in> X" and htdef: "t = top1_bounded_metric d (g x) (h x)"
+                  using ht by blast
+                show "t \<le> 1"
+                  unfolding htdef top1_bounded_metric_def by simp
+              qed
+              done
+
+            have hSfh_ne: "?Sfh \<noteq> {}"
+            proof -
+              obtain x0 where hx0: "x0 \<in> C"
+                using False by blast
+              have "top1_bounded_metric d (f x0) (h x0) \<in> ?Sfh"
+                by (rule imageI[OF hx0])
+              thus ?thesis
+                by blast
+            qed
+
+            have htri_bdd: "top1_metric_on Y (top1_bounded_metric d)"
+              by (rule top1_bounded_metric_on[OF hd])
+
+            have halpha_eq: "\<alpha> = Sup ?Sfg"
+              unfolding \<alpha>_def using False by simp
+
+            have hSup_fh_le: "Sup ?Sfh \<le> \<alpha> + Sup ?SghX"
+            proof (rule cSup_least[OF hSfh_ne])
+              fix t
+              assume ht: "t \<in> ?Sfh"
+              obtain x where hxC: "x \<in> C" and htdef: "t = top1_bounded_metric d (f x) (h x)"
+                using ht by blast
+              have hxX: "x \<in> X"
+                using hCX hxC by blast
+
+              have hfx: "f x \<in> Y"
+                using hf hxX unfolding top1_PiE_iff by blast
+              have hgx: "g x \<in> Y"
+                using hgX hxX unfolding top1_PiE_iff by blast
+              have hhx: "h x \<in> Y"
+                using hhX hxX unfolding top1_PiE_iff by blast
+
+              have htri:
+                "top1_bounded_metric d (f x) (h x)
+                  \<le> top1_bounded_metric d (f x) (g x) + top1_bounded_metric d (g x) (h x)"
+                using htri_bdd hfx hgx hhx unfolding top1_metric_on_def by blast
+
+              have hfg_le: "top1_bounded_metric d (f x) (g x) \<le> \<alpha>"
+              proof -
+                have hmem: "top1_bounded_metric d (f x) (g x) \<in> ?Sfg"
+                  by (rule imageI[OF hxC])
+                show ?thesis
+                  unfolding halpha_eq
+                  by (rule cSup_upper[OF hmem hSfg_bdd])
+              qed
+
+              have hgh_le: "top1_bounded_metric d (g x) (h x) \<le> Sup ?SghX"
+              proof -
+                have hmem: "top1_bounded_metric d (g x) (h x) \<in> ?SghX"
+                  by (rule imageI[OF hxX])
+                show ?thesis
+                  by (rule cSup_upper[OF hmem hSghX_bdd])
+              qed
+
+              have "top1_bounded_metric d (f x) (h x) \<le> \<alpha> + Sup ?SghX"
+                using htri hfg_le hgh_le by linarith
+              thus "t \<le> \<alpha> + Sup ?SghX"
+                unfolding htdef by simp
+            qed
+
+            have hXne: "X \<noteq> {}"
+            proof
+              assume hX: "X = {}"
+              have "C = {}"
+                using hCX hX by blast
+              with False show False
+                by contradiction
+            qed
+
+            have hSup_gh_lt: "Sup ?SghX < \<delta>"
+              using hgh unfolding top1_uniform_metric_on_def using hXne by simp
+
+            have hSup_fh_lt_mid: "Sup ?Sfh < (\<alpha> + \<epsilon>) / 2"
+            proof -
+              have "Sup ?Sfh \<le> \<alpha> + Sup ?SghX"
+                by (rule hSup_fh_le)
+              also have "... < \<alpha> + \<delta>"
+                using hSup_gh_lt by linarith
+              also have "... = (\<alpha> + \<epsilon>) / 2"
+                unfolding \<delta>_def by (simp add: field_simps algebra_simps)
+              finally show ?thesis .
+            qed
+
+            have hmid_lt: "(\<alpha> + \<epsilon>) / 2 < \<epsilon>"
+              using halpha_lt by simp
+
+            have hif: "(if C = {} then 0 else Sup ?Sfh) = Sup ?Sfh"
+              using False by simp
+            show ?thesis
+              unfolding hif using hSup_fh_lt_mid hmid_lt by linarith
+          qed
+
+          show "h \<in> b"
+            unfolding hbdef using hhX hdist_fh by simp
+        qed
+
+        show "\<exists>bu\<in>?Buni. g \<in> bu \<and> bu \<subseteq> b"
+        proof -
+          show ?thesis
+            apply (rule bexI[where x="?bu"])
+             apply (intro conjI)
+              apply (rule hgg_in)
+             apply (rule hbu_sub)
+            apply (rule hbu_mem)
+            done
+        qed
+      qed
+    qed
+  qed
+
+  show ?thesis
+    unfolding top1_uniform_topology_on_def top1_compact_convergence_topology_on_def top1_metric_topology_on_def
+    using hcc_sub_uni by simp
+qed
 
 theorem Theorem_46_7:
   assumes hTopX: "is_topology_on X TX"
