@@ -53305,6 +53305,9 @@ definition top1_compactification_via_on ::
   "top1_compactification_via_on X TX Y TY e \<longleftrightarrow>
      top1_compact_on Y TY \<and> is_hausdorff_on Y TY \<and> top1_dense_image_via_on X TX Y TY e"
 
+definition top1_eq_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool" where
+  "top1_eq_on A f g \<longleftrightarrow> (\<forall>x\<in>A. f x = g x)"
+
 definition top1_equiv_compactification_via_on ::
   "'a set \<Rightarrow> 'a set set
     \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b)
@@ -53333,8 +53336,11 @@ theorem Theorem_38_2:
     top1_compactification_via_on X TX Y TY e
     \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
             \<and> top1_bounded_on X f
-            \<longrightarrow> (\<exists>!g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                    \<and> (\<forall>x\<in>X. g (e x) = f x)))"
+            \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
+                    \<and> (\<forall>x\<in>X. g (e x) = f x)
+                    \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
+                          \<and> (\<forall>x\<in>X. g' (e x) = f x)
+                          \<longrightarrow> top1_eq_on Y g g')))"
   sorry
 
 (** from \S38 Lemma 38.3 (Uniqueness of continuous extensions to the closure) [top1.tex:5442] **)
@@ -53346,7 +53352,7 @@ lemma Lemma_38_3:
     top1_continuous_map_on (closure_on X TX A) (subspace_topology X TX (closure_on X TX A)) Z TZ g1
     \<and> top1_continuous_map_on (closure_on X TX A) (subspace_topology X TX (closure_on X TX A)) Z TZ g2
     \<and> (\<forall>x\<in>A. g1 x = f x) \<and> (\<forall>x\<in>A. g2 x = f x)
-    \<longrightarrow> g1 = g2"
+    \<longrightarrow> top1_eq_on (closure_on X TX A) g1 g2"
   sorry
 
 (** from \S38 Theorem 38.4 (Extension to compact Hausdorff codomains) [top1.tex:5446] **)
@@ -53361,7 +53367,11 @@ theorem Theorem_38_4:
   assumes hCompC: "top1_compact_on C TC"
   assumes hHausC: "is_hausdorff_on C TC"
   shows "\<forall>f. top1_continuous_map_on X TX C TC f \<longrightarrow>
-     (\<exists>!g. top1_continuous_map_on Y TY C TC g \<and> (\<forall>x\<in>X. g (e x) = f x))"
+     (\<exists>g. top1_continuous_map_on Y TY C TC g
+          \<and> (\<forall>x\<in>X. g (e x) = f x)
+          \<and> (\<forall>g'. top1_continuous_map_on Y TY C TC g'
+                \<and> (\<forall>x\<in>X. g' (e x) = f x)
+                \<longrightarrow> top1_eq_on Y g g'))"
   sorry
 
 (** from \S38 Theorem 38.5 (Uniqueness up to equivalence) [top1.tex:5456] **)
@@ -53372,13 +53382,19 @@ theorem Theorem_38_5:
   assumes hExt1:
     "\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
           \<and> top1_bounded_on X f
-          \<longrightarrow> (\<exists>!g. top1_continuous_map_on Y1 TY1 UNIV order_topology_on_UNIV g
-                  \<and> (\<forall>x\<in>X. g (e1 x) = f x))"
+          \<longrightarrow> (\<exists>g. top1_continuous_map_on Y1 TY1 UNIV order_topology_on_UNIV g
+                  \<and> (\<forall>x\<in>X. g (e1 x) = f x)
+                  \<and> (\<forall>g'. top1_continuous_map_on Y1 TY1 UNIV order_topology_on_UNIV g'
+                        \<and> (\<forall>x\<in>X. g' (e1 x) = f x)
+                        \<longrightarrow> top1_eq_on Y1 g g'))"
   assumes hExt2:
     "\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
           \<and> top1_bounded_on X f
-          \<longrightarrow> (\<exists>!g. top1_continuous_map_on Y2 TY2 UNIV order_topology_on_UNIV g
-                  \<and> (\<forall>x\<in>X. g (e2 x) = f x))"
+          \<longrightarrow> (\<exists>g. top1_continuous_map_on Y2 TY2 UNIV order_topology_on_UNIV g
+                  \<and> (\<forall>x\<in>X. g (e2 x) = f x)
+                  \<and> (\<forall>g'. top1_continuous_map_on Y2 TY2 UNIV order_topology_on_UNIV g'
+                        \<and> (\<forall>x\<in>X. g' (e2 x) = f x)
+                        \<longrightarrow> top1_eq_on Y2 g g'))"
   shows "top1_equiv_compactification_via_on X TX Y1 TY1 e1 Y2 TY2 e2"
   sorry
 
