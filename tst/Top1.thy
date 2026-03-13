@@ -53416,6 +53416,49 @@ definition top1_refines :: "'a set set \<Rightarrow> 'a set set \<Rightarrow> bo
 definition top1_open_covering_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "top1_open_covering_on X TX \<A> \<longleftrightarrow> \<A> \<subseteq> TX \<and> X \<subseteq> \<Union>\<A>"
 
+lemma top1_locally_finite_family_on_subset:
+  assumes hLF: "top1_locally_finite_family_on X TX \<A>"
+  assumes hSub: "\<A>' \<subseteq> \<A>"
+  shows "top1_locally_finite_family_on X TX \<A>'"
+proof -
+  have hLF_def:
+    "\<forall>x\<in>X. \<exists>U\<in>TX. x \<in> U \<and> finite {A\<in>\<A>. intersects A U}"
+    using hLF
+    unfolding top1_locally_finite_family_on_def
+    by simp
+
+  show ?thesis
+    unfolding top1_locally_finite_family_on_def
+  proof (intro ballI)
+    fix x assume hx: "x \<in> X"
+    obtain U where hU: "U \<in> TX"
+      and hxU: "x \<in> U"
+      and hFin: "finite {A\<in>\<A>. intersects A U}"
+      using hLF_def hx
+      by blast
+
+    have hSubS: "{A\<in>\<A>'. intersects A U} \<subseteq> {A\<in>\<A>. intersects A U}"
+    proof
+      fix B
+      assume hB: "B \<in> {A\<in>\<A>'. intersects A U}"
+      have hBIn: "B \<in> \<A>'"
+        using hB by simp
+      have hBInA: "B \<in> \<A>"
+        using hSub hBIn by blast
+      have hInt: "intersects B U"
+        using hB by simp
+      show "B \<in> {A\<in>\<A>. intersects A U}"
+        using hBInA hInt by simp
+    qed
+
+    have hFin': "finite {A\<in>\<A>'. intersects A U}"
+      by (rule finite_subset[OF hSubS hFin])
+
+    show "\<exists>V\<in>TX. x \<in> V \<and> finite {A\<in>\<A>'. intersects A V}"
+      using hU hxU hFin' by blast
+  qed
+qed
+
 (** from \S39 Lemma 39.1 (Basic properties of locally finite families) [top1.tex:5542] **)
 lemma Lemma_39_1:
   assumes hTopX: "is_topology_on X TX"
