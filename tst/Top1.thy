@@ -56736,6 +56736,76 @@ proof -
     by (rule top1_densein_on_intersects_neighborhood[OF hTop hD hxX hN])
 qed
 
+lemma top1_densein_on_iff_intersects_nonempty_open:
+  assumes hTop: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  shows "top1_densein_on X TX A \<longleftrightarrow>
+    (\<forall>U. U \<in> TX \<and> U \<subseteq> X \<and> U \<noteq> {} \<longrightarrow> intersects U A)"
+proof (rule iffI)
+  assume hD: "top1_densein_on X TX A"
+  show "\<forall>U. U \<in> TX \<and> U \<subseteq> X \<and> U \<noteq> {} \<longrightarrow> intersects U A"
+  proof (intro allI impI)
+    fix U
+    assume hU: "U \<in> TX \<and> U \<subseteq> X \<and> U \<noteq> {}"
+    have hUT: "U \<in> TX" and hUX: "U \<subseteq> X" and hUne: "U \<noteq> {}"
+      using hU by blast+
+    show "intersects U A"
+      by (rule top1_densein_on_intersects_nonempty_open[OF hTop hD hUT hUX hUne])
+  qed
+next
+  assume hInt: "\<forall>U. U \<in> TX \<and> U \<subseteq> X \<and> U \<noteq> {} \<longrightarrow> intersects U A"
+  show "top1_densein_on X TX A"
+    unfolding top1_densein_on_def
+  proof (rule subset_antisym)
+    have hcl_sub: "closure_on X TX A \<subseteq> X"
+      by (rule closure_on_subset_carrier[OF hTop hAX])
+    show "closure_on X TX A \<subseteq> X"
+      by (rule hcl_sub)
+
+    show "X \<subseteq> closure_on X TX A"
+    proof (rule subsetI)
+      fix x
+      assume hxX: "x \<in> X"
+
+      have hClChar: "x \<in> closure_on X TX A \<longleftrightarrow>
+        (\<forall>V. neighborhood_of x X TX V \<longrightarrow> intersects V A)"
+        by (rule Theorem_17_5a[OF hTop hxX hAX])
+
+      have hAllNbh: "\<forall>V. neighborhood_of x X TX V \<longrightarrow> intersects V A"
+      proof (intro allI impI)
+        fix V
+        assume hVnbh: "neighborhood_of x X TX V"
+        have hVT: "V \<in> TX" and hxV: "x \<in> V"
+          using hVnbh unfolding neighborhood_of_def by blast+
+
+        have hXT: "X \<in> TX"
+          by (rule conjunct1[OF conjunct2[OF hTop[unfolded is_topology_on_def]]])
+        have hXV: "X \<inter> V \<in> TX"
+          by (rule topology_inter2[OF hTop hXT hVT])
+        have hXVX: "X \<inter> V \<subseteq> X"
+          by blast
+        have hXVne: "X \<inter> V \<noteq> {}"
+        proof
+          assume "X \<inter> V = {}"
+          hence "x \<notin> X \<inter> V"
+            by simp
+          thus False
+            using hxX hxV by blast
+        qed
+
+        have hIntXV: "intersects (X \<inter> V) A"
+          by (rule hInt[rule_format], intro conjI, rule hXV, rule hXVX, rule hXVne)
+
+        show "intersects V A"
+          using hIntXV unfolding intersects_def by blast
+      qed
+
+      show "x \<in> closure_on X TX A"
+        using hClChar hAllNbh by blast
+    qed
+  qed
+qed
+
 definition top1_baire_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bool" where
   "top1_baire_on X TX \<longleftrightarrow>
      (\<forall>U::nat \<Rightarrow> 'a set. (\<forall>n. U n \<in> TX \<and> top1_densein_on X TX (U n)) \<longrightarrow>
@@ -57278,6 +57348,17 @@ definition top1_Delta_h49 :: "(real \<Rightarrow> real) \<Rightarrow> real \<Rig
 definition top1_C01 :: "(real \<Rightarrow> real) set" where
   "top1_C01 = {f. continuous_on top1_I01 f}"
 
+lemma top1_C01_nonempty: "top1_C01 \<noteq> {}"
+proof -
+  have hex: "\<exists>f. f \<in> top1_C01"
+  proof (rule exI[where x="(\<lambda>x. (0::real))"])
+    show "(\<lambda>x. (0::real)) \<in> top1_C01"
+      unfolding top1_C01_def by (simp add: continuous_on_const)
+  qed
+  show ?thesis
+    using hex by (simp add: ex_in_conv)
+qed
+
 definition top1_rho49 :: "(real \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> real) \<Rightarrow> real" where
   "top1_rho49 f g = Sup ((\<lambda>x. \<bar>f x - g x\<bar>) ` top1_I01)"
 
@@ -57285,6 +57366,31 @@ definition top1_U49 :: "nat \<Rightarrow> (real \<Rightarrow> real) set" where
   "top1_U49 n =
      {f \<in> top1_C01.
         \<exists>h. 0 < h \<and> h \<le> 1 / real (Suc (Suc n)) \<and> top1_Delta_h49 f h > real (Suc (Suc n))}"
+
+lemma top1_U49_subset_C01:
+  shows "top1_U49 n \<subseteq> top1_C01"
+proof
+  fix f
+  assume hf: "f \<in> top1_U49 n"
+  show "f \<in> top1_C01"
+    using hf unfolding top1_U49_def by simp
+qed
+
+lemma top1_Inter_U49_subset_C01:
+  shows "(\<Inter>n. top1_U49 n) \<subseteq> top1_C01"
+proof
+  fix f
+  assume hf: "f \<in> (\<Inter>n. top1_U49 n)"
+  have hf0: "f \<in> top1_U49 0"
+    using hf by simp
+  show "f \<in> top1_C01"
+  proof -
+    have "top1_U49 0 \<subseteq> top1_C01"
+      by (rule top1_U49_subset_C01)
+    show ?thesis
+      by (rule subsetD[OF \<open>top1_U49 0 \<subseteq> top1_C01\<close> hf0])
+  qed
+qed
 
 lemma top1_U49_open:
   assumes hrho: "top1_metric_on top1_C01 top1_rho49"
@@ -57300,7 +57406,27 @@ lemma top1_Inter_U49_dense:
   assumes hrho: "top1_metric_on top1_C01 top1_rho49"
   assumes hB: "top1_baire_on top1_C01 (top1_metric_topology_on top1_C01 top1_rho49)"
   shows "top1_densein_on top1_C01 (top1_metric_topology_on top1_C01 top1_rho49) (\<Inter>n. top1_U49 n)"
-  sorry
+proof -
+  let ?T = "top1_metric_topology_on top1_C01 top1_rho49"
+
+  have hAll: "\<forall>n. top1_U49 n \<in> ?T \<and> top1_densein_on top1_C01 ?T (top1_U49 n)"
+  proof (intro allI conjI)
+    fix n
+    show "top1_U49 n \<in> ?T"
+      by (rule top1_U49_open[OF hrho])
+    show "top1_densein_on top1_C01 ?T (top1_U49 n)"
+      by (rule top1_U49_dense[OF hrho])
+  qed
+
+  have hBdef:
+    "\<forall>U::nat \<Rightarrow> (real \<Rightarrow> real) set.
+      (\<forall>n. U n \<in> ?T \<and> top1_densein_on top1_C01 ?T (U n)) \<longrightarrow>
+        top1_densein_on top1_C01 ?T (\<Inter>n. U n)"
+    using hB unfolding top1_baire_on_def by blast
+
+  show ?thesis
+    using hBdef hAll by blast
+qed
 
 lemma top1_Inter_U49_nowhere_differentiable:
   assumes hf: "f \<in> (\<Inter>n. top1_U49 n)"
