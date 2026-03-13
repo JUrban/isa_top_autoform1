@@ -55459,7 +55459,137 @@ lemma Lemma_46_4:
   shows "\<forall>f. (\<forall>C. top1_compact_on C (subspace_topology X TX C)
               \<longrightarrow> top1_continuous_map_on C (subspace_topology X TX C) Y TY f)
           \<longrightarrow> top1_continuous_map_on X TX Y TY f"
-  sorry
+proof (intro allI impI)
+  fix f
+  assume hC:
+    "(\<forall>C. top1_compact_on C (subspace_topology X TX C)
+          \<longrightarrow> top1_continuous_map_on C (subspace_topology X TX C) Y TY f)"
+
+  have hTopX: "is_topology_on X TX"
+    using hCG unfolding top1_compactly_generated_on_def by simp
+
+  have hChar:
+    "\<And>A. A \<subseteq> X \<Longrightarrow>
+      (A \<in> TX \<longleftrightarrow>
+        (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+            \<longrightarrow> A \<inter> C \<in> subspace_topology X TX C))"
+  proof -
+    fix A
+    assume hAX: "A \<subseteq> X"
+    have hAll:
+      "\<forall>A. A \<subseteq> X \<longrightarrow>
+        (A \<in> TX \<longleftrightarrow>
+          (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+              \<longrightarrow> A \<inter> C \<in> subspace_topology X TX C))"
+      using hCG unfolding top1_compactly_generated_on_def by simp
+    have hImp:
+      "A \<subseteq> X \<longrightarrow>
+        (A \<in> TX \<longleftrightarrow>
+          (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+              \<longrightarrow> A \<inter> C \<in> subspace_topology X TX C))"
+      using hAll by (rule allE[where x=A])
+    show
+      "A \<in> TX \<longleftrightarrow>
+        (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+            \<longrightarrow> A \<inter> C \<in> subspace_topology X TX C)"
+      using hImp hAX by simp
+  qed
+
+  have hMap: "\<forall>x\<in>X. f x \<in> Y"
+  proof (intro ballI)
+    fix x
+    assume hxX: "x \<in> X"
+    have hcomp: "top1_compact_on {x} (subspace_topology X TX {x})"
+    proof -
+      have hsub: "{x} \<subseteq> X"
+        by (simp add: hxX)
+      have hfin: "finite {x}"
+        by simp
+      show ?thesis
+        by (rule top1_compact_on_finite_subspace[OF hTopX hsub hfin])
+    qed
+    have hcont: "top1_continuous_map_on {x} (subspace_topology X TX {x}) Y TY f"
+      using hC hcomp by blast
+    have hMapS: "\<forall>z\<in>{x}. f z \<in> Y"
+      using hcont unfolding top1_continuous_map_on_def by (rule conjunct1)
+    show "f x \<in> Y"
+      using hMapS by simp
+  qed
+
+  have hPre: "\<forall>V\<in>TY. {x\<in>X. f x \<in> V} \<in> TX"
+  proof (intro ballI)
+    fix V
+    assume hV: "V \<in> TY"
+    let ?A = "{x\<in>X. f x \<in> V}"
+    have hAsubX: "?A \<subseteq> X"
+      by blast
+
+    have hRHS:
+      "\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+          \<longrightarrow> ?A \<inter> C \<in> subspace_topology X TX C"
+    proof (intro allI impI)
+      fix C
+      assume hC': "top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X"
+      have hcompC: "top1_compact_on C (subspace_topology X TX C)"
+        using hC' by simp
+      have hCX: "C \<subseteq> X"
+        using hC' by simp
+
+      have hcontC: "top1_continuous_map_on C (subspace_topology X TX C) Y TY f"
+        using hC hcompC by blast
+
+      have hpreC: "{x\<in>C. f x \<in> V} \<in> subspace_topology X TX C"
+        using hcontC hV unfolding top1_continuous_map_on_def by blast
+
+      have hEq: "?A \<inter> C = {x\<in>C. f x \<in> V}"
+      proof (rule equalityI)
+        show "?A \<inter> C \<subseteq> {x\<in>C. f x \<in> V}"
+        proof
+          fix x
+          assume hx: "x \<in> ?A \<inter> C"
+          have hxC: "x \<in> C"
+            using hx by simp
+          have hfxV: "f x \<in> V"
+            using hx by simp
+          show "x \<in> {x\<in>C. f x \<in> V}"
+            using hxC hfxV by simp
+        qed
+        show "{x\<in>C. f x \<in> V} \<subseteq> ?A \<inter> C"
+        proof
+          fix x
+          assume hx: "x \<in> {x\<in>C. f x \<in> V}"
+          have hxC: "x \<in> C"
+            using hx by simp
+          have hxX: "x \<in> X"
+            using hCX hxC by blast
+          have hfxV: "f x \<in> V"
+            using hx by simp
+          have hxA: "x \<in> ?A"
+            using hxX hfxV by simp
+          show "x \<in> ?A \<inter> C"
+            using hxA hxC by simp
+        qed
+      qed
+
+      show "?A \<inter> C \<in> subspace_topology X TX C"
+        unfolding hEq by (rule hpreC)
+    qed
+
+    have "?A \<in> TX \<longleftrightarrow>
+        (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
+            \<longrightarrow> ?A \<inter> C \<in> subspace_topology X TX C)"
+      by (rule hChar[OF hAsubX])
+    thus "?A \<in> TX"
+      using hRHS by simp
+  qed
+
+  show "top1_continuous_map_on X TX Y TY f"
+    unfolding top1_continuous_map_on_def
+    apply (intro conjI)
+     apply (rule hMap)
+    apply (rule hPre)
+    done
+qed
 
 (** from \S46 Theorem 46.5 [top1.tex:6816] **)
 theorem Theorem_46_5:
