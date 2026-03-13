@@ -53809,6 +53809,20 @@ definition top1_uniform_metric_on ::
   "'i set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> ('i \<Rightarrow> 'a) \<Rightarrow> ('i \<Rightarrow> 'a) \<Rightarrow> real" where
   "top1_uniform_metric_on I d x y = Sup ((\<lambda>i. top1_bounded_metric d (x i) (y i)) ` I)"
 
+definition top1_continuous_maps_metric_on ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) set" where
+  "top1_continuous_maps_metric_on X TX Y d =
+     {f \<in> top1_PiE X (\<lambda>_. Y). top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) f}"
+
+definition top1_bounded_map_on ::
+  "'a set \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool" where
+  "top1_bounded_map_on X Y d f \<longleftrightarrow> (\<exists>y0\<in>Y. \<exists>M. \<forall>x\<in>X. d y0 (f x) \<le> M)"
+
+definition top1_bounded_maps_metric_on ::
+  "'a set \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) set" where
+  "top1_bounded_maps_metric_on X Y d =
+     {f \<in> top1_PiE X (\<lambda>_. Y). top1_bounded_map_on X Y d f}"
+
 (** from \S43 Theorem 43.5 [top1.tex:6242] **)
 theorem Theorem_43_5:
   assumes hIne: "I \<noteq> {}"
@@ -53818,17 +53832,31 @@ theorem Theorem_43_5:
 
 (** from \S43 Theorem 43.6 [top1.tex:6272] **)
 theorem Theorem_43_6:
-  assumes hd: "top1_complete_metric_on Y d"
-  shows "closedin_on (top1_PiE X (\<lambda>_. Y))
-    (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
-    {f. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) f}"
+  assumes hd: "top1_metric_on Y d"
+  shows "closedin_on
+           (top1_PiE X (\<lambda>_. Y))
+           (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
+           (top1_continuous_maps_metric_on X TX Y d)"
+    and "closedin_on
+           (top1_PiE X (\<lambda>_. Y))
+           (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
+           (top1_bounded_maps_metric_on X Y d)"
+    and "top1_complete_metric_on Y d
+          \<longrightarrow> top1_complete_metric_on (top1_continuous_maps_metric_on X TX Y d) (top1_uniform_metric_on X d)"
+    and "top1_complete_metric_on Y d
+          \<longrightarrow> top1_complete_metric_on (top1_bounded_maps_metric_on X Y d) (top1_uniform_metric_on X d)"
   sorry
+
+definition top1_isometry_on ::
+  "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real)
+    \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool" where
+  "top1_isometry_on X d Y dY e \<longleftrightarrow>
+     (\<forall>x\<in>X. e x \<in> Y) \<and> (\<forall>x\<in>X. \<forall>x'\<in>X. dY (e x) (e x') = d x x')"
 
 (** from \S43 Theorem 43.7 (Completion) [top1.tex:6312] **)
 theorem Theorem_43_7:
   assumes hd: "top1_metric_on X d"
-  shows "\<exists>Y TY e dY. top1_complete_metric_on Y dY
-    \<and> top1_embedding_on X (top1_metric_topology_on X d) Y TY e"
+  shows "\<exists>Y dY e. top1_complete_metric_on Y dY \<and> top1_isometry_on X d Y dY e"
   sorry
 
 section \<open>*\<S>44 A Space-Filling Curve\<close>
