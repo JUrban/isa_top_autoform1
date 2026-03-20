@@ -774,6 +774,80 @@ proof -
     using spec[OF hall, of \<C>] hprem by (rule mp)
 qed
 
+lemma mem_of_eq: "x \<in> A \<Longrightarrow> A = B \<Longrightarrow> x \<in> B" by simp
+
+text \<open>Minimal test: project FIP and show intersection of closures is nonempty for one coord.\<close>
+lemma tychonoff_coord_point:
+  assumes hFIP: "top1_FIP_on (top1_PiE I X) \<D>"
+  assumes hDne: "\<D> \<noteq> {}"
+  assumes hTopi: "is_topology_on (Xi) (TXi)"
+  assumes hCompi: "top1_compact_on (Xi) (TXi)"
+  assumes hi: "i \<in> I"
+  assumes hDsub: "\<forall>D\<in>\<D>. D \<subseteq> top1_PiE I X"
+  assumes hproj_sub: "\<forall>D\<in>\<D>. (\<lambda>f. f i) ` D \<subseteq> Xi"
+  shows "\<exists>xi. xi \<in> Xi \<and> (\<forall>D\<in>\<D>. xi \<in> closure_on Xi TXi ((\<lambda>f. f i) ` D))"
+proof -
+  have hCclosed: "\<forall>C\<in>((\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>). closedin_on Xi TXi C"
+  proof (intro ballI)
+    fix C assume "C \<in> (\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>"
+    then obtain D where hD: "D \<in> \<D>" and hCdef: "C = closure_on Xi TXi ((\<lambda>f. f i) ` D)" by blast
+    show "closedin_on Xi TXi C"
+      unfolding hCdef
+      by (rule closure_on_closed[OF hTopi hproj_sub[rule_format, OF hD]])
+  qed
+  have hFIP_D: "\<forall>G. finite G \<and> G \<subseteq> \<D> \<longrightarrow> \<Inter>G \<noteq> {}"
+    using hFIP unfolding top1_FIP_on_def by simp
+  have hCfip: "\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> ((\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>) \<longrightarrow> \<Inter>F \<noteq> {}"
+  proof (intro allI impI)
+    fix F
+    assume hF: "finite F \<and> F \<noteq> {} \<and> F \<subseteq> ((\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>)"
+    have hFfin: "finite F" using hF by simp
+    have hFsub: "F \<subseteq> ((\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>)" using hF by simp
+    have hsel: "\<forall>C\<in>F. \<exists>D\<in>\<D>. C = closure_on Xi TXi ((\<lambda>f. f i) ` D)"
+      using hFsub by blast
+    then obtain g where hg: "\<forall>C\<in>F. g C \<in> \<D> \<and> C = closure_on Xi TXi ((\<lambda>f. f i) ` (g C))"
+      by metis
+    have hGfin: "finite (g ` F)" using hFfin by simp
+    have hGsub: "g ` F \<subseteq> \<D>" using hg by blast
+    have "finite (g ` F) \<and> g ` F \<subseteq> \<D>" using hGfin hGsub by simp
+    then have "\<Inter>(g ` F) \<noteq> {}" using hFIP_D by blast
+    then obtain z where hz: "\<forall>D\<in>(g ` F). z \<in> D" by blast
+    have "\<forall>C\<in>F. z i \<in> C"
+    proof
+      fix C assume hC: "C \<in> F"
+      have hzgC: "z \<in> g C" using hz hC by blast
+      have hzi_proj: "z i \<in> (\<lambda>f. f i) ` (g C)" using hzgC by blast
+      have hproj_sub_cl: "(\<lambda>f. f i) ` (g C) \<subseteq> closure_on Xi TXi ((\<lambda>f. f i) ` (g C))"
+        by (rule subset_closure_on)
+      have hzi_cl: "z i \<in> closure_on Xi TXi ((\<lambda>f. f i) ` (g C))"
+        by (rule subsetD[OF hproj_sub_cl hzi_proj])
+      have hCeq: "closure_on Xi TXi ((\<lambda>f. f i) ` (g C)) = C"
+        using hg hC by blast
+      show "z i \<in> C"
+        by (rule mem_of_eq[OF hzi_cl hCeq])
+    qed
+    then show "\<Inter>F \<noteq> {}" by blast
+  qed
+  have hne: "\<Inter>((\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>) \<noteq> {}"
+    by (rule compact_closed_FIP_inter_ne[OF hTopi hCompi hCclosed hCfip])
+  then obtain xi where hxi: "xi \<in> \<Inter>((\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>)" by blast
+  have "xi \<in> Xi"
+  proof -
+    obtain D0 where hD0: "D0 \<in> \<D>" using hDne by blast
+    have "closure_on Xi TXi ((\<lambda>f. f i) ` D0) \<in> (\<lambda>D. closure_on Xi TXi ((\<lambda>f. f i) ` D)) ` \<D>"
+      using hD0 by blast
+    then have hxi0: "xi \<in> closure_on Xi TXi ((\<lambda>f. f i) ` D0)"
+      using hxi by blast
+    have hsub: "closure_on Xi TXi ((\<lambda>f. f i) ` D0) \<subseteq> Xi"
+      by (rule closure_on_subset_carrier[OF hTopi hproj_sub[rule_format, OF hD0]])
+    show ?thesis
+      using hsub hxi0 by (rule subsetD)
+  qed
+  moreover have "\<forall>D\<in>\<D>. xi \<in> closure_on Xi TXi ((\<lambda>f. f i) ` D)"
+    using hxi by blast
+  ultimately show ?thesis by blast
+qed
+
 (** from \S37 Theorem 37.3 (Tychonoff theorem) [top1.tex:5253] **)
 theorem Theorem_37_3:
   assumes hIne: "I \<noteq> {}"
