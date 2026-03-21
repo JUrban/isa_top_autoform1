@@ -5,10 +5,11 @@ begin
 section \<open>\<S>37 The Tychonoff Theorem\<close>
 
 text \<open>
-  Status note: \<open>\<S>37\<close> (Tychonoff) is now fully proved.
-  Remaining admits (50 total) are in \<open>\<S>38\<close>--\<open>\<S>50\<close>:
+  Status note (2026-03-22):
+  \<open>\<S>37\<close> (Tychonoff) and \<open>\<S>48\<close> Theorem 48.2 (Baire category) are fully proved.
+  Remaining admits (47 total) in \<open>\<S>38\<close>--\<open>\<S>50\<close>:
   \<open>\<S>38\<close>: 3, \<open>\<S>39\<close>: 1, \<open>\<S>40\<close>: 3, \<open>\<S>41\<close>: 8, \<open>\<S>42\<close>: 1, \<open>\<S>43\<close>: 4, \<open>\<S>44\<close>: 1,
-  \<open>\<S>45\<close>: 5, \<open>\<S>46\<close>: 4, \<open>\<S>47\<close>: 4, \<open>\<S>48\<close>: 2+1, \<open>\<S>49\<close>: 4, \<open>\<S>50\<close>: 8.
+  \<open>\<S>45\<close>: 5, \<open>\<S>46\<close>: 4, \<open>\<S>47\<close>: 4, \<open>\<S>48\<close>: 1, \<open>\<S>49\<close>: 4, \<open>\<S>50\<close>: 8.
 \<close>
 
 text \<open>
