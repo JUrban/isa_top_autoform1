@@ -6607,15 +6607,56 @@ proof -
 
 qed
 
-(** Helper: diameter control implies pairwise distance control (intended meaning of diameter). **)
+(** Helper: distance set of a metric subset is bdd_above when diameter is finite. **)
+lemma top1_metric_dist_set_bdd_above:
+  assumes hd: "top1_metric_on X d"
+  assumes hAX: "A \<subseteq> X"
+  assumes hxA: "x \<in> A"
+  assumes hbound: "\<exists>M. \<forall>a\<in>A. d x a \<le> M"
+  shows "bdd_above {d a b | a b. a \<in> A \<and> b \<in> A}"
+proof -
+  obtain M where hM: "\<forall>a\<in>A. d x a \<le> M" using hbound by blast
+  have hxX: "x \<in> X" using hAX hxA by blast
+  show ?thesis
+    unfolding bdd_above_def
+  proof (rule exI[where x="M + M"], intro ballI)
+    fix s assume "s \<in> {d a b | a b. a \<in> A \<and> b \<in> A}"
+    then obtain a b where haA: "a \<in> A" and hbA: "b \<in> A" and hs: "s = d a b" by blast
+    have haX: "a \<in> X" using hAX haA by blast
+    have hbX: "b \<in> X" using hAX hbA by blast
+    have "d a b \<le> d a x + d x b"
+      using hd haX hxX hbX unfolding top1_metric_on_def by blast
+    have "d a x = d x a"
+      using hd haX hxX unfolding top1_metric_on_def by blast
+    have "d x a \<le> M" using hM haA by blast
+    have "d x b \<le> M" using hM hbA by blast
+    have "d a b \<le> d x a + d x b"
+      using \<open>d a b \<le> d a x + d x b\<close> \<open>d a x = d x a\<close> by linarith
+    then have "d a b \<le> M + M"
+      using \<open>d x a \<le> M\<close> \<open>d x b \<le> M\<close> by linarith
+    then show "s \<le> M + M" unfolding hs by simp
+  qed
+qed
+
+(** Helper: diameter control implies pairwise distance control. **)
 lemma top1_diameter_on_lt_imp_dist_lt:
   assumes hd: "top1_metric_on X d"
   assumes hAX: "A \<subseteq> X"
   assumes hxA: "x \<in> A"
   assumes hyA: "y \<in> A"
   assumes hdiam: "top1_diameter_on d A < e"
+  assumes hbdd: "bdd_above {d a b | a b. a \<in> A \<and> b \<in> A}"
   shows "d x y < e"
-  sorry
+proof -
+  let ?S = "{d a b | a b. a \<in> A \<and> b \<in> A}"
+  have "d x y \<in> ?S" using hxA hyA by blast
+  then have "d x y \<le> Sup ?S"
+    by (rule cSup_upper[OF _ hbdd])
+  also have "Sup ?S = top1_diameter_on d A"
+    unfolding top1_diameter_on_def by simp
+  also have "... < e" using hdiam by simp
+  finally show "d x y < e" .
+qed
 
 (** from \S48 Lemma 48.3 [top1.tex:7208] **)
 lemma Lemma_48_3:
@@ -6740,8 +6781,10 @@ proof -
 
       have hdiamN: "top1_diameter_on d (C N) < e"
         using hN by simp
+      have hbdd_CN: "bdd_above {d a b | a b. a \<in> C N \<and> b \<in> C N}"
+        sorry (* bdd_above from metric + finite diameter; see note at top1_diameter_on_lt_imp_dist_lt *)
       have hdist: "d (s m) (s n) < e"
-        by (rule top1_diameter_on_lt_imp_dist_lt[OF hmetric hCsubX[rule_format, of N] hsmCN hsnCN hdiamN])
+        by (rule top1_diameter_on_lt_imp_dist_lt[OF hmetric hCsubX[rule_format, of N] hsmCN hsnCN hdiamN hbdd_CN])
 
       show "s m \<in> X \<and> s n \<in> X \<and> d (s m) (s n) < e"
         using hsNX htNX hdist by simp
