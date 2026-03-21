@@ -7126,6 +7126,103 @@ proof -
   qed
 qed
 
+text \<open>Helper for complete metric \<open>\<Longrightarrow>\<close> Baire: given dense open \<open>U n\<close> and nonempty open \<open>V\<close>,
+  construct a Cauchy sequence converging to a point in \<open>V \<inter> \<Inter> U n\<close>.\<close>
+lemma complete_metric_baire_aux:
+  assumes hd: "top1_complete_metric_on X d"
+  assumes hVopen: "V \<in> top1_metric_topology_on X d"
+  assumes hVne: "V \<noteq> {}"
+  assumes hVX: "V \<subseteq> X"
+  assumes hUopen: "\<forall>n::nat. U n \<in> top1_metric_topology_on X d"
+  assumes hUdense: "\<forall>n::nat. top1_densein_on X (top1_metric_topology_on X d) (U n)"
+  assumes hUsubX: "\<forall>n::nat. U n \<subseteq> X"
+  shows "V \<inter> (\<Inter>(n::nat). U n) \<noteq> {}"
+proof -
+  let ?TX = "top1_metric_topology_on X d"
+  have hmetric: "top1_metric_on X d"
+    using hd unfolding top1_complete_metric_on_def by blast
+  have hTopM: "is_topology_on X ?TX"
+    by (rule top1_metric_topology_on_is_topology_on[OF hmetric])
+
+  text \<open>Dense open sets intersect every nonempty open set.\<close>
+  have hDenseInter: "\<forall>n W. W \<in> ?TX \<and> W \<noteq> {} \<longrightarrow> W \<inter> U n \<noteq> {}"
+  proof (intro allI impI)
+    fix n W assume hW: "W \<in> ?TX \<and> W \<noteq> {}"
+    have hWopen: "W \<in> ?TX" using hW by blast
+    have hWne: "W \<noteq> {}" using hW by blast
+    have hWX: "W \<subseteq> X"
+      using hWopen unfolding top1_metric_topology_on_def topology_generated_by_basis_def by blast
+    have hdn: "top1_densein_on X ?TX (U n)" using hUdense by blast
+    have "intersects W (U n)"
+      using iffD1[OF top1_densein_on_iff_intersects_nonempty_open[OF hTopM hUsubX[rule_format, of n]]]
+            hdn hWopen hWX hWne
+      by blast
+    then show "W \<inter> U n \<noteq> {}"
+      unfolding intersects_def by blast
+  qed
+
+  text \<open>Every nonempty open set in a metric topology contains a ball.\<close>
+  have hOpenBall: "\<forall>W x. W \<in> ?TX \<and> x \<in> W \<longrightarrow> (\<exists>r>0. top1_ball_on X d x r \<subseteq> W)"
+  proof (intro allI impI)
+    fix W x assume hWx: "W \<in> ?TX \<and> x \<in> W"
+    have "W \<in> ?TX" using hWx by blast
+    have "x \<in> W" using hWx by blast
+    show "\<exists>r>0. top1_ball_on X d x r \<subseteq> W"
+      by (rule top1_metric_open_contains_ball[OF hmetric \<open>W \<in> ?TX\<close> \<open>x \<in> W\<close>])
+  qed
+
+  text \<open>Step 1: Construct sequences \<open>x :: nat \<Rightarrow> 'a\<close> and \<open>r :: nat \<Rightarrow> real\<close>
+    such that \<open>B(x n, r n) \<subseteq> V \<inter> U 0 \<inter> ... \<inter> U n\<close> and \<open>r n < 1/(n+1)\<close>.\<close>
+  text \<open>Step 1: Pick an initial point in V and a ball around it.\<close>
+  obtain x0 where hx0V: "x0 \<in> V" using hVne by blast
+  have hx0X: "x0 \<in> X" using hVX hx0V by blast
+  obtain r0 where hr0pos: "r0 > 0" and hball0: "top1_ball_on X d x0 r0 \<subseteq> V"
+    using hOpenBall hVopen hx0V by blast
+
+  text \<open>Step 2: Inductively construct sequences \<open>xseq\<close> and \<open>rseq\<close>.
+    At each step n, we need:
+    (a) \<open>xseq n \<in> X\<close>
+    (b) \<open>rseq n > 0\<close> and \<open>rseq n < 1 / (Suc n)\<close>
+    (c) \<open>B(xseq n, rseq n) \<subseteq> B(xseq (n-1), rseq (n-1)) \<inter> U n\<close>
+    We sorry the existence of such sequences and proceed with the convergence argument.\<close>
+  have "\<exists>xseq rseq. xseq 0 = x0 \<and> rseq 0 = r0 \<and>
+    (\<forall>n. xseq n \<in> X \<and> rseq n > 0 \<and> rseq n < 1 / real (Suc n) \<and>
+         top1_ball_on X d (xseq n) (rseq n) \<subseteq> V \<and>
+         (\<forall>k\<le>n. xseq n \<in> U k) \<and>
+         (n > 0 \<longrightarrow> top1_ball_on X d (xseq n) (rseq n) \<subseteq> top1_ball_on X d (xseq (n-(1::nat))) (rseq (n-1))))"
+    sorry
+
+  then obtain xseq rseq where
+    hseq_init0: "xseq 0 = x0" and
+    hseq_initr: "rseq 0 = r0" and
+    hseq_prop: "\<forall>n. xseq n \<in> X \<and> rseq n > 0 \<and> rseq n < 1 / real (Suc n) \<and>
+         top1_ball_on X d (xseq n) (rseq n) \<subseteq> V \<and>
+         (\<forall>k\<le>n. xseq n \<in> U k) \<and>
+         (n > 0 \<longrightarrow> top1_ball_on X d (xseq n) (rseq n) \<subseteq> top1_ball_on X d (xseq (n-(1::nat))) (rseq (n-1)))"
+    by blast
+
+  text \<open>Step 3: The sequence is Cauchy.\<close>
+  have hCauchy: "top1_cauchy_seq_on X d xseq"
+    sorry
+
+  text \<open>Step 4: By completeness, the sequence converges.\<close>
+  obtain x where hxX: "x \<in> X"
+    and hconv: "seq_converges_to_on xseq x X ?TX"
+    using hd hCauchy unfolding top1_complete_metric_on_def by blast
+
+  text \<open>Step 5: The limit is in V.\<close>
+  have hxV: "x \<in> V"
+    sorry
+
+  text \<open>Step 6: The limit is in each U n.\<close>
+  have hxU: "\<forall>n. x \<in> U n"
+    sorry
+
+  have "x \<in> V \<inter> (\<Inter>n. U n)"
+    using hxV hxU by blast
+  then show ?thesis by blast
+qed
+
 theorem Theorem_48_2:
   shows "top1_compact_on X TX \<and> is_hausdorff_on X TX \<longrightarrow> top1_baire_on X TX"
     and "top1_complete_metric_on X d \<longrightarrow> top1_baire_on X (top1_metric_topology_on X d)"
@@ -7173,7 +7270,17 @@ proof -
       qed
 
       show "top1_densein_on X ?TX (\<Inter>n. U n)"
-        sorry
+      proof (rule iffD2[OF top1_densein_on_iff_intersects_nonempty_open[OF hTopM hInterSubX]])
+        show "\<forall>V. V \<in> ?TX \<and> V \<subseteq> X \<and> V \<noteq> {} \<longrightarrow> intersects V (\<Inter>n. U n)"
+        proof (intro allI impI)
+          fix V assume hV: "V \<in> ?TX \<and> V \<subseteq> X \<and> V \<noteq> {}"
+          have "V \<inter> (\<Inter>n. U n) \<noteq> {}"
+            by (rule complete_metric_baire_aux[OF hcomplete])
+               (use hV hUnOpen hUnDense hUnSubX in blast)+
+          then show "intersects V (\<Inter>n. U n)"
+            unfolding intersects_def by blast
+        qed
+      qed
     qed
   qed
 qed
