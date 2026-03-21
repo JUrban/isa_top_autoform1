@@ -2903,7 +2903,12 @@ proof -
         So a \<notin> cl(V).\<close>
       let ?V = "\<Union>?\<DD>"
       have hV_open: "?V \<in> TX"
-        sorry (* union of open sets is open *)
+      proof -
+        have "?\<DD> \<subseteq> TX"
+          using hCC_cov unfolding top1_open_covering_on_def by blast
+        then show ?thesis
+          using hTop unfolding is_topology_on_def by blast
+      qed
       have hV_covers_C: "C \<subseteq> ?V"
         using hD_covers_C by blast
 
@@ -2934,8 +2939,16 @@ proof -
       qed
 
       text \<open>Step 5: X - cl(V) is a neighborhood of a, disjoint from V.\<close>
+      have hV_subX: "?V \<subseteq> X"
+      proof (rule subsetI)
+        fix x assume "x \<in> ?V"
+        then obtain D where hD: "D \<in> ?\<DD>" and hxD: "x \<in> D" by blast
+        have "D \<in> TX" using hD hCC_cov unfolding top1_open_covering_on_def by blast
+        show "x \<in> X"
+          sorry (* D ∈ TX implies D ⊆ X; needs topology elements ⊆ X *)
+      qed
       have hclV_closed: "closedin_on X TX (closure_on X TX ?V)"
-        sorry (* closure is closed *)
+        by (rule closure_on_closed[OF hTop hV_subX])
       have hU_open: "X - closure_on X TX ?V \<in> TX"
         using hclV_closed unfolding closedin_on_def by blast
       have haU: "a \<in> X - closure_on X TX ?V"
