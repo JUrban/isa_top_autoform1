@@ -5038,10 +5038,140 @@ proof -
 
     text \<open>C is locally finite.\<close>
     have hC_lf: "top1_locally_finite_family_on X TX \<C>"
-      sorry (* Core local finiteness argument for step (1)→(2).
-               ~60 lines: uses LEAST for N, finite intersection of W_n's for n ≤ N,
-               and U ∈ Bn N to exclude n > N contributions.
-               Deferred to keep progress flowing. *)
+      unfolding top1_locally_finite_family_on_def
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      define N where "N = (LEAST n. x \<in> \<Union>(Bn n))"
+      have hex_n: "\<exists>n. x \<in> \<Union>(Bn n)"
+        using hxX hA_covers hA_eq
+        
+        by blast
+      have hxBnN: "x \<in> \<Union>(Bn N)" unfolding N_def
+        using LeastI_ex[OF hex_n]
+        
+        by satx
+      have hN_least: "\<forall>m. m < N \<longrightarrow> x \<notin> \<Union>(Bn m)"
+        unfolding N_def using not_less_Least
+        
+        by blast
+      obtain U0 where hU0: "U0 \<in> Bn N" and hxU0: "x \<in> U0"
+        using hxBnN
+        
+        by blast
+      have hU0_open: "U0 \<in> TX"
+        using hU0 hA_eq hA_sub_TX
+        
+        by blast
+      text \<open>For each n \<le> N, get W_n meeting finitely many Bn n elements.\<close>
+      have hWn_ex: "\<forall>n \<le> N. \<exists>W\<in>TX. x \<in> W \<and> finite {A \<in> Bn n. intersects A W}"
+        using hBn_lf hxX unfolding top1_locally_finite_family_on_def
+        
+        by simp
+      have "\<exists>Wn. \<forall>n \<le> N. Wn n \<in> TX \<and> x \<in> Wn n \<and> finite {A \<in> Bn n. intersects A (Wn n)}"
+        using hWn_ex
+        
+        by metis
+      then obtain Wn where hWn: "\<forall>n \<le> N. Wn n \<in> TX \<and> x \<in> Wn n \<and> finite {A \<in> Bn n. intersects A (Wn n)}"
+        
+        by blast
+      text \<open>For n > N, U0 is disjoint from all S_n(V): S_n(V) ⊆ V - Vi N, and U0 ⊆ Vi N.\<close>
+      have hU0_sub_ViN: "U0 \<subseteq> Vi N"
+        unfolding Vi_def using hU0
+        
+        by blast
+      have hCn_disj_U0: "\<forall>n > N. \<forall>S\<in>Cn n. S \<inter> U0 = {}"
+      proof (intro allI impI ballI)
+        fix n S assume hn: "N < n" and hS: "S \<in> Cn n"
+        obtain V where hV: "V \<in> Bn n" and hSeq: "S = Sn n V"
+          using hS unfolding Cn_def
+          
+          by blast
+        have "Sn n V \<subseteq> V - Vi N"
+          unfolding Sn_def Vi_def using hn
+          
+          by blast
+        then have "S \<inter> Vi N = {}" unfolding hSeq
+          
+          by blast
+        then show "S \<inter> U0 = {}" using hU0_sub_ViN
+          
+          by auto
+      qed
+      text \<open>The neighborhood: finite intersection of W_n for n \<le> N, intersected with U0.\<close>
+      define W where "W = (\<Inter>n\<in>{0..N}. Wn n) \<inter> U0"
+      have hW_open: "W \<in> TX"
+        sorry (* Finite intersection of opens is open. Uses hTop + hWn + hU0_open. *)
+      have hxW: "x \<in> W"
+        unfolding W_def using hxU0 hWn
+        
+        by fastforce
+      have hW_fin: "finite {A \<in> \<C>. intersects A W}"
+      proof -
+        text \<open>W meets only elements from C_n for n \<le> N.\<close>
+        have hsub: "{A \<in> \<C>. intersects A W} \<subseteq> (\<Union>n\<in>{0..N}. {A \<in> Cn n. intersects A W})"
+        proof (rule subsetI)
+          fix S assume hS: "S \<in> {A \<in> \<C>. intersects A W}"
+          then have hSC: "S \<in> \<C>" and hSW: "intersects S W"
+            
+            by fast+
+          obtain n where hSCn: "S \<in> Cn n" using hSC unfolding \<C>_def
+            
+            by blast
+          have "n \<le> N"
+          proof (rule ccontr)
+            assume "\<not> n \<le> N"
+            then have "N < n"
+              
+              by presburger
+            then have "S \<inter> U0 = {}" using hCn_disj_U0 hSCn
+              
+              by simp
+            then have "S \<inter> W = {}" unfolding W_def
+              
+              by blast
+            then show False using hSW unfolding intersects_def
+              
+              by presburger
+          qed
+          then show "S \<in> (\<Union>n\<in>{0..N}. {A \<in> Cn n. intersects A W})"
+            using hSCn hSW
+            
+            by auto
+        qed
+        text \<open>Each {A ∈ Cn n. intersects A W} is finite (since W ⊆ Wn n).\<close>
+        have hfin_each: "\<forall>n\<in>{0..N}. finite {A \<in> Cn n. intersects A W}"
+        proof (intro ballI)
+          fix n assume hn: "n \<in> {0..N}"
+          have hnN: "n \<le> N" using hn
+            
+            by auto
+          have hW_sub_Wn: "W \<subseteq> Wn n" unfolding W_def using hnN
+            
+            using hnN by fastforce
+          have hCn_sub_Bn: "\<forall>S\<in>Cn n. \<exists>V\<in>Bn n. S \<subseteq> V"
+            unfolding Cn_def using hSn_sub
+            
+            using hSn_sub by auto
+          have "{A \<in> Cn n. intersects A W} \<subseteq> (\<lambda>V. Sn n V) ` {V \<in> Bn n. intersects V (Wn n)}"
+            sorry (* S ∈ Cn n ∩ W ≠ {} → S = Sn n V for V ∈ Bn n, and V ∩ Wn n ≠ {} since S ⊆ V and W ⊆ Wn n *)
+          moreover have "finite {V \<in> Bn n. intersects V (Wn n)}"
+            using hWn hnN
+            
+            by auto
+          ultimately show "finite {A \<in> Cn n. intersects A W}"
+            
+            by (meson finite_surj)
+        qed
+        show ?thesis
+          using finite_subset[OF hsub] hfin_each
+          
+          by blast
+      qed
+      show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> \<C>. intersects A U}"
+        using hW_open hxW hW_fin
+        
+        by blast
+    qed
 
     text \<open>Each C ∈ C is a subset of X.\<close>
     have hC_subX: "\<forall>C\<in>\<C>. C \<subseteq> X"
