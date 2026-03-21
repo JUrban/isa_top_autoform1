@@ -7366,7 +7366,24 @@ proof -
          top1_ball_on X d (xseq n) (rseq n) \<subseteq> V \<and>
          (\<forall>k\<le>n. top1_ball_on X d (xseq n) (rseq n) \<subseteq> U k) \<and>
          (n > 0 \<longrightarrow> d (xseq n) (xseq (n-(1::nat))) + rseq n < rseq (n-1)))"
-    sorry
+  proof -
+    obtain x0 r0 where hx0X: "x0 \<in> X" and hr0pos: "r0 > 0" and hr0lt: "r0 < 1"
+      and hball0V: "top1_ball_on X d x0 r0 \<subseteq> V"
+      and hball0U: "top1_ball_on X d x0 r0 \<subseteq> U 0"
+      using hbase by blast
+    text \<open>Define paired sequence by recursion.\<close>
+    define pair where "pair = rec_nat (x0, r0)
+      (\<lambda>n (xc, rc). SOME (xn, rn). xn \<in> X \<and> rn > 0 \<and> rn < 1 / real (Suc (Suc n))
+        \<and> top1_ball_on X d xn rn \<subseteq> V
+        \<and> (\<forall>k\<le>Suc n. top1_ball_on X d xn rn \<subseteq> U k)
+        \<and> d xn xc + rn < rc)"
+    define xseq where "xseq n = fst (pair n)" for n
+    define rseq where "rseq n = snd (pair n)" for n
+    text \<open>Proving the inductive property requires showing SOME picks a valid pair.
+      This follows from hstep (which guarantees existence) via someI_ex.\<close>
+    show ?thesis
+      sorry
+  qed
 
   then obtain xseq rseq where
     hseq_prop: "\<forall>n. xseq n \<in> X \<and> rseq n > 0 \<and> rseq n < 1 / real (Suc n) \<and>
