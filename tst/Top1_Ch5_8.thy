@@ -5344,8 +5344,39 @@ proof -
         using Lemma_39_1(3)[OF hTop hbad_subX hbad_lf]
         
         by presburger
-      have hUnion_bad_closed: "closedin_on X TX (\<Union>(bad C0))"
-        sorry (* cl(∪bad) = ∪cl(elem) = ∪elem = ∪bad since each closed. So closed. *)
+      have hcl_id: "\<forall>D0\<in>bad C0. closure_on X TX D0 = D0"
+      proof (intro ballI)
+        fix D0 assume hD0: "D0 \<in> bad C0"
+        have hD0cl: "closedin_on X TX D0" using hbad_closed hD0
+          
+          by blast
+        show "closure_on X TX D0 = D0"
+          using closure_on_subset_of_closed[OF hD0cl] subset_closure_on
+          
+          by fast
+      qed
+      have "closure_on X TX (\<Union>(bad C0)) = \<Union>(bad C0)"
+      proof -
+        have "\<Union>(closure_on X TX ` bad C0) = \<Union>(bad C0)"
+          using hcl_id
+          
+          by fast
+        then show ?thesis using hcl_eq
+          
+          by argo
+      qed
+      have hbadUnion_subX: "\<Union>(bad C0) \<subseteq> X"
+        using hbad_subX
+        
+        by fast
+      have "closedin_on X TX (closure_on X TX (\<Union>(bad C0)))"
+        using closure_on_closed[OF hTop hbadUnion_subX]
+        
+        by blast
+      then have hUnion_bad_closed: "closedin_on X TX (\<Union>(bad C0))"
+        using \<open>closure_on X TX (\<Union>(bad C0)) = \<Union>(bad C0)\<close>
+        
+        by argo
       show "E C0 \<in> TX"
         unfolding E_def using hUnion_bad_closed unfolding closedin_on_def
         
