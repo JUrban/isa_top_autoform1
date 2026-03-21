@@ -1665,6 +1665,10 @@ definition top1_bounded_on :: "'a set \<Rightarrow> ('a \<Rightarrow> real) \<Ri
   "top1_bounded_on X f \<longleftrightarrow> (\<exists>M. \<forall>x\<in>X. \<bar>f x\<bar> \<le> M)"
 
 (** from \S38 Theorem 38.2 (Existence of Stone-\<C>ech compactification) [top1.tex:5418] **)
+text \<open>Proof strategy: use Theorem 34.3 (completely regular \<open>\<Rightarrow>\<close> embeds in \<open>[0,1]^J\<close>)
+  to embed X into \<open>[0,1]^J\<close>. The closure of the image in \<open>[0,1]^J\<close> is compact
+  by Tychonoff (Theorem 37.3, proved). Extensions via Tietze (Theorem 35.1, proved).
+  Uniqueness from Hausdorff + density.\<close>
 theorem Theorem_38_2:
   assumes hCR: "top1_completely_regular_on X TX"
   shows "\<exists>Y TY e.
@@ -3243,6 +3247,10 @@ theorem Theorem_41_2:
   assumes hClosed: "closedin_on X TX A"
   shows "top1_paracompact_on A (subspace_topology X TX A)"
   sorry
+  (* Proof strategy (Munkres Thm 41.2): Given open cover \<A> of A in the subspace,
+     for each element U \<in> \<A>, write U = A \<inter> U' for some U' open in X.
+     Cover X by {U' | U \<in> \<A>} \<union> {X - A}. Take locally finite open refinement \<B> of X.
+     Then {B \<inter> A | B \<in> \<B>} is a locally finite open refinement of \<A> covering A. *)
 
 (** from \S41 Lemma 41.3 [top1.tex:5864] **)
 lemma Lemma_41_3:
