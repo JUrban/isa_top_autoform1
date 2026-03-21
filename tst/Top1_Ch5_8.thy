@@ -2808,11 +2808,58 @@ definition top1_lindelof_on :: "'a set \<Rightarrow> 'a set set \<Rightarrow> bo
      (\<forall>Uc. Uc \<subseteq> TX \<and> X \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>V. top1_countable V \<and> V \<subseteq> Uc \<and> X \<subseteq> \<Union>V))"
 
 (** from \S41 Theorem 41.1 [top1.tex:5832] **)
+text \<open>Proof follows Munkres: first prove regularity using Hausdorff + paracompact,
+  then normality using regularity + paracompact. Key tool: for a locally finite
+  family, \<open>closure(\<Union>D) = \<Union>(closure D)\<close> (Lemma 39.1).\<close>
+lemma paracompact_hausdorff_imp_regular:
+  assumes hPara: "top1_paracompact_on X TX"
+  assumes hHaus: "is_hausdorff_on X TX"
+  shows "top1_regular_on X TX"
+proof -
+  have hTop: "is_topology_on X TX"
+    using hHaus unfolding is_hausdorff_on_def by blast
+
+  text \<open>One-point sets are closed (from Hausdorff via T1).\<close>
+  have hT1: "top1_T1_on X TX"
+    by (rule hausdorff_imp_T1_on[OF hHaus])
+
+  show ?thesis
+    unfolding top1_regular_on_def
+  proof (intro conjI)
+    show "top1_T1_on X TX"
+      by (rule hT1)
+  next
+    show "\<forall>x\<in>X. \<forall>C. closedin_on X TX C \<and> x \<notin> C \<longrightarrow>
+      (\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+    proof (intro ballI allI impI)
+      fix a C assume haX: "a \<in> X" and hCcl: "closedin_on X TX C \<and> a \<notin> C"
+      have hCclosed: "closedin_on X TX C" using hCcl by blast
+      have hanotC: "a \<notin> C" using hCcl by blast
+      have hCX: "C \<subseteq> X" using hCclosed unfolding closedin_on_def by blast
+
+      text \<open>Step 1: For each b \<in> C, Hausdorff gives disjoint nbhds of a and b.
+        So a has a nbhd disjoint from some open set containing b, meaning a \<notin> cl(U_b).\<close>
+      text \<open>Step 2: Cover X by {U_b | b \<in> C} \<union> {X - C}, take locally finite refinement.\<close>
+      text \<open>Step 3: Form V = \<Union>{D \<in> refinement | D \<inter> C \<noteq> {}}. Then cl(V) is disjoint from a
+        by locally finite closure (Lemma 39.1).\<close>
+      show "\<exists>U V. neighborhood_of a X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {}"
+        sorry
+    qed
+  qed
+qed
+
+lemma paracompact_regular_imp_normal:
+  assumes hPara: "top1_paracompact_on X TX"
+  assumes hReg: "top1_regular_on X TX"
+  shows "top1_normal_on X TX"
+  sorry
+
 theorem Theorem_41_1:
   assumes hPara: "top1_paracompact_on X TX"
   assumes hHaus: "is_hausdorff_on X TX"
   shows "top1_normal_on X TX"
-  sorry
+  by (rule paracompact_regular_imp_normal[OF hPara
+        paracompact_hausdorff_imp_regular[OF hPara hHaus]])
 
 (** from \S41 Theorem 41.2 [top1.tex:5851] **)
 theorem Theorem_41_2:
