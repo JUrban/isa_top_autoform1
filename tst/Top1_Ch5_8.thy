@@ -11330,6 +11330,22 @@ theorem Theorem_48_5:
   assumes hptw: "\<forall>x\<in>X. seq_converges_to_on (\<lambda>n. f n x) (g x) Y (top1_metric_topology_on Y d)"
   shows "top1_densein_on X TX {x \<in> X. top1_continuous_at_on X TX Y (top1_metric_topology_on Y d) g x}"
   sorry
+  (* Proof sketch (Munkres Theorem 48.5):
+     Define A_N(ε) = {x ∈ X | ∀n,m ≥ N. d(f_n(x), f_m(x)) ≤ ε}.
+     Step 1: A_N(ε) is closed (preimage of closed set under continuous f_n - f_m).
+     Step 2: ∪_N A_N(ε) = X (pointwise Cauchy property).
+     Step 3: U(ε) = ∪_N Int(A_N(ε)) is open and dense in X.
+       Density: for open V ≠ {}, V is Baire (Lemma 48.4). V ∩ A_N(ε) is closed in V.
+       ∪_N (V ∩ A_N(ε)) = V. By Baire, some V ∩ A_M(ε) has nonempty interior in V.
+       This interior is open in V, hence in X, so contained in Int(A_M(ε)).
+     Step 4: f is continuous at each x₀ ∈ C = ∩_k U(1/k).
+       Given ε > 0, pick k with 1/k < ε/3. x₀ ∈ U(1/k) → x₀ ∈ Int(A_N(1/k)).
+       f_N continuous → W nbhd of x₀ inside A_N(1/k) with d(f_N(x), f_N(x₀)) < ε/3.
+       For x ∈ W: d(f_n(x), f_N(x)) ≤ 1/k (n ≥ N, x ∈ A_N).
+       Letting n → ∞: d(g(x), f_N(x)) ≤ 1/k < ε/3.
+       Triangle: d(g(x), g(x₀)) ≤ d(g(x), f_N(x)) + d(f_N(x), f_N(x₀)) + d(f_N(x₀), g(x₀)) < ε.
+     Step 5: C = ∩_k U(1/k) is dense by Baire (countable intersection of open dense).
+     ~100 lines estimated. *)
 
 section \<open>*\<S>49 A Nowhere-Differentiable Function\<close>
 
