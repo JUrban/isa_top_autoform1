@@ -3051,6 +3051,32 @@ proof -
   qed
 qed
 
+text \<open>Closure avoidance: if D refines a cover where each element has closure disjoint from A,
+  then every element of the subcollection intersecting B has closure disjoint from A.\<close>
+lemma paracompact_closure_avoidance_step:
+  assumes hTop: "is_topology_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
+  assumes hAX: "A \<subseteq> X"
+  assumes hDCC: "D \<in> \<CC>"
+  assumes hDinterB: "D \<inter> B \<noteq> {}"
+  assumes hCC_ref: "top1_refines \<CC> (insert (X - B) (Ub ` B))"
+  assumes hUbT: "\<forall>b\<in>B. Ub b \<in> TX"
+  assumes hUb_sep: "\<forall>b\<in>B. \<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> Ub b \<inter> W = {}"
+  assumes hxA: "x \<in> A"
+  shows "x \<notin> closure_on X TX D"
+  sorry
+
+text \<open>Closure of V avoids A, using the closure avoidance step and locally finite closure.\<close>
+lemma paracompact_closure_union_avoidance:
+  assumes hTop: "is_topology_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
+  assumes hAX: "A \<subseteq> X"
+  assumes hDD_subX: "\<forall>D\<in>\<DD>. D \<subseteq> X"
+  assumes hDD_lf: "top1_locally_finite_family_on X TX \<DD>"
+  assumes hcl_avoid: "\<forall>D\<in>\<DD>. \<forall>x\<in>A. x \<notin> closure_on X TX D"
+  shows "A \<subseteq> X - closure_on X TX (\<Union>\<DD>)"
+  sorry
+
 lemma paracompact_regular_imp_normal:
   assumes hPara: "top1_paracompact_on X TX"
   assumes hReg: "top1_regular_on X TX"
@@ -3156,11 +3182,19 @@ proof -
       by (rule closure_on_closed[OF hTop hV_subX])
     have hU_open: "X - closure_on X TX ?V \<in> TX"
       using hclV_closed unfolding closedin_on_def by blast
+    have hUb_sep: "\<forall>b\<in>B. \<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> Ub b \<inter> W = {}"
+      using hUb_prop by blast
     have hA_disj_cl_D: "\<forall>D\<in>?\<DD>. \<forall>x\<in>A. x \<notin> closure_on X TX D"
-      sorry (* closure avoidance: same argument as regularity but times out due to context size *)
+    proof (intro ballI)
+      fix D x assume hDDD: "D \<in> ?\<DD>" and hxA: "x \<in> A"
+      have hDCC: "D \<in> \<CC>" using hDDD by blast
+      have hDinterB: "D \<inter> B \<noteq> {}" using hDDD by blast
+      show "x \<notin> closure_on X TX D"
+        by (rule paracompact_closure_avoidance_step[OF hTop hTsub hAX hDCC hDinterB hCC_ref hUbT hUb_sep hxA])
+    qed
 
     have hA_sub_U: "A \<subseteq> X - closure_on X TX ?V"
-      sorry
+      by (rule paracompact_closure_union_avoidance[OF hTop hTsub hAX hDD_subX hDD_lf hA_disj_cl_D])
     have hdisjoint: "(X - closure_on X TX ?V) \<inter> ?V = {}"
     proof -
       have "?V \<subseteq> closure_on X TX ?V" by (rule subset_closure_on)
