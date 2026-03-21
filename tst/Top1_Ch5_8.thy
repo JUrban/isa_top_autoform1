@@ -4359,12 +4359,133 @@ text \<open>Metrizable spaces are regular: for x and closed C with x \<notin> C,
 lemma metrizable_imp_regular:
   assumes hMet: "top1_metrizable_on X TX"
   shows "top1_regular_on X TX"
-  sorry (* Proof: obtain metric d. TX = metric topology.
-     Hausdorff (from metric): for distinct x,y use balls of radius d(x,y)/2.
-     T1: from Hausdorff via hausdorff_imp_T1_on.
-     Regular: for x ∉ C closed, let r = inf{d(x,c) | c ∈ C} > 0 (since C closed, x ∉ C).
-     Then ball(x, r/2) and ∪{ball(c, r/2) | c ∈ C} separate x from C.
-     Estimated ~50 lines. *)
+proof -
+  obtain d where hd: "top1_metric_on X d" and hTX: "TX = top1_metric_topology_on X d"
+    using hMet unfolding top1_metrizable_on_def
+    
+    by blast
+  have hTop: "is_topology_on X TX"
+    using hTX hd top1_metric_topology_on_is_topology_on
+    
+    by blast
+  text \<open>Metric spaces are Hausdorff.\<close>
+  have hHaus: "is_hausdorff_on X TX"
+    sorry (* Metric Hausdorff: for x≠y, d(x,y)>0, use balls of radius d(x,y)/2.
+             Will be factored into a separate lemma. *)
+  have hT1: "top1_T1_on X TX"
+    using hausdorff_imp_T1_on[OF hHaus]
+    
+    by satx
+  text \<open>Regularity: separate x from closed C.\<close>
+  show ?thesis
+    unfolding top1_regular_on_def
+  proof (intro conjI allI impI ballI)
+    show "top1_T1_on X TX" by (rule hT1)
+  next
+    fix x C assume hxX: "x \<in> X" and hxC: "closedin_on X TX C \<and> x \<notin> C"
+    have hCclosed: "closedin_on X TX C" and hxnotC: "x \<notin> C"
+      using hxC
+      by presburger+
+    have hXmC_open: "X - C \<in> TX" using hCclosed unfolding closedin_on_def
+      
+      by presburger
+    have hxXmC: "x \<in> X - C" using hxX hxnotC
+      
+      by blast
+    obtain r where hrpos: "0 < r" and hball_sub: "top1_ball_on X d x r \<subseteq> X - C"
+      using top1_metric_open_contains_ball[OF hd _ hxXmC] hXmC_open hTX
+      
+      by blast
+    define r2 where "r2 = r / 2"
+    have hr2pos: "0 < r2" unfolding r2_def using hrpos
+      
+      by simp
+    let ?U = "top1_ball_on X d x r2"
+    let ?V = "top1_nbhd_of_set X d C r2"
+    have hU_open: "?U \<in> TX"
+      using hd hxX hr2pos hTX
+      
+      using hTX hxX hd hr2pos top1_ball_open_in_metric_topology by fastforce
+    have hxU: "x \<in> ?U"
+    proof -
+      have "d x x = 0" using hd hxX unfolding top1_metric_on_def
+        
+        by blast
+      then show ?thesis unfolding top1_ball_on_def using hxX hr2pos
+        
+        by force
+    qed
+    have hCX: "C \<subseteq> X" using hCclosed unfolding closedin_on_def
+      
+      by presburger
+    have hV_open: "?V \<in> TX"
+      unfolding hTX using hd hCX hr2pos
+      by (rule top1_nbhd_of_set_open)
+    have hC_sub_V: "C \<subseteq> ?V"
+    proof (rule subsetI)
+      fix c assume hcC: "c \<in> C"
+      have hcX: "c \<in> X" using hcC hCX
+        
+        by fast
+      show "c \<in> ?V"
+        using top1_nbhd_of_set_contains[OF hd hcC hCX hr2pos]
+        
+        by presburger
+    qed
+    have hUV_disj: "?U \<inter> ?V = {}"
+    proof (rule ccontr)
+      assume "\<not> ?U \<inter> ?V = {}"
+      then obtain z where hzU: "z \<in> ?U" and hzV: "z \<in> ?V"
+        
+        by blast
+      have hzX: "z \<in> X" using hzU unfolding top1_ball_on_def
+        
+        by blast
+      have hdxz: "d x z < r2" using hzU unfolding top1_ball_on_def
+        
+        by blast
+      obtain c where hcC: "c \<in> C" and hzball: "z \<in> top1_ball_on X d c r2"
+        using hzV unfolding top1_nbhd_of_set_def
+        
+        by blast
+      have hcX: "c \<in> X" using hcC hCX
+        
+        by blast
+      have hdcz: "d c z < r2" using hzball unfolding top1_ball_on_def
+        
+        by blast
+      have htri: "d x c \<le> d x z + d z c"
+        using hd hxX hzX hcX unfolding top1_metric_on_def
+        
+        by blast
+      have hdsym: "d z c = d c z"
+        using hd hzX hcX unfolding top1_metric_on_def
+        
+        by blast
+      have "d x c < r" using htri hdsym hdxz hdcz unfolding r2_def
+        
+        by linarith
+      then have "c \<in> top1_ball_on X d x r"
+        unfolding top1_ball_on_def using hcX
+        
+        by blast
+      then have "c \<in> X - C" using hball_sub
+        
+        by auto
+      then show False using hcC
+        
+        by fastforce
+    qed
+    have hUnbhd: "neighborhood_of x X TX ?U"
+      unfolding neighborhood_of_def using hU_open hxU
+      
+      by argo
+    show "\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {}"
+      using hUnbhd hV_open hC_sub_V hUV_disj
+      
+      by blast
+  qed
+qed
 
 text \<open>Key lemma for Theorem 41.4: sigma-locally-finite open covering → locally finite open covering.
   This is the (1)\<Rightarrow>(4) direction of Munkres' Lemma 41.3.\<close>
