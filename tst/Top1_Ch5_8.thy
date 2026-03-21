@@ -3229,13 +3229,17 @@ theorem Theorem_41_1:
         paracompact_hausdorff_imp_regular[OF hPara hHaus hTsub] hTsub])
 
 (** from \S41 Theorem 41.2 [top1.tex:5851] **)
-text \<open>Proof strategy (Munkres Thm 41.2): extend subspace cover to X by adding X-A,
+text \<open>Proof (Munkres Thm 41.2): extend subspace cover to X by adding X-A,
   take locally finite refinement, restrict back to A.\<close>
 theorem Theorem_41_2:
   assumes hPara: "top1_paracompact_on X TX"
   assumes hClosed: "closedin_on X TX A"
   shows "top1_paracompact_on A (subspace_topology X TX A)"
-  sorry
+  sorry (* Proof strategy:
+     Given open cover C of A (in subspace), for each U ∈ C write U = A ∩ U' (U' open in X).
+     Cover X by {U' | U ∈ C} ∪ {X - A}. Take locally finite refinement B.
+     Then {B ∩ A | B ∈ B, B ∩ A ≠ {}} is a locally finite open refinement of C covering A.
+     No closure_on involved. Estimated ~80 lines. *)
   (* Proof strategy (Munkres Thm 41.2): Given open cover \<A> of A in the subspace,
      for each element U \<in> \<A>, write U = A \<inter> U' for some U' open in X.
      Cover X by {U' | U \<in> \<A>} \<union> {X - A}. Take locally finite open refinement \<B> of X.
