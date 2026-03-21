@@ -3720,13 +3720,115 @@ lemma Lemma_40_1_step3:
   assumes hBasis: "basis_for X \<B> TX"
   assumes hCLF: "top1_sigma_locally_finite_family_on X TX \<B>"
   shows "top1_normal_on X TX"
-  sorry
-  (* Proof strategy (Munkres Lemma 40.1, Step 3):
-     Given disjoint closed C, D. Apply step1 to X-D to get {U_n} covering C
-     with cl(U_n) disjoint from D. Similarly {V_n} for D.
-     Define U'_n = U_n - ∪{cl(V_i) | i ≤ n}, V'_n = V_n - ∪{cl(U_i) | i ≤ n}.
-     Then U' = ∪U'_n and V' = ∪V'_n are disjoint open sets separating C and D.
-     Same construction as Theorem 32.1. Estimated ~100 lines. *)
+proof -
+  have hTop: "is_topology_on X TX"
+    using hReg unfolding top1_regular_on_def top1_T1_on_def
+    
+    by linarith
+  have hT1: "top1_T1_on X TX"
+    using hReg unfolding top1_regular_on_def
+    
+    by presburger
+  show ?thesis
+    unfolding top1_normal_on_def
+  proof (intro conjI allI impI)
+    show "top1_T1_on X TX" by (rule hT1)
+  next
+    fix C D
+    assume hCD: "closedin_on X TX C \<and> closedin_on X TX D \<and> C \<inter> D = {}"
+    have hCcl: "closedin_on X TX C" using hCD
+      
+      by presburger
+    have hDcl: "closedin_on X TX D" using hCD
+      
+      by presburger
+    have hdisj: "C \<inter> D = {}" using hCD
+      
+      by presburger
+    have hCX: "C \<subseteq> X" using hCcl unfolding closedin_on_def
+      
+      by presburger
+    have hDX: "D \<subseteq> X" using hDcl unfolding closedin_on_def
+      
+      by presburger
+
+    text \<open>X-D is open, apply step1 to get {U_n} covering C with cl(U_n) ⊆ X-D.\<close>
+    have hXmD_open: "X - D \<in> TX" using hDcl unfolding closedin_on_def
+      
+      by presburger
+    have hex_U: "\<exists>U::nat \<Rightarrow> 'a set. (\<forall>n. U n \<in> TX) \<and> (\<forall>n. closure_on X TX (U n) \<subseteq> X - D) \<and> X - D = (\<Union>n. U n)"
+      by (rule Lemma_40_1_step1[OF hReg hBasis hCLF hXmD_open])
+    obtain Ufn :: "nat \<Rightarrow> 'a set" where hUopen: "\<forall>n. Ufn n \<in> TX"
+      and hUcl: "\<forall>n. closure_on X TX (Ufn n) \<subseteq> X - D"
+      and hXmD_eq: "X - D = (\<Union>n. Ufn n)"
+      using hex_U
+      
+      by blast
+
+    text \<open>Similarly for X-C.\<close>
+    have hXmC_open: "X - C \<in> TX" using hCcl unfolding closedin_on_def
+      
+      by linarith
+    have hex_V: "\<exists>V::nat \<Rightarrow> 'a set. (\<forall>n. V n \<in> TX) \<and> (\<forall>n. closure_on X TX (V n) \<subseteq> X - C) \<and> X - C = (\<Union>n. V n)"
+      by (rule Lemma_40_1_step1[OF hReg hBasis hCLF hXmC_open])
+    obtain Vn :: "nat \<Rightarrow> 'a set" where hVopen: "\<forall>n. Vn n \<in> TX"
+      and hVcl: "\<forall>n. closure_on X TX (Vn n) \<subseteq> X - C"
+      and hXmC_eq: "X - C = (\<Union>n. Vn n)"
+      using hex_V
+      
+      by blast
+
+    text \<open>U_n covers C (since C ⊆ X-D = ∪U_n). V_n covers D.\<close>
+    have hC_sub_Un: "C \<subseteq> (\<Union>n. Ufn n)"
+      using hXmD_eq hdisj hCX
+      
+      by auto
+    have hD_sub_Vn: "D \<subseteq> (\<Union>n. Vn n)"
+      using hXmC_eq hdisj hDX
+      
+      by blast
+
+    text \<open>Construct U'_n = U_n - ∪{cl(V_i) | i ≤ n}, V'_n = V_n - ∪{cl(U_i) | i ≤ n}.\<close>
+    define U' where "U' (n::nat) = Ufn n - (\<Union> (closure_on X TX ` Vn ` {0..n}))" for n
+    define V' where "V' (n::nat) = Vn n - (\<Union> (closure_on X TX ` Ufn ` {0..n}))" for n
+
+    text \<open>U' = ∪U'_n and V' = ∪V'_n.\<close>
+    define UU where "UU = (\<Union>n. U' n)"
+    define VV where "VV = (\<Union>n. V' n)"
+
+    text \<open>U'_n are open (U_n open, each cl(V_i) closed).\<close>
+    have hU'open: "\<forall>n. U' n \<in> TX"
+      sorry (* U' n = U n - finite union of closed sets = U n ∩ (X - ∪cl(V_i)).
+               Finite union of closed = closed, complement open, intersection open. *)
+    have hV'open: "\<forall>n. V' n \<in> TX"
+      sorry
+
+    text \<open>UU and VV are open (unions of opens).\<close>
+    have hUU_open: "UU \<in> TX"
+      sorry (* Union of open sets is open *)
+    have hVV_open: "VV \<in> TX"
+      sorry
+
+    text \<open>C ⊆ UU: for c ∈ C, c ∈ U_n for some n, and c ∉ cl(V_i) for all i
+      (since cl(V_i) ⊆ X-C and c ∈ C).\<close>
+    have hC_sub_UU: "C \<subseteq> UU"
+      sorry (* c ∈ C ⊆ ∪U_n. Pick smallest n with c ∈ U_n.
+               cl(V_i) ⊆ X-C for all i, so c ∉ cl(V_i). Hence c ∈ U'_n. *)
+    have hD_sub_VV: "D \<subseteq> VV"
+      sorry
+
+    text \<open>UU ∩ VV = {}: if z ∈ U'_m ∩ V'_n, WLOG m ≤ n.
+      z ∈ U'_m ⊆ U_m, so z ∈ cl(U_m) ⊆ cl(U_m). But z ∈ V'_n = V_n - ∪{cl(U_i)|i≤n},
+      so z ∉ cl(U_m) since m ≤ n. Contradiction.\<close>
+    have hUV_disj: "UU \<inter> VV = {}"
+      sorry
+
+    show "\<exists>U V. U \<in> TX \<and> V \<in> TX \<and> C \<subseteq> U \<and> D \<subseteq> V \<and> U \<inter> V = {}"
+      using hUU_open hVV_open hC_sub_UU hD_sub_VV hUV_disj
+      
+      by blast
+  qed
+qed
 
 lemma Lemma_40_1:
   assumes hReg: "top1_regular_on X TX"
