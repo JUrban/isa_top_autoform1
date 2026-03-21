@@ -3871,14 +3871,34 @@ proof -
     qed
 
     text \<open>UU and VV are open (unions of opens).\<close>
+    have hU'range: "range U' \<subseteq> TX"
+      using hU'open
+      
+      by blast
     have hUU_open: "UU \<in> TX"
-      unfolding UU_def using hU'open hTop unfolding is_topology_on_def
-      sledgehammer [timeout = 10]
-        sorry
+    proof -
+      have "\<Union>(range U') \<in> TX"
+        using hTop hU'range unfolding is_topology_on_def
+        
+        by presburger
+      then show ?thesis unfolding UU_def
+        
+        by presburger
+    qed
+    have hV'range: "range V' \<subseteq> TX"
+      using hV'open
+      
+      by auto
     have hVV_open: "VV \<in> TX"
-      unfolding VV_def using hV'open hTop unfolding is_topology_on_def
-      sledgehammer [timeout = 10]
-      sorry
+    proof -
+      have "\<Union>(range V') \<in> TX"
+        using hTop hV'range unfolding is_topology_on_def
+        
+        by presburger
+      then show ?thesis unfolding VV_def
+        
+        by argo
+    qed
 
     text \<open>C ⊆ UU: for c ∈ C, c ∈ Ufn_n for some n; cl(Vn_i) ⊆ X-C for all i, so c ∉ cl(Vn_i).\<close>
     have hC_sub_UU: "C \<subseteq> UU"
