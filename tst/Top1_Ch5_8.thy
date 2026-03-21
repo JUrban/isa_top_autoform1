@@ -2814,6 +2814,7 @@ text \<open>Proof follows Munkres: first prove regularity using Hausdorff + para
 lemma paracompact_hausdorff_imp_regular:
   assumes hPara: "top1_paracompact_on X TX"
   assumes hHaus: "is_hausdorff_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   shows "top1_regular_on X TX"
 proof -
   have hTop: "is_topology_on X TX"
@@ -2914,7 +2915,7 @@ proof -
 
       have hDD_sub_CC: "?\<DD> \<subseteq> \<CC>" by blast
       have hCC_subX: "\<forall>A\<in>\<CC>. A \<subseteq> X"
-        sorry (* elements of the refinement are subsets of X *)
+        using hCC_cov hTsub unfolding top1_open_covering_on_def by blast
       have hDD_lf: "top1_locally_finite_family_on X TX ?\<DD>"
       proof -
         have "\<forall>\<A>'. \<A>' \<subseteq> \<CC> \<longrightarrow> top1_locally_finite_family_on X TX \<A>'"
@@ -2923,7 +2924,7 @@ proof -
       qed
 
       have hDD_subX: "\<forall>A\<in>?\<DD>. A \<subseteq> X"
-        sorry (* elements of CC are subsets of X *)
+        using hCC_subX by blast
 
       have hcl_V: "closure_on X TX ?V = \<Union>(closure_on X TX ` ?\<DD>)"
         using Lemma_39_1(3)[OF hTop hDD_subX hDD_lf] by blast
@@ -2945,7 +2946,7 @@ proof -
         then obtain D where hD: "D \<in> ?\<DD>" and hxD: "x \<in> D" by blast
         have "D \<in> TX" using hD hCC_cov unfolding top1_open_covering_on_def by blast
         show "x \<in> X"
-          sorry (* D ∈ TX implies D ⊆ X; needs topology elements ⊆ X *)
+          using hDD_subX hD hxD by blast
       qed
       have hclV_closed: "closedin_on X TX (closure_on X TX ?V)"
         by (rule closure_on_closed[OF hTop hV_subX])
@@ -2973,15 +2974,17 @@ qed
 lemma paracompact_regular_imp_normal:
   assumes hPara: "top1_paracompact_on X TX"
   assumes hReg: "top1_regular_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   shows "top1_normal_on X TX"
   sorry
 
 theorem Theorem_41_1:
   assumes hPara: "top1_paracompact_on X TX"
   assumes hHaus: "is_hausdorff_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   shows "top1_normal_on X TX"
   by (rule paracompact_regular_imp_normal[OF hPara
-        paracompact_hausdorff_imp_regular[OF hPara hHaus]])
+        paracompact_hausdorff_imp_regular[OF hPara hHaus hTsub] hTsub])
 
 (** from \S41 Theorem 41.2 [top1.tex:5851] **)
 theorem Theorem_41_2:
