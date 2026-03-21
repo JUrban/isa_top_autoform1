@@ -3436,14 +3436,69 @@ next
   qed
 qed
 
+text \<open>The bounded metric \<open>min |x-y| 1\<close> on the reals is the same as \<open>top1_real_bounded_metric\<close>.\<close>
+lemma top1_bounded_abs_eq_real_bounded_metric:
+  "top1_bounded_metric (\<lambda>x y :: real. \<bar>x - y\<bar>) = top1_real_bounded_metric"
+proof (rule ext, rule ext)
+  fix x y :: real
+  show "top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) x y = top1_real_bounded_metric x y"
+    unfolding top1_bounded_metric_def top1_real_bounded_metric_def by simp
+qed
+
+lemma top1_bounded_abs_metric_topology_eq_order:
+  "top1_metric_topology_on (UNIV::real set) (top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>))
+   = order_topology_on_UNIV"
+proof -
+  have "top1_metric_topology_on (UNIV::real set) (top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>))
+      = top1_metric_topology_on UNIV top1_real_bounded_metric"
+    by (simp only: top1_bounded_abs_eq_real_bounded_metric)
+  also have "... = order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_eq_bounded_metric_topology_real[symmetric])
+  finally show ?thesis .
+qed
+
 (** from \S43 Theorem 43.4 [top1.tex:6194] **)
+text \<open>\<open>\<real>^\<omega>\<close> with the D-metric is complete and gives the product topology.\<close>
 theorem Theorem_43_4:
   shows "\<exists>D.
     top1_complete_metric_on (top1_PiE (UNIV::nat set) (\<lambda>_. (UNIV::real set))) D
     \<and> top1_metric_topology_on (top1_PiE (UNIV::nat set) (\<lambda>_. (UNIV::real set))) D
         = top1_product_topology_on (UNIV::nat set) (\<lambda>_. (UNIV::real set))
             (\<lambda>_. top1_metric_topology_on (UNIV::real set) (top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>)))"
-  sorry
+proof (rule exI[where x="top1_D_metric_real_omega"])
+  let ?X = "top1_PiE (UNIV::nat set) (\<lambda>_. (UNIV::real set))"
+  text \<open>Theorem 20.5 gives the metric property and topology = product topology.\<close>
+  have h205: "top1_metric_on ?X top1_D_metric_real_omega
+    \<and> top1_metric_topology_on ?X top1_D_metric_real_omega
+      = top1_product_topology_on UNIV (\<lambda>_. UNIV) (\<lambda>_. order_topology_on_UNIV)"
+    by (rule Theorem_20_5)
+
+  have hmetric: "top1_metric_on ?X top1_D_metric_real_omega"
+    using h205 by blast
+
+  have htopo_eq: "top1_metric_topology_on ?X top1_D_metric_real_omega
+    = top1_product_topology_on UNIV (\<lambda>_. UNIV)
+        (\<lambda>_. top1_metric_topology_on UNIV (top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>)))"
+  proof -
+    have "top1_metric_topology_on ?X top1_D_metric_real_omega
+      = top1_product_topology_on UNIV (\<lambda>_. UNIV) (\<lambda>_. order_topology_on_UNIV)"
+      using h205 by blast
+    also have "... = top1_product_topology_on UNIV (\<lambda>_. UNIV)
+        (\<lambda>_. top1_metric_topology_on UNIV (top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>)))"
+      by (simp only: top1_bounded_abs_metric_topology_eq_order)
+    finally show ?thesis .
+  qed
+
+  text \<open>Completeness: every Cauchy sequence in the D-metric converges coordinatewise.\<close>
+  have hcomplete: "top1_complete_metric_on ?X top1_D_metric_real_omega"
+    sorry (* coordinatewise convergence using completeness of R *)
+
+  show "top1_complete_metric_on ?X top1_D_metric_real_omega
+    \<and> top1_metric_topology_on ?X top1_D_metric_real_omega
+      = top1_product_topology_on UNIV (\<lambda>_. UNIV)
+          (\<lambda>_. top1_metric_topology_on UNIV (top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>)))"
+    using hcomplete htopo_eq by blast
+qed
 
 definition top1_uniform_metric_on ::
   "'i set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> ('i \<Rightarrow> 'a) \<Rightarrow> ('i \<Rightarrow> 'a) \<Rightarrow> real" where
