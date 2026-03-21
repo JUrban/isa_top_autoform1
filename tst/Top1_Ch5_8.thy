@@ -3057,44 +3057,7 @@ proof -
   qed
 qed
 
-text \<open>Closure avoidance step: D refines the cover, so D \<subseteq> some Ub b, and cl(D) avoids A
-  because X - W is closed, contains Ub b, and hence contains cl(D), while x \<in> W.
-  This proof is logically correct but exceeds the 120s timeout when compiled inline.
-  It could be proved in a separate session with its own timeout budget.\<close>
-lemma paracompact_closure_avoidance_step:
-  assumes hTop: "is_topology_on X TX"
-  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
-  assumes hAX: "A \<subseteq> X"
-  assumes hDCC: "D \<in> \<CC>"
-  assumes hDinterB: "D \<inter> B \<noteq> {}"
-  assumes hCC_ref: "\<forall>C\<in>\<CC>. \<exists>A\<in>insert (X - B) (Ub ` B). C \<subseteq> A"
-  assumes hUbT: "\<forall>b\<in>B. Ub b \<in> TX"
-  assumes hUb_sep: "\<forall>b\<in>B. \<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> Ub b \<inter> W = {}"
-  assumes hxA: "x \<in> A"
-  shows "x \<notin> closure_on X TX D"
-proof
-  assume hxcl: "x \<in> closure_on X TX D"
-  obtain E where hE1: "E \<in> insert (X - B) (Ub ` B)" and hDE: "D \<subseteq> E"
-    using hCC_ref hDCC by blast
-  have "E \<noteq> X - B" using hDE hDinterB by blast
-  then obtain b where hbB: "b \<in> B" and hEeq: "E = Ub b" using hE1 by blast
-  have hDUb: "D \<subseteq> Ub b" using hDE hEeq by simp
-  obtain W where hWT: "W \<in> TX" and hAW: "A \<subseteq> W" and hUbW: "Ub b \<inter> W = {}"
-    using hUb_sep hbB by blast
-  have hUbX: "Ub b \<subseteq> X" using hTsub hUbT hbB by blast
-  have hWX: "W \<subseteq> X" using hTsub hWT by blast
-  have hXmW_sub: "X - W \<subseteq> X" by blast
-  have hXmXmW: "X - (X - W) = W"
-    using hWX by blast
-  have hXmW_closed: "closedin_on X TX (X - W)"
-    by (rule closedin_intro[OF hXmW_sub]) (simp only: hXmXmW, rule hWT)
-  have hD_sub_XmW: "D \<subseteq> X - W" using hDUb hUbX hUbW by blast
-  have hcl_D_sub: "closure_on X TX D \<subseteq> X - W"
-    by (rule closure_on_subset_of_closed[OF hXmW_closed hD_sub_XmW])
-  have "x \<in> W" using hAW hxA by blast
-  have "x \<in> X - W" by (rule subsetD[OF hcl_D_sub hxcl])
-  then show False using \<open>x \<in> W\<close> by blast
-qed
+text \<open>@{thm paracompact_closure_avoidance_step} is proved in Top1\_Ch4 to avoid timeout.\<close>
 
 text \<open>Closure of V avoids A, using the closure avoidance step and locally finite closure.\<close>
 lemma paracompact_closure_union_avoidance:

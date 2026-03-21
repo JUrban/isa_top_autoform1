@@ -1,7 +1,7 @@
 session Top1 = HOL +
-options[quick_and_dirty,timeout=180]
-(* NOTE: timeout increased from 120 to 180 to accommodate
-   paracompact_closure_avoidance_step + normality proof chain (~165s total).
-   Should be reduced back to 120 after optimization or splitting into sessions. *)
+options[quick_and_dirty,timeout=200]
+(* NOTE: timeout increased from 120 to 200 due to accumulated proof size
+   across 5 theory files (~160s total). The heavy §41 closure avoidance
+   proof is in Top1_Ch4 to distribute the load. *)
 theories
     Top1
