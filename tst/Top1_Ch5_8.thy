@@ -4402,7 +4402,52 @@ theorem Theorem_41_5:
   assumes hReg: "top1_regular_on X TX"
   assumes hLind: "top1_lindelof_on X TX"
   shows "top1_paracompact_on X TX"
-  sorry
+  unfolding top1_paracompact_on_def
+proof (intro allI impI)
+  fix \<A>
+  assume hCov: "top1_open_covering_on X TX \<A>"
+  have hTop: "is_topology_on X TX"
+    using hLind unfolding top1_lindelof_on_def
+    
+    by satx
+  have hAsub: "\<A> \<subseteq> TX"
+    using hCov unfolding top1_open_covering_on_def
+    
+    by presburger
+  have hAcovers: "X \<subseteq> \<Union>\<A>"
+    using hCov unfolding top1_open_covering_on_def
+    
+    by satx
+  text \<open>Get countable subcover by Lindelöf property.\<close>
+  obtain \<C> where hCcnt: "top1_countable \<C>" and hCsub: "\<C> \<subseteq> \<A>" and hCcovers: "X \<subseteq> \<Union>\<C>"
+    using hLind hAsub hAcovers unfolding top1_lindelof_on_def
+    
+    by blast
+  text \<open>\<C> is sigma-locally-finite (countable cover = union of singletons, each LF).\<close>
+  have hC_cov: "top1_open_covering_on X TX \<C>"
+    unfolding top1_open_covering_on_def using hCsub hAsub hCcovers
+    
+    by fast
+  have hC_slf: "top1_sigma_locally_finite_family_on X TX \<C>"
+    sorry (* A countable collection of open sets is sigma-locally-finite:
+             enumerate as C_n, then each {C_n} is a locally finite family,
+             and C = ∪n. {C_n}. *)
+  text \<open>Apply sigma-LF → LF conversion.\<close>
+  obtain \<B> where hB_cov: "top1_open_covering_on X TX \<B>"
+    and hB_ref_C: "top1_refines \<B> \<C>"
+    and hB_lf: "top1_locally_finite_family_on X TX \<B>"
+    using sigma_lf_to_lf_open_covering[OF hReg hC_cov hC_slf]
+    
+    by blast
+  have hB_ref_A: "top1_refines \<B> \<A>"
+    using hB_ref_C hCsub unfolding top1_refines_def
+    
+    by (meson subset_eq)
+  show "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_locally_finite_family_on X TX \<B>"
+    using hB_cov hB_ref_A hB_lf
+    
+    by fast
+qed
 
 (** from \S41 Lemma 41.6 (Shrinking lemma) [top1.tex:5981] **)
 lemma Lemma_41_6:
