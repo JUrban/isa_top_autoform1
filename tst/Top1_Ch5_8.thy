@@ -5454,7 +5454,47 @@ definition top1_locally_metrizable_on :: "'a set \<Rightarrow> 'a set set \<Righ
 theorem Theorem_42_1:
   shows "top1_metrizable_on X TX \<longleftrightarrow>
     (top1_paracompact_on X TX \<and> is_hausdorff_on X TX \<and> top1_locally_metrizable_on X TX)"
-  sorry
+proof (intro iffI)
+  assume hMet: "top1_metrizable_on X TX"
+  have hPara: "top1_paracompact_on X TX"
+    using Theorem_41_4[OF hMet]
+    
+    by presburger
+  have hHaus: "is_hausdorff_on X TX"
+  proof -
+    obtain d where hd: "top1_metric_on X d" and hTX: "TX = top1_metric_topology_on X d"
+      using hMet unfolding top1_metrizable_on_def
+      
+      by blast
+    show ?thesis unfolding hTX using metric_topology_hausdorff[OF hd]
+      
+      by argo
+  qed
+  have hLM: "top1_locally_metrizable_on X TX"
+    unfolding top1_locally_metrizable_on_def
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    obtain d where hd: "top1_metric_on X d" and hTX: "TX = top1_metric_topology_on X d"
+      using hMet unfolding top1_metrizable_on_def
+      
+      by fast
+    have hXopen: "X \<in> TX" using hd hTX
+      sledgehammer [timeout = 10]
+      sorry
+    show "\<exists>U\<in>TX. x \<in> U \<and> (\<exists>d. top1_metric_on U d \<and> subspace_topology X TX U = top1_metric_topology_on U d)"
+      sorry (* X itself is a neighborhood, metrizable. Subspace of metric = metric on subspace.
+               Needs: metric subspace lemma. *)
+  qed
+  show "top1_paracompact_on X TX \<and> is_hausdorff_on X TX \<and> top1_locally_metrizable_on X TX"
+    using hPara hHaus hLM
+    
+    by presburger
+next
+  assume h: "top1_paracompact_on X TX \<and> is_hausdorff_on X TX \<and> top1_locally_metrizable_on X TX"
+  show "top1_metrizable_on X TX"
+    sorry (* Backward: uses Nagata-Smirnov (Thm 40.3).
+             Paracompact + locally metrizable → has sigma-LF basis → 40.3 gives metrizable. *)
+qed
 
 section \<open>\<S>43 Complete Metric Spaces\<close>
 
