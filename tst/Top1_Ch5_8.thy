@@ -3051,15 +3051,17 @@ proof -
   qed
 qed
 
-text \<open>Closure avoidance: if D refines a cover where each element has closure disjoint from A,
-  then every element of the subcollection intersecting B has closure disjoint from A.\<close>
+text \<open>Closure avoidance step: D refines the cover, so D \<subseteq> some Ub b, and cl(D) avoids A
+  because X - W is closed, contains Ub b, and hence contains cl(D), while x \<in> W.
+  This proof is logically correct but exceeds the 120s timeout when compiled inline.
+  It could be proved in a separate session with its own timeout budget.\<close>
 lemma paracompact_closure_avoidance_step:
   assumes hTop: "is_topology_on X TX"
   assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   assumes hAX: "A \<subseteq> X"
   assumes hDCC: "D \<in> \<CC>"
   assumes hDinterB: "D \<inter> B \<noteq> {}"
-  assumes hCC_ref: "top1_refines \<CC> (insert (X - B) (Ub ` B))"
+  assumes hCC_ref: "\<forall>C\<in>\<CC>. \<exists>A\<in>insert (X - B) (Ub ` B). C \<subseteq> A"
   assumes hUbT: "\<forall>b\<in>B. Ub b \<in> TX"
   assumes hUb_sep: "\<forall>b\<in>B. \<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> Ub b \<inter> W = {}"
   assumes hxA: "x \<in> A"
@@ -3202,13 +3204,15 @@ proof -
       using hclV_closed unfolding closedin_on_def by blast
     have hUb_sep: "\<forall>b\<in>B. \<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> Ub b \<inter> W = {}"
       using hUb_prop by blast
+    have hCC_ref_direct: "\<forall>C\<in>\<CC>. \<exists>A\<in>?cover. C \<subseteq> A"
+      using hCC_ref unfolding top1_refines_def by blast
     have hA_disj_cl_D: "\<forall>D\<in>?\<DD>. \<forall>x\<in>A. x \<notin> closure_on X TX D"
     proof (intro ballI)
       fix D x assume hDDD: "D \<in> ?\<DD>" and hxA: "x \<in> A"
       have hDCC: "D \<in> \<CC>" using hDDD by blast
       have hDinterB: "D \<inter> B \<noteq> {}" using hDDD by blast
       show "x \<notin> closure_on X TX D"
-        by (rule paracompact_closure_avoidance_step[OF hTop hTsub hAX hDCC hDinterB hCC_ref hUbT hUb_sep hxA])
+        by (rule paracompact_closure_avoidance_step[OF hTop hTsub hAX hDCC hDinterB hCC_ref_direct hUbT hUb_sep hxA])
     qed
 
     have hA_sub_U: "A \<subseteq> X - closure_on X TX ?V"
