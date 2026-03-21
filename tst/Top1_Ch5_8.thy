@@ -3061,7 +3061,132 @@ proof -
 
   text \<open>\<E>_n is locally finite: ball(x, 1/(6*(Suc n))) meets at most one E_n(U).\<close>
   have hEn_lf: "\<And>n. top1_locally_finite_family_on X TX (\<E>n n)"
-    sorry (* For x, ball(x,1/6n) meets at most 1 element since E_n's are 1/3n-separated. *)
+  proof -
+    fix n
+    let ?eps = "1 / (6 * real (Suc n))"
+    have heps: "0 < ?eps"
+      
+      by fastforce
+    show "top1_locally_finite_family_on X TX (\<E>n n)"
+      unfolding top1_locally_finite_family_on_def
+    proof (intro ballI)
+      fix x assume hxX: "x \<in> X"
+      let ?B = "top1_ball_on X d x ?eps"
+      have hBopen: "?B \<in> TX"
+        using hd hxX heps hTX
+        
+        by (meson top1_ball_open_in_metric_topology)
+      have hxB: "x \<in> ?B"
+      proof -
+        have "d x x = 0" using hd hxX unfolding top1_metric_on_def
+          
+          by blast
+        then show ?thesis unfolding top1_ball_on_def using hxX heps
+          
+          by force
+      qed
+      text \<open>?B meets at most one E_n(U): if it met E_n(V) and E_n(W) with V \<noteq> W,
+        pick y1 \<in> ?B \<inter> E_n(V), y2 \<in> ?B \<inter> E_n(W).
+        d(y1,y2) \<le> d(y1,x)+d(x,y2) < 1/6n + 1/6n = 1/3n.
+        But d(y1,y2) \<ge> 1/3n by hEn_sep. Contradiction.\<close>
+      have hfinite: "finite {E \<in> \<E>n n. intersects E ?B}"
+      proof (rule finite_subset[where B="{E \<in> \<E>n n. intersects E ?B}"])
+        show "{E \<in> \<E>n n. intersects E ?B} \<subseteq> {E \<in> \<E>n n. intersects E ?B}"
+          
+          by blast
+        text \<open>Show there is at most one such E.\<close>
+        have hatmost1: "\<forall>E1\<in>\<E>n n. \<forall>E2\<in>\<E>n n. intersects E1 ?B \<longrightarrow> intersects E2 ?B \<longrightarrow> E1 = E2"
+        proof (intro ballI impI)
+          fix E1 E2
+          assume hE1: "E1 \<in> \<E>n n" and hE2: "E2 \<in> \<E>n n"
+          assume hi1: "intersects E1 ?B" and hi2: "intersects E2 ?B"
+          obtain V where hV: "V \<in> \<A>" and hE1eq: "E1 = En n V"
+            using hE1 unfolding \<E>n_def
+            
+            by blast
+          obtain W where hW: "W \<in> \<A>" and hE2eq: "E2 = En n W"
+            using hE2 unfolding \<E>n_def
+            
+            by blast
+          show "E1 = E2"
+          proof (rule ccontr)
+            assume hneq: "E1 \<noteq> E2"
+            then have hVW: "V \<noteq> W" using hE1eq hE2eq
+              
+              by fast
+            obtain y1 where hy1E: "y1 \<in> E1" and hy1B: "y1 \<in> ?B"
+              using hi1 unfolding intersects_def
+              
+              by blast
+            obtain y2 where hy2E: "y2 \<in> E2" and hy2B: "y2 \<in> ?B"
+              using hi2 unfolding intersects_def
+              
+              by blast
+            have hy1X: "y1 \<in> X" using hy1B unfolding top1_ball_on_def
+              
+              by blast
+            have hy2X: "y2 \<in> X" using hy2B unfolding top1_ball_on_def
+              
+              by blast
+            have hdy1x: "d x y1 < ?eps" using hy1B unfolding top1_ball_on_def
+              
+              by blast
+            have hdy2x: "d x y2 < ?eps" using hy2B unfolding top1_ball_on_def
+              
+              by blast
+            have htri: "d y1 y2 \<le> d y1 x + d x y2"
+              using hd hy1X hxX hy2X unfolding top1_metric_on_def
+              
+              by fast
+            have hdsym: "d y1 x = d x y1"
+              using hd hy1X hxX unfolding top1_metric_on_def
+              
+              by blast
+            have hd_upper: "d y1 y2 < ?eps + ?eps"
+              using htri hdsym hdy1x hdy2x
+              
+              by argo
+            have heps_arith: "?eps + ?eps = 1 / (3 * real (Suc n))"
+              by (simp add: field_simps)
+            have "d y1 y2 < 1 / (3 * real (Suc n))"
+              using hd_upper heps_arith
+              
+              by simp
+            moreover have "d y1 y2 \<ge> 1 / (3 * real (Suc n))"
+              using hEn_sep[OF hV hW hVW] hy1E hy2E unfolding hE1eq hE2eq
+              
+              by blast
+            ultimately show False
+              
+              by argo
+          qed
+        qed
+        show "finite {E \<in> \<E>n n. intersects E ?B}"
+        proof (cases "{E \<in> \<E>n n. intersects E ?B} = {}")
+          case True then show ?thesis
+            
+            by (metis True finite.emptyI)
+        next
+          case False
+          then obtain e0 where he0: "e0 \<in> \<E>n n" and hi0: "intersects e0 ?B"
+            
+            by blast
+          have "{E \<in> \<E>n n. intersects E ?B} \<subseteq> {e0}"
+            using hatmost1 he0 hi0
+            
+            by fast
+          then show ?thesis
+            using finite_subset
+            
+            by auto
+        qed
+      qed
+      show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> \<E>n n. intersects A U}"
+        using hBopen hxB hfinite
+        
+        by blast
+    qed
+  qed
 
   text \<open>\<E>_n consists of open sets in TX.\<close>
   have hEn_open: "\<And>n. \<E>n n \<subseteq> TX"
