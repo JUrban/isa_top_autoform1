@@ -11328,6 +11328,7 @@ definition top1_AN_48 :: "(nat \<Rightarrow> 'a \<Rightarrow> 'b) \<Rightarrow> 
   "top1_AN_48 fseq d N e X = {x \<in> X. \<forall>n\<ge>N. \<forall>m\<ge>N. d (fseq n x) (fseq m x) \<le> e}"
 
 theorem Theorem_48_5:
+  assumes hTop: "is_topology_on X TX"
   assumes hB: "top1_baire_on X TX"
   assumes hd: "top1_metric_on Y d"
   assumes hfn: "\<forall>n. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) (f n)"
@@ -11335,10 +11336,6 @@ theorem Theorem_48_5:
   shows "top1_densein_on X TX {x \<in> X. top1_continuous_at_on X TX Y (top1_metric_topology_on Y d) g x}"
 proof -
   let ?TY = "top1_metric_topology_on Y d"
-  have hTop: "is_topology_on X TX"
-    using hB unfolding top1_baire_on_def
-    sledgehammer [timeout = 10]
-    sorry
 
   text \<open>Define A_N(ε) and U(ε).\<close>
   define AN where "AN N e = top1_AN_48 f d N e X" for N :: nat and e :: real
