@@ -11323,6 +11323,10 @@ proof -
 qed
 
 (** from \S48 Theorem 48.5 [top1.tex:7222] **)
+text \<open>Helper for Theorem 48.5: A_N(ε) = {x ∈ X | ∀n,m ≥ N. d(f_n(x), f_m(x)) ≤ ε}.\<close>
+definition top1_AN_48 :: "(nat \<Rightarrow> 'a \<Rightarrow> 'b) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> 'a set \<Rightarrow> 'a set" where
+  "top1_AN_48 fseq d N e X = {x \<in> X. \<forall>n\<ge>N. \<forall>m\<ge>N. d (fseq n x) (fseq m x) \<le> e}"
+
 theorem Theorem_48_5:
   assumes hB: "top1_baire_on X TX"
   assumes hd: "top1_metric_on Y d"
