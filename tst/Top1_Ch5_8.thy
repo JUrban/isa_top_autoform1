@@ -7147,7 +7147,34 @@ proof -
     have hTopM: "is_topology_on X (top1_metric_topology_on X d)"
       by (rule top1_metric_topology_on_is_topology_on[OF hmetric])
     show "top1_baire_on X (top1_metric_topology_on X d)"
-      sorry
+      unfolding top1_baire_on_def
+    proof (intro allI impI)
+      fix U :: "nat \<Rightarrow> 'a set"
+      assume hU: "\<forall>n. U n \<in> top1_metric_topology_on X d \<and> top1_densein_on X (top1_metric_topology_on X d) (U n)"
+      text \<open>For each nonempty open V, we construct nested metric balls inside V \<inter> U_0 \<inter> ... \<inter> U_n.
+        The resulting Cauchy sequence converges to a point in V \<inter> \<Inter> U_n.\<close>
+      let ?TX = "top1_metric_topology_on X d"
+
+      have hUnOpen: "\<forall>n. U n \<in> ?TX" using hU by blast
+      have hUnDense: "\<forall>n. top1_densein_on X ?TX (U n)" using hU by blast
+      have hUnSubX: "\<forall>n. U n \<subseteq> X"
+      proof (intro allI)
+        fix n
+        have "U n \<in> ?TX" using hUnOpen by simp
+        then show "U n \<subseteq> X"
+          unfolding top1_metric_topology_on_def topology_generated_by_basis_def by blast
+      qed
+
+      have hInterSubX: "(\<Inter>n. U n) \<subseteq> X"
+      proof (rule subsetI)
+        fix x assume "x \<in> (\<Inter>n. U n)"
+        then have "x \<in> U 0" by blast
+        then show "x \<in> X" using hUnSubX by blast
+      qed
+
+      show "top1_densein_on X ?TX (\<Inter>n. U n)"
+        sorry
+    qed
   qed
 
 qed
