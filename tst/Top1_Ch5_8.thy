@@ -3390,7 +3390,179 @@ lemma Lemma_40_1_step1:
   assumes hCLF: "top1_sigma_locally_finite_family_on X TX \<B>"
   assumes hW: "W \<in> TX"
   shows "\<exists>U::nat \<Rightarrow> 'a set. (\<forall>n. U n \<in> TX) \<and> (\<forall>n. closure_on X TX (U n) \<subseteq> W) \<and> W = (\<Union>n. U n)"
-  sorry
+proof -
+  have hTop: "is_topology_on X TX"
+    using hReg unfolding top1_regular_on_def top1_T1_on_def
+    
+    by satx
+  have hBsub: "\<B> \<subseteq> TX"
+    using hBasis unfolding basis_for_def
+    
+    using basis_elem_open_in_generated_topology by blast
+  text \<open>Decompose the basis into countably many locally finite families.\<close>
+  obtain \<B>n where hBn_lf: "\<forall>n. top1_locally_finite_family_on X TX (\<B>n n)"
+    and hB_eq: "\<B> = (\<Union>n. \<B>n n)"
+    using hCLF unfolding top1_sigma_locally_finite_family_on_def
+    sledgehammer [timeout = 10]
+    sorry
+  text \<open>C_n = \{B \<in> B_n | cl(B) \<subseteq> W\}, U_n = \<Union>C_n.\<close>
+  define Cn where "Cn n = {B \<in> \<B>n n. closure_on X TX B \<subseteq> W}" for n
+  define U where "U n = \<Union>(Cn n)" for n
+
+  have hUn_open: "\<forall>n. U n \<in> TX"
+  proof (intro allI)
+    fix n
+    have hCn_sub_TX: "Cn n \<subseteq> TX"
+    proof (rule subsetI)
+      fix B assume "B \<in> Cn n"
+      then have "B \<in> \<B>n n" unfolding Cn_def
+        
+        by fast
+      then have "B \<in> \<B>" using hB_eq
+        
+        by blast
+      then show "B \<in> TX" using hBsub
+        
+        by blast
+    qed
+    show "U n \<in> TX"
+      unfolding U_def using hTop hCn_sub_TX unfolding is_topology_on_def
+      
+      by presburger
+  qed
+
+  text \<open>cl(U_n) \<subseteq> W: each Cn is locally finite (subset of Bn), so cl(\<Union>Cn) = \<Union>cl(Cn).\<close>
+  have hCn_lf: "\<forall>n. top1_locally_finite_family_on X TX (Cn n)"
+  proof (intro allI)
+    fix n
+    have "Cn n \<subseteq> \<B>n n" unfolding Cn_def
+      
+      by fast
+    then show "top1_locally_finite_family_on X TX (Cn n)"
+      using Lemma_39_1(1)[OF hTop _ hBn_lf[rule_format, of n]]
+      sledgehammer [timeout = 10]
+      sorry
+  qed
+
+  have hCn_subX: "\<forall>n. \<forall>B\<in>Cn n. B \<subseteq> X"
+  proof (intro allI ballI)
+    fix n B assume "B \<in> Cn n"
+    then have "B \<in> \<B>n n" unfolding Cn_def
+      
+      by blast
+    then have "B \<in> \<B>" using hB_eq
+      
+      by blast
+    then have "B \<in> TX" using hBsub
+      
+      by blast
+    then show "B \<subseteq> X" using hTop unfolding is_topology_on_def
+      sledgehammer [timeout = 10]
+      sorry
+  qed
+
+  have hUn_cl: "\<forall>n. closure_on X TX (U n) \<subseteq> W"
+  proof (intro allI)
+    fix n
+    have hcl_eq: "closure_on X TX (U n) = (\<Union>(closure_on X TX ` Cn n))"
+      unfolding U_def
+      using Lemma_39_1(3)[OF hTop _ hCn_lf[rule_format, of n]] hCn_subX
+      
+      by presburger
+    have "\<forall>B\<in>Cn n. closure_on X TX B \<subseteq> W"
+      unfolding Cn_def
+      
+      by blast
+    then show "closure_on X TX (U n) \<subseteq> W"
+      unfolding hcl_eq
+      
+      by blast
+  qed
+
+  text \<open>W \<subseteq> \<Union>n. U n: for x \<in> W, regularity gives B with cl(B) \<subseteq> W.\<close>
+  have hW_sub: "W \<subseteq> (\<Union>n. U n)"
+  proof (rule subsetI)
+    fix x assume hxW: "x \<in> W"
+    have hxX: "x \<in> X"
+      using hW hTop hxW unfolding is_topology_on_def
+      sledgehammer [timeout = 10]
+      sorry
+    have hRegProp: "\<exists>V\<in>TX. x \<in> V \<and> closure_on X TX V \<subseteq> W"
+      using hReg hxX hW hxW unfolding top1_regular_on_def
+      sledgehammer [timeout = 10]
+      sorry
+    obtain V where hVopen: "V \<in> TX" and hxV: "x \<in> V" and hclV: "closure_on X TX V \<subseteq> W"
+      using hRegProp
+      
+      by blast
+    text \<open>Since B is a basis, there is B \<in> B with x \<in> B \<subseteq> V.\<close>
+    obtain B where hBB: "B \<in> \<B>" and hxB: "x \<in> B" and hBV: "B \<subseteq> V"
+      using hBasis hxX hVopen hxV unfolding basis_for_def
+      
+      by (metis basis_for_refine hBasis)
+    have hclB: "closure_on X TX B \<subseteq> W"
+    proof -
+      have "B \<subseteq> V"
+        
+        by (simp add: hBV)
+      then have "closure_on X TX B \<subseteq> closure_on X TX V"
+        
+        by (simp add: closure_on_mono)
+      then show ?thesis using hclV
+        
+        by order
+    qed
+    obtain n where "B \<in> \<B>n n"
+      using hBB hB_eq
+      
+      by fast
+    then have "B \<in> Cn n" unfolding Cn_def using hclB
+      
+      by blast
+    then have "x \<in> U n" unfolding U_def using hxB
+      
+      by fast
+    then show "x \<in> (\<Union>n. U n)"
+      
+      by blast
+  qed
+
+  have hWeq: "W = (\<Union>n. U n)"
+  proof (rule equalityI)
+    show "W \<subseteq> (\<Union>n. U n)" by (rule hW_sub)
+    show "(\<Union>n. U n) \<subseteq> W"
+    proof (rule subsetI)
+      fix x assume "x \<in> (\<Union>n. U n)"
+      then obtain n where "x \<in> U n"
+        
+        by blast
+      then have "x \<in> \<Union>(Cn n)" unfolding U_def
+        
+        by satx
+      then obtain B where "B \<in> Cn n" and "x \<in> B"
+        
+        by blast
+      then have "closure_on X TX B \<subseteq> W" unfolding Cn_def
+        
+        by blast
+      moreover have "x \<in> closure_on X TX B"
+        using \<open>x \<in> B\<close> subset_closure_on
+        
+        by fast
+      ultimately show "x \<in> W"
+        
+        by blast
+    qed
+  qed
+
+  have hconj: "(\<forall>n. U n \<in> TX) \<and> (\<forall>n. closure_on X TX (U n) \<subseteq> W) \<and> W = (\<Union>n. U n)"
+    using hUn_open hUn_cl hWeq
+    
+    by argo
+  show ?thesis using hconj
+    sledgehammer [timeout = 10]
+    sorry
+qed
 
 text \<open>Step 2 of Lemma 40.1: closed sets are G-delta.\<close>
 lemma Lemma_40_1_step2:
