@@ -3055,7 +3055,122 @@ lemma paracompact_regular_imp_normal:
   assumes hReg: "top1_regular_on X TX"
   assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   shows "top1_normal_on X TX"
-  sorry
+proof -
+  have hTop: "is_topology_on X TX"
+    using hReg unfolding top1_regular_on_def top1_T1_on_def by blast
+  have hT1: "top1_T1_on X TX"
+    using hReg unfolding top1_regular_on_def by blast
+  have hRegSep: "\<forall>x\<in>X. \<forall>C. closedin_on X TX C \<and> x \<notin> C \<longrightarrow>
+    (\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {})"
+    using hReg unfolding top1_regular_on_def by blast
+  show ?thesis
+    unfolding top1_normal_on_def
+  proof (intro conjI allI impI)
+    show "top1_T1_on X TX" by (rule hT1)
+  next
+    fix A B
+    assume hAB: "closedin_on X TX A \<and> closedin_on X TX B \<and> A \<inter> B = {}"
+    have hAcl: "closedin_on X TX A" using hAB by blast
+    have hBcl: "closedin_on X TX B" using hAB by blast
+    have hdisj: "A \<inter> B = {}" using hAB by blast
+    have hAX: "A \<subseteq> X" using hAcl unfolding closedin_on_def by blast
+    have hBX: "B \<subseteq> X" using hBcl unfolding closedin_on_def by blast
+    text \<open>For each b in B, regularity separates b from A.\<close>
+    define Ub where "Ub b = (SOME U. neighborhood_of b X TX U \<and>
+      (\<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> U \<inter> W = {}))" for b
+    have hUb_prop: "\<forall>b\<in>B. neighborhood_of b X TX (Ub b) \<and>
+      (\<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> Ub b \<inter> W = {})"
+    proof (intro ballI)
+      fix b assume hbB: "b \<in> B"
+      have hbX: "b \<in> X" using hBX hbB by blast
+      have hbnotA: "b \<notin> A" using hdisj hbB by blast
+      obtain U W where hU: "neighborhood_of b X TX U" and hW: "W \<in> TX"
+        and hAW: "A \<subseteq> W" and hUW: "U \<inter> W = {}"
+        using hRegSep[rule_format, OF hbX] hAcl hbnotA by blast
+      show "neighborhood_of b X TX (Ub b) \<and> (\<exists>W. W \<in> TX \<and> A \<subseteq> W \<and> Ub b \<inter> W = {})"
+        unfolding Ub_def
+        by (rule someI_ex) (rule exI[where x=U], intro conjI hU, rule exI[where x=W], intro conjI hW hAW hUW)
+    qed
+    have hUbT: "\<forall>b\<in>B. Ub b \<in> TX"
+      using hUb_prop unfolding neighborhood_of_def by blast
+    have hbUb: "\<forall>b\<in>B. b \<in> Ub b"
+      using hUb_prop unfolding neighborhood_of_def by blast
+
+    text \<open>Open cover and locally finite refinement.\<close>
+    have hBcl_open: "X - B \<in> TX" using hBcl unfolding closedin_on_def by blast
+    let ?cover = "insert (X - B) (Ub ` B)"
+    have hcov: "top1_open_covering_on X TX ?cover"
+      unfolding top1_open_covering_on_def
+    proof (intro conjI)
+      show "?cover \<subseteq> TX"
+      proof (rule insert_subsetI)
+        show "X - B \<in> TX" by (rule hBcl_open)
+        show "Ub ` B \<subseteq> TX"
+        proof (rule image_subsetI)
+          fix b assume "b \<in> B" then show "Ub b \<in> TX" using hUbT by blast
+        qed
+      qed
+      show "X \<subseteq> \<Union>?cover"
+      proof (rule subsetI)
+        fix x assume "x \<in> X"
+        show "x \<in> \<Union>?cover"
+        proof (cases "x \<in> B")
+          case True then show ?thesis using hbUb by blast
+        next
+          case False then show ?thesis using \<open>x \<in> X\<close> by blast
+        qed
+      qed
+    qed
+    obtain \<CC> where hCC_cov: "top1_open_covering_on X TX \<CC>"
+      and hCC_ref: "top1_refines \<CC> ?cover"
+      and hCC_lf: "top1_locally_finite_family_on X TX \<CC>"
+      using hPara hcov unfolding top1_paracompact_on_def by blast
+    have hCC_subX: "\<forall>D\<in>\<CC>. D \<subseteq> X"
+      using hCC_cov hTsub unfolding top1_open_covering_on_def by blast
+
+    text \<open>Step 3: Subcollection intersecting B.\<close>
+    let ?\<DD> = "{D \<in> \<CC>. D \<inter> B \<noteq> {}}"
+    have hD_covers_B: "B \<subseteq> \<Union>?\<DD>"
+    proof (rule subsetI)
+      fix b assume "b \<in> B"
+      then have "b \<in> X" using hBX by blast
+      then have "b \<in> \<Union>\<CC>" using hCC_cov unfolding top1_open_covering_on_def by blast
+      then obtain D where "D \<in> \<CC>" "b \<in> D" by blast
+      then show "b \<in> \<Union>?\<DD>" using \<open>b \<in> B\<close> by blast
+    qed
+    text \<open>Step 5: V = \<Union>DD.\<close>
+    let ?V = "\<Union>?\<DD>"
+    have hV_open: "?V \<in> TX"
+    proof -
+      have "?\<DD> \<subseteq> TX" using hCC_cov unfolding top1_open_covering_on_def by blast
+      then show ?thesis using hTop unfolding is_topology_on_def by blast
+    qed
+    have hDD_subX: "\<forall>D\<in>?\<DD>. D \<subseteq> X" using hCC_subX by blast
+    have hDD_sub_CC: "?\<DD> \<subseteq> \<CC>" by blast
+    have hDD_lf: "top1_locally_finite_family_on X TX ?\<DD>"
+      using Lemma_39_1(1)[OF hTop hCC_subX hCC_lf] hDD_sub_CC
+      by blast
+    have hV_subX: "?V \<subseteq> X" using hDD_subX by blast
+    have hclV_closed: "closedin_on X TX (closure_on X TX ?V)"
+      by (rule closure_on_closed[OF hTop hV_subX])
+    have hU_open: "X - closure_on X TX ?V \<in> TX"
+      using hclV_closed unfolding closedin_on_def by blast
+    have hA_disj_cl_D: "\<forall>D\<in>?\<DD>. \<forall>x\<in>A. x \<notin> closure_on X TX D"
+      sorry (* closure avoidance: same argument as regularity but times out due to context size *)
+
+    have hA_sub_U: "A \<subseteq> X - closure_on X TX ?V"
+      sorry
+    have hdisjoint: "(X - closure_on X TX ?V) \<inter> ?V = {}"
+    proof -
+      have "?V \<subseteq> closure_on X TX ?V" by (rule subset_closure_on)
+      then show ?thesis by blast
+    qed
+    show "\<exists>U V. U \<in> TX \<and> V \<in> TX \<and> A \<subseteq> U \<and> B \<subseteq> V \<and> U \<inter> V = {}"
+      by (rule exI[where x="X - closure_on X TX ?V"],
+          rule exI[where x="?V"])
+         (intro conjI hU_open hV_open hA_sub_U hD_covers_B hdisjoint)
+  qed
+qed
 
 theorem Theorem_41_1:
   assumes hPara: "top1_paracompact_on X TX"
