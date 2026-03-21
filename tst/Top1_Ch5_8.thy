@@ -2900,8 +2900,85 @@ proof -
   text \<open>Key separation: T_n(V) and T_n(W) at distance \<ge> 1/(Suc n) for V \<noteq> W in \<A>.\<close>
   have hTn_sep: "\<And>n V W. V \<in> \<A> \<Longrightarrow> W \<in> \<A> \<Longrightarrow> V \<noteq> W \<Longrightarrow>
     \<forall>x\<in>Tn n V. \<forall>y\<in>Tn n W. d x y \<ge> 1 / real (Suc n)"
-    sorry (* Uses well-ordering: WLOG V < W, then x \<in> S_n(V) so ball(x,1/n) \<subseteq> V,
-             and y \<notin> V by definition of T_n(W). So d(x,y) \<ge> 1/n. Symmetric case by d-symmetry. *)
+  proof (intro ballI)
+    fix n V W x y
+    assume hV: "V \<in> \<A>" and hW: "W \<in> \<A>" and hVW: "V \<noteq> W"
+    assume hxTV: "x \<in> Tn n V" and hyTW: "y \<in> Tn n W"
+    have hxX: "x \<in> X" using hxTV hTn_sub_X
+      
+      by blast
+    have hyX: "y \<in> X" using hyTW hTn_sub_X
+      
+      by fast
+    have htotal: "(V, W) \<in> r \<or> (W, V) \<in> r"
+    proof -
+      have hLin: "Linear_order r" using hWO unfolding well_order_on_def
+        by presburger
+      then have hTot: "total_on (Field r) r" unfolding linear_order_on_def
+        by presburger
+      then show ?thesis using hField hVW unfolding total_on_def
+        by (simp add: hVW)
+    qed
+    show "d x y \<ge> 1 / real (Suc n)"
+    proof (cases "(V, W) \<in> r")
+      case True
+      have hxSn: "x \<in> Sn n V" using hxTV unfolding Tn_def
+        
+        by blast
+      have hball_V: "top1_ball_on X d x (1 / real (Suc n)) \<subseteq> V"
+        using hxSn unfolding Sn_def
+        
+        by blast
+      have hV_in_pred: "V \<in> {V' \<in> \<A>. (V', W) \<in> r \<and> V' \<noteq> W}"
+        using hV True hVW
+        
+        by auto
+      have hynotV: "y \<notin> V"
+        using hyTW hV_in_pred unfolding Tn_def
+        
+        by blast
+      have hynotball: "y \<notin> top1_ball_on X d x (1 / real (Suc n))"
+        using hball_V hynotV
+        
+        by blast
+      then show ?thesis
+        unfolding top1_ball_on_def using hyX
+        
+        by simp
+    next
+      case False
+      then have hWV: "(W, V) \<in> r" using htotal
+        
+        by satx
+      have hySn: "y \<in> Sn n W" using hyTW unfolding Tn_def
+        
+        by blast
+      have hball_W: "top1_ball_on X d y (1 / real (Suc n)) \<subseteq> W"
+        using hySn unfolding Sn_def
+        
+        by auto
+      have hW_in_pred: "W \<in> {V' \<in> \<A>. (V', V) \<in> r \<and> V' \<noteq> V}"
+        using hW hWV hVW
+        
+        by blast
+      have hxnotW: "x \<notin> W"
+        using hxTV hW_in_pred unfolding Tn_def
+        
+        by blast
+      have hxnotball: "x \<notin> top1_ball_on X d y (1 / real (Suc n))"
+        using hball_W hxnotW
+        
+        by blast
+      then have hdyx: "d y x \<ge> 1 / real (Suc n)"
+        unfolding top1_ball_on_def using hxX
+        
+        by fastforce
+      show ?thesis
+        using hdyx hd hxX hyX unfolding top1_metric_on_def
+        
+        by force
+    qed
+  qed
 
   text \<open>Consequence: E_n(V) and E_n(W) at distance \<ge> 1/(3*(Suc n)) for V \<noteq> W.\<close>
   have hEn_sep: "\<And>n V W. V \<in> \<A> \<Longrightarrow> W \<in> \<A> \<Longrightarrow> V \<noteq> W \<Longrightarrow>
