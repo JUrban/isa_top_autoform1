@@ -848,12 +848,228 @@ proof -
   ultimately show ?thesis by blast
 qed
 
+text \<open>Key step: every subbasis element (cylinder) containing x belongs to the maximal FIP family.\<close>
+lemma tychonoff_subbasis_in_maxFIP:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (TX i)"
+  assumes hmax: "top1_FIP_maximal_on (top1_PiE I X) \<D>"
+  assumes hProdNe: "top1_PiE I X \<noteq> {}"
+  assumes hi: "i \<in> I"
+  assumes hU: "U \<in> TX i"
+  assumes hxU: "x i \<in> U"
+  assumes hxProd: "x \<in> top1_PiE I X"
+  assumes hxcl: "\<forall>D\<in>\<D>. x i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D)"
+  shows "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) \<in> \<D>"
+  sorry
+
+text \<open>Key step: x is in the closure of every D, using the fact that every basis element
+  containing x belongs to D and D has FIP.\<close>
+lemma tychonoff_point_in_all_closures:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (TX i)"
+  assumes hmax: "top1_FIP_maximal_on (top1_PiE I X) \<D>"
+  assumes hProdNe: "top1_PiE I X \<noteq> {}"
+  assumes hxProd: "x \<in> top1_PiE I X"
+  assumes hxcl: "\<forall>i\<in>I. \<forall>D\<in>\<D>. x i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D)"
+  shows "\<forall>D\<in>\<D>. x \<in> closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D"
+  sorry
+
 (** from \S37 Theorem 37.3 (Tychonoff theorem) [top1.tex:5253] **)
 theorem Theorem_37_3:
   assumes hIne: "I \<noteq> {}"
   assumes hComp: "\<forall>i\<in>I. top1_compact_on (X i) (TX i)"
   shows "top1_compact_on (top1_PiE I X) (top1_product_topology_on I X TX)"
-  sorry
+proof -
+  have hTop: "\<forall>i\<in>I. is_topology_on (X i) (TX i)"
+    using hComp unfolding top1_compact_on_def by blast
+  have hTopProd: "is_topology_on (top1_PiE I X) (top1_product_topology_on I X TX)"
+    by (rule top1_product_topology_on_is_topology_on[OF hTop])
+
+  show ?thesis
+    unfolding top1_compact_on_def
+  proof (intro conjI)
+    show "is_topology_on (top1_PiE I X) (top1_product_topology_on I X TX)"
+      by (rule hTopProd)
+  next
+    show "\<forall>Uc. Uc \<subseteq> top1_product_topology_on I X TX \<and> top1_PiE I X \<subseteq> \<Union>Uc
+          \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> top1_PiE I X \<subseteq> \<Union>F)"
+    proof (cases "top1_PiE I X = {}")
+      case True
+      then show ?thesis by blast
+    next
+      case False
+      have hProdNe: "top1_PiE I X \<noteq> {}" by (rule False)
+
+      text \<open>Use FIP characterization: show every closed FIP collection has nonempty intersection.\<close>
+      have hFIPchar: "(\<forall>\<C>. (\<forall>C\<in>\<C>. closedin_on (top1_PiE I X) (top1_product_topology_on I X TX) C)
+             \<and> (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<C> \<longrightarrow> \<Inter>F \<noteq> {}) \<longrightarrow> \<Inter>\<C> \<noteq> {})
+           \<longrightarrow> (\<forall>Uc. Uc \<subseteq> top1_product_topology_on I X TX \<and> top1_PiE I X \<subseteq> \<Union>Uc
+              \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> top1_PiE I X \<subseteq> \<Union>F))"
+        using Theorem_26_9[OF hTopProd] unfolding top1_compact_on_def by blast
+
+      show ?thesis
+      proof (rule mp[OF hFIPchar], intro allI impI)
+        fix \<A>
+        assume hAprem: "(\<forall>C\<in>\<A>. closedin_on (top1_PiE I X) (top1_product_topology_on I X TX) C)
+              \<and> (\<forall>F. finite F \<and> F \<noteq> {} \<and> F \<subseteq> \<A> \<longrightarrow> \<Inter>F \<noteq> {})"
+
+        text \<open>Step 1: the collection A has FIP on the product.\<close>
+        have hFIP_A: "top1_FIP_on (top1_PiE I X) \<A>"
+          unfolding top1_FIP_on_def
+        proof (intro conjI)
+          show "\<forall>A\<in>\<A>. A \<subseteq> top1_PiE I X"
+            using hAprem unfolding closedin_on_def by blast
+          show "\<forall>F. finite F \<and> F \<subseteq> \<A> \<longrightarrow> \<Inter>F \<noteq> {}"
+          proof (intro allI impI)
+            fix F assume hF: "finite F \<and> F \<subseteq> \<A>"
+            show "\<Inter>F \<noteq> {}"
+            proof (cases "F = {}")
+              case True then show ?thesis by simp
+            next
+              case False
+              then show ?thesis using hAprem hF by blast
+            qed
+          qed
+        qed
+
+        text \<open>Step 2: extend to maximal FIP family D.\<close>
+        obtain \<D> where hAsubD: "\<A> \<subseteq> \<D>"
+          and hMaxD: "top1_FIP_maximal_on (top1_PiE I X) \<D>"
+          using Lemma_37_1[OF hFIP_A] by blast
+
+        have hFIP_D: "top1_FIP_on (top1_PiE I X) \<D>"
+          using hMaxD unfolding top1_FIP_maximal_on_def by simp
+
+        have hDsub: "\<forall>D\<in>\<D>. D \<subseteq> top1_PiE I X"
+          using hFIP_D unfolding top1_FIP_on_def by simp
+
+        have hDne: "\<D> \<noteq> {}"
+        proof -
+          have "top1_PiE I X \<in> \<D>"
+          proof -
+            have "top1_PiE I X \<subseteq> top1_PiE I X" by simp
+            have "\<forall>D0\<in>\<D>. intersects (top1_PiE I X) D0"
+            proof (intro ballI)
+              fix D0 assume "D0 \<in> \<D>"
+              have "D0 \<subseteq> top1_PiE I X" using hDsub \<open>D0 \<in> \<D>\<close> by blast
+              have "D0 \<noteq> {}"
+              proof -
+                have "finite {D0} \<and> {D0} \<subseteq> \<D>" using \<open>D0 \<in> \<D>\<close> by simp
+                then have "\<Inter>{D0} \<noteq> {}"
+                  using hFIP_D unfolding top1_FIP_on_def by blast
+                then show ?thesis by simp
+              qed
+              then show "intersects (top1_PiE I X) D0"
+                unfolding intersects_def using \<open>D0 \<subseteq> top1_PiE I X\<close> by blast
+            qed
+            then show ?thesis
+              using Lemma_37_2(2)[OF hMaxD hProdNe, THEN spec, of "top1_PiE I X"]
+                    \<open>top1_PiE I X \<subseteq> top1_PiE I X\<close>
+              by blast
+          qed
+          then show ?thesis by blast
+        qed
+
+        text \<open>Step 3: for each i, choose x_i in the intersection of projected closures.\<close>
+        have hproj_sub: "\<forall>i\<in>I. \<forall>D\<in>\<D>. (\<lambda>f. f i) ` D \<subseteq> X i"
+        proof (intro ballI)
+          fix i D assume hi: "i \<in> I" and hD: "D \<in> \<D>"
+          show "(\<lambda>f. f i) ` D \<subseteq> X i"
+          proof (rule image_subsetI)
+            fix f assume "f \<in> D"
+            then have "f \<in> top1_PiE I X" using hDsub hD by blast
+            then show "f i \<in> X i" using hi by (simp add: top1_PiE_iff)
+          qed
+        qed
+
+        have hcoord: "\<forall>i\<in>I. \<exists>xi. xi \<in> X i \<and> (\<forall>D\<in>\<D>. xi \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D))"
+        proof (intro ballI)
+          fix i assume hi: "i \<in> I"
+          have hproj_i: "\<forall>D\<in>\<D>. (\<lambda>f. f i) ` D \<subseteq> X i"
+            using hproj_sub hi by blast
+          show "\<exists>xi. xi \<in> X i \<and> (\<forall>D\<in>\<D>. xi \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D))"
+            by (rule tychonoff_coord_point[OF hFIP_D hDne hTop[rule_format, OF hi]
+                  hComp[rule_format, OF hi] hi hDsub hproj_i])
+        qed
+
+        text \<open>Step 4: build the product point x.\<close>
+        obtain sel where hsel: "\<forall>i\<in>I. sel i \<in> X i \<and> (\<forall>D\<in>\<D>. sel i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D))"
+          using hcoord by metis
+
+        define x where "x = (\<lambda>i. if i \<in> I then sel i else undefined)"
+
+        have hxProd: "x \<in> top1_PiE I X"
+          unfolding top1_PiE_iff x_def using hsel by simp
+
+        have hxcoord: "\<forall>i\<in>I. x i \<in> X i"
+          unfolding x_def using hsel by simp
+
+        have hxcl: "\<forall>i\<in>I. \<forall>D\<in>\<D>. x i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D)"
+          unfolding x_def using hsel by simp
+
+        text \<open>Step 5: show x is in the closure of every D in D.\<close>
+        have "\<forall>D\<in>\<D>. x \<in> closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D"
+          by (rule tychonoff_point_in_all_closures[OF hTop hMaxD hProdNe hxProd hxcl])
+
+        text \<open>Step 6: conclude nonempty intersection.\<close>
+        have "x \<in> \<Inter>((\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A>)"
+        proof (rule InterI)
+          fix C assume "C \<in> (\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A>"
+          then obtain D where hD: "D \<in> \<A>" and hCdef: "C = closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D"
+            by blast
+          have "D \<in> \<D>" using hAsubD hD by blast
+          then have "x \<in> closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D"
+            using \<open>\<forall>D\<in>\<D>. x \<in> closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D\<close> by blast
+          then show "x \<in> C" using mem_of_eq hCdef by blast
+        qed
+
+        then have "\<Inter>((\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A>) \<noteq> {}"
+          by blast
+
+        text \<open>Since each A in A is closed, closure(A) = A, so the intersection of the A's is nonempty.\<close>
+        have "\<forall>A0\<in>\<A>. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) A0 = A0"
+        proof (intro ballI)
+          fix A0 assume "A0 \<in> \<A>"
+          have "closedin_on (top1_PiE I X) (top1_product_topology_on I X TX) A0"
+            using hAprem \<open>A0 \<in> \<A>\<close> by blast
+          then show "closure_on (top1_PiE I X) (top1_product_topology_on I X TX) A0 = A0"
+          proof -
+            assume hcl: "closedin_on (top1_PiE I X) (top1_product_topology_on I X TX) A0"
+            have hsub1: "A0 \<subseteq> closure_on (top1_PiE I X) (top1_product_topology_on I X TX) A0"
+              by (rule subset_closure_on)
+            have hsub2: "closure_on (top1_PiE I X) (top1_product_topology_on I X TX) A0 \<subseteq> A0"
+              by (rule closure_on_subset_of_closed[OF hcl subset_refl])
+            show ?thesis
+              by (rule equalityI[OF hsub2 hsub1])
+          qed
+        qed
+        then have himageq: "(\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A> = \<A>"
+        proof -
+          assume hcleq: "\<forall>A0\<in>\<A>. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) A0 = A0"
+          show ?thesis
+          proof (rule equalityI)
+            show "(\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A> \<subseteq> \<A>"
+            proof (rule subsetI)
+              fix C assume "C \<in> (\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A>"
+              then obtain D where "D \<in> \<A>" "C = closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D" by blast
+              then show "C \<in> \<A>" using hcleq by force
+            qed
+          next
+            show "\<A> \<subseteq> (\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A>"
+            proof (rule subsetI)
+              fix A0 assume "A0 \<in> \<A>"
+              have "closure_on (top1_PiE I X) (top1_product_topology_on I X TX) A0 = A0"
+                using hcleq \<open>A0 \<in> \<A>\<close> by blast
+              then show "A0 \<in> (\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A>"
+                using \<open>A0 \<in> \<A>\<close> by force
+            qed
+          qed
+        qed
+        then show "\<Inter>\<A> \<noteq> {}"
+          using \<open>\<Inter>((\<lambda>D. closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D) ` \<A>) \<noteq> {}\<close>
+          by simp
+      qed
+    qed
+  qed
+qed
 
 section \<open>\<S>38 The Stone-\<C>ech Compactification\<close>
 
