@@ -7140,7 +7140,15 @@ proof -
   qed
 
   show "top1_complete_metric_on X d \<longrightarrow> top1_baire_on X (top1_metric_topology_on X d)"
-    sorry
+  proof
+    assume hcomplete: "top1_complete_metric_on X d"
+    have hmetric: "top1_metric_on X d"
+      using hcomplete unfolding top1_complete_metric_on_def by blast
+    have hTopM: "is_topology_on X (top1_metric_topology_on X d)"
+      by (rule top1_metric_topology_on_is_topology_on[OF hmetric])
+    show "top1_baire_on X (top1_metric_topology_on X d)"
+      sorry
+  qed
 
 qed
 
