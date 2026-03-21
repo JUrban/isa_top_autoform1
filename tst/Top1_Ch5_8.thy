@@ -775,6 +775,7 @@ proof -
 qed
 
 lemma mem_of_eq: "x \<in> A \<Longrightarrow> A = B \<Longrightarrow> x \<in> B" by simp
+lemma mem_of_eq_sym: "x \<in> A \<Longrightarrow> y = x \<Longrightarrow> y \<in> A" by simp
 
 text \<open>Minimal test: project FIP and show intersection of closures is nonempty for one coord.\<close>
 lemma tychonoff_coord_point:
@@ -962,9 +963,81 @@ proof -
       by (rule tychonoff_subbasis_in_maxFIP[OF hTop hmax hProdNe hi hU hxU hxProd hxcli])
   qed
 
+  text \<open>The product space itself is in D.\<close>
+  have hProd_in_D: "top1_PiE I X \<in> \<D>"
+  proof -
+    have "\<forall>D0\<in>\<D>. intersects (top1_PiE I X) D0"
+    proof (intro ballI)
+      fix D0 assume "D0 \<in> \<D>"
+      have "D0 \<subseteq> top1_PiE I X" using hDsub \<open>D0 \<in> \<D>\<close> by blast
+      have "D0 \<noteq> {}"
+      proof -
+        have "finite {D0} \<and> {D0} \<subseteq> \<D>" using \<open>D0 \<in> \<D>\<close> by simp
+        then have "\<Inter>{D0} \<noteq> {}" using hFIP_D unfolding top1_FIP_on_def by blast
+        then show ?thesis by simp
+      qed
+      then show "intersects (top1_PiE I X) D0"
+        unfolding intersects_def using \<open>D0 \<subseteq> top1_PiE I X\<close> by blast
+    qed
+    then show ?thesis
+      using Lemma_37_2(2)[OF hmax hProdNe, THEN spec, of "top1_PiE I X"]
+      by blast
+  qed
+
   text \<open>Every basis element containing x belongs to D (finite intersection of cylinders).\<close>
   have hbasis_in_D: "\<forall>b\<in>top1_product_basis_on I X TX. x \<in> b \<longrightarrow> b \<in> \<D>"
-    sorry
+  proof (intro ballI impI)
+    fix b assume hb: "b \<in> top1_product_basis_on I X TX" and hxb: "x \<in> b"
+    obtain U where hbdef: "b = top1_PiE I U"
+      and hUopen: "\<forall>i\<in>I. U i \<in> TX i \<and> U i \<subseteq> X i"
+      and hJfin: "finite {i \<in> I. U i \<noteq> X i}"
+      using hb unfolding top1_product_basis_on_def by blast
+
+    define J where "J = {i \<in> I. U i \<noteq> X i}"
+    have hJfin': "finite J" unfolding J_def using hJfin by simp
+
+    text \<open>For each i in J, the cylinder at i is in D.\<close>
+    define cyl where "cyl i = top1_PiE I (\<lambda>j. if j = i then U i \<inter> X i else X j)" for i
+    have hcyl_D: "\<forall>i\<in>J. cyl i \<in> \<D>"
+    proof (intro ballI)
+      fix i assume hiJ: "i \<in> J"
+      have hi: "i \<in> I" using hiJ unfolding J_def by simp
+      have hUi: "U i \<in> TX i" using hUopen hi by blast
+      have hxi_Ui: "x i \<in> U i"
+        using hxb hbdef hi by (simp add: top1_PiE_iff)
+      have "U i \<inter> X i = U i" using hUopen hi by blast
+      have hxcli: "\<forall>D\<in>\<D>. x i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D)"
+        using hxcl hi by blast
+      have "top1_PiE I (\<lambda>j. if j = i then U i \<inter> X i else X j) \<in> \<D>"
+        by (rule tychonoff_subbasis_in_maxFIP[OF hTop hmax hProdNe hi hUi hxi_Ui hxProd hxcli])
+      then show "cyl i \<in> \<D>" unfolding cyl_def by simp
+    qed
+
+    show "b \<in> \<D>"
+    proof (cases "J = {}")
+      case True
+      text \<open>If J is empty, b is the whole product, which is in D.\<close>
+      have "b = top1_PiE I X"
+      proof -
+        have hUeq: "\<forall>i\<in>I. U i = X i" using True unfolding J_def by blast
+        show "b = top1_PiE I X"
+          sorry (* b = top1_PiE I U = top1_PiE I X; trivial chain *)
+      qed
+      then show ?thesis using hProd_in_D by simp
+    next
+      case False
+      text \<open>b is the finite intersection of cylinders, each in D. By Lemma 37.2(a), b in D.\<close>
+      have hcylset_fin: "finite (cyl ` J)" using hJfin' by simp
+      have hcylset_sub: "cyl ` J \<subseteq> \<D>" using hcyl_D by blast
+      have hcylset_ne: "cyl ` J \<noteq> {}" using False by simp
+      have hinter_in_D: "\<Inter>(cyl ` J) \<in> \<D>"
+        using Lemma_37_2(1)[OF hmax hProdNe, THEN spec, of "cyl ` J"]
+              hcylset_fin hcylset_sub hcylset_ne
+        by blast
+      show "b \<in> \<D>"
+        sorry (* b = Inter(cyls) where cyls ⊆ D, so by Lemma 37.2(a), b in D *)
+    qed
+  qed
 
   text \<open>Therefore x is in the closure of every D.\<close>
   show "\<forall>D\<in>\<D>. x \<in> closure_on (top1_PiE I X) (top1_product_topology_on I X TX) D"
