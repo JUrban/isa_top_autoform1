@@ -4441,9 +4441,55 @@ proof (intro allI impI)
     
     by fast
   have hC_slf: "top1_sigma_locally_finite_family_on X TX \<C>"
-    sorry (* A countable collection of open sets is sigma-locally-finite:
-             enumerate as C_n, then each {C_n} is a locally finite family,
-             and C = ∪n. {C_n}. *)
+  proof -
+    obtain idx :: "'a set \<Rightarrow> nat" where hidx: "inj_on idx \<C>"
+      using hCcnt unfolding top1_countable_def
+      
+      by blast
+    define Bn where "Bn n = {U \<in> \<C>. idx U = n}" for n
+    have hBn_lf: "\<forall>n. top1_locally_finite_family_on X TX (Bn n)"
+    proof (intro allI)
+      fix n
+      have hfin: "finite (Bn n)"
+      proof -
+        have "\<forall>a\<in>Bn n. \<forall>b\<in>Bn n. a = b"
+          using hidx unfolding Bn_def inj_on_def
+          
+          by blast
+        then have "Bn n = {} \<or> (\<exists>x. Bn n = {x})"
+          
+          by blast
+        then show ?thesis
+          
+          by fastforce
+      qed
+      show "top1_locally_finite_family_on X TX (Bn n)"
+        unfolding top1_locally_finite_family_on_def
+      proof (intro ballI)
+        fix x assume hxX: "x \<in> X"
+        have "X \<in> TX" using hTop unfolding is_topology_on_def
+          
+          by satx
+        moreover have "x \<in> X" by (rule hxX)
+        moreover have "finite {A \<in> Bn n. intersects A X}"
+          using hfin
+          
+          by auto
+        ultimately show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> Bn n. intersects A U}"
+          
+          by blast
+      qed
+    qed
+    have hB_eq: "\<C> = (\<Union>n. Bn n)"
+      unfolding Bn_def
+      
+      by blast
+    show ?thesis
+      unfolding top1_sigma_locally_finite_family_on_def
+      using hBn_lf hB_eq
+      
+      by blast
+  qed
   text \<open>Apply sigma-LF → LF conversion.\<close>
   obtain \<B> where hB_cov: "top1_open_covering_on X TX \<B>"
     and hB_ref_C: "top1_refines \<B> \<C>"
