@@ -3721,6 +3721,12 @@ lemma Lemma_40_1_step3:
   assumes hCLF: "top1_sigma_locally_finite_family_on X TX \<B>"
   shows "top1_normal_on X TX"
   sorry
+  (* Proof strategy (Munkres Lemma 40.1, Step 3):
+     Given disjoint closed C, D. Apply step1 to X-D to get {U_n} covering C
+     with cl(U_n) disjoint from D. Similarly {V_n} for D.
+     Define U'_n = U_n - ∪{cl(V_i) | i ≤ n}, V'_n = V_n - ∪{cl(U_i) | i ≤ n}.
+     Then U' = ∪U'_n and V' = ∪V'_n are disjoint open sets separating C and D.
+     Same construction as Theorem 32.1. Estimated ~100 lines. *)
 
 lemma Lemma_40_1:
   assumes hReg: "top1_regular_on X TX"
@@ -4348,11 +4354,48 @@ lemma Lemma_41_3:
         (\<forall>\<A>. top1_open_covering_on X TX \<A> \<longrightarrow> (\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_locally_finite_family_on X TX \<B> \<and> (\<forall>B\<in>\<B>. closure_on X TX B \<subseteq> (SOME A. A \<in> \<A> \<and> B \<subseteq> A))))"
   sorry
 
+text \<open>Key lemma for Theorem 41.4: sigma-locally-finite open covering → locally finite open covering.
+  This is the (1)\<Rightarrow>(4) direction of Munkres' Lemma 41.3.\<close>
+lemma sigma_lf_to_lf_open_covering:
+  assumes hReg: "top1_regular_on X TX"
+  assumes hCov: "top1_open_covering_on X TX \<A>"
+  assumes hSLF: "top1_sigma_locally_finite_family_on X TX \<A>"
+  shows "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_locally_finite_family_on X TX \<B>"
+  sorry (* Munkres Lemma 41.3 (1)\<Rightarrow>(2)\<Rightarrow>(3)\<Rightarrow>(4).
+     Step (1)\<Rightarrow>(2): shrink sigma-LF to LF by subtracting earlier unions.
+     Step (2)\<Rightarrow>(3): close the LF covering using regularity.
+     Step (3)\<Rightarrow>(4): expand closed LF covering to open LF using auxiliary closed LF.
+     Estimated ~200 lines total. *)
+
 (** from \S41 Theorem 41.4 [top1.tex:5953] **)
 theorem Theorem_41_4:
   assumes hMet: "top1_metrizable_on X TX"
   shows "top1_paracompact_on X TX"
-  sorry
+  unfolding top1_paracompact_on_def
+proof (intro allI impI)
+  fix \<A>
+  assume hCov: "top1_open_covering_on X TX \<A>"
+  have hReg: "top1_regular_on X TX"
+    sorry (* metrizable → regular: standard metric space argument *)
+  obtain \<E> where hE_cov: "top1_open_covering_on X TX \<E>"
+    and hE_ref: "top1_refines \<E> \<A>"
+    and hE_slf: "top1_sigma_locally_finite_family_on X TX \<E>"
+    using Lemma_39_2[OF hMet hCov]
+    
+    by blast
+  obtain \<B> where hB: "top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<E> \<and> top1_locally_finite_family_on X TX \<B>"
+    using sigma_lf_to_lf_open_covering[OF hReg hE_cov hE_slf]
+    
+    by blast
+  have hB_ref_A: "top1_refines \<B> \<A>"
+    using hB hE_ref unfolding top1_refines_def
+    
+    by (meson subset_trans)
+  show "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_locally_finite_family_on X TX \<B>"
+    using hB hB_ref_A
+    
+    by blast
+qed
 
 (** from \S41 Theorem 41.5 [top1.tex:5956] **)
 theorem Theorem_41_5:
