@@ -2767,11 +2767,204 @@ proof -
 qed
 
 (** from \S39 Lemma 39.2 (Metrizable spaces admit countably locally finite refinements) [top1.tex:5567] **)
+text \<open>Helper: r-neighborhood of a set (union of r-balls).\<close>
+definition top1_nbhd_of_set ::
+  "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real) \<Rightarrow> 'a set \<Rightarrow> real \<Rightarrow> 'a set" where
+  "top1_nbhd_of_set X d S r = (\<Union>x\<in>S. top1_ball_on X d x r)"
+
+lemma top1_nbhd_of_set_open:
+  assumes hd: "top1_metric_on X d"
+  assumes hS: "S \<subseteq> X"
+  assumes hr: "0 < r"
+  shows "top1_nbhd_of_set X d S r \<in> top1_metric_topology_on X d"
+proof -
+  let ?T = "top1_metric_topology_on X d"
+  have hTop: "is_topology_on X ?T"
+    by (metis hd top1_metric_topology_on_is_topology_on)
+  have hballs: "\<forall>x\<in>S. top1_ball_on X d x r \<in> ?T"
+    using hr hd hS top1_ball_open_in_metric_topology by fastforce
+  have hset_sub: "(\<lambda>x. top1_ball_on X d x r) ` S \<subseteq> ?T"
+    using hballs by blast
+  have hunion: "\<Union>((\<lambda>x. top1_ball_on X d x r) ` S) \<in> ?T"
+    using hTop hset_sub unfolding is_topology_on_def by simp
+  show ?thesis
+    unfolding top1_nbhd_of_set_def using hunion by argo
+qed
+
+lemma top1_nbhd_of_set_sub:
+  assumes hS: "S \<subseteq> X"
+  shows "top1_nbhd_of_set X d S r \<subseteq> X"
+  unfolding top1_nbhd_of_set_def top1_ball_on_def
+  by fast
+
+lemma top1_nbhd_of_set_contains:
+  assumes hd: "top1_metric_on X d"
+  assumes hxS: "x \<in> S"
+  assumes hSX: "S \<subseteq> X"
+  assumes hr: "0 < r"
+  shows "x \<in> top1_nbhd_of_set X d S r"
+proof -
+  have hxX: "x \<in> X"
+    using hxS hSX by fast
+  have hdxx: "d x x = 0"
+    using hd hxX unfolding top1_metric_on_def by blast
+  have hxball: "x \<in> top1_ball_on X d x r"
+    unfolding top1_ball_on_def using hxX hdxx hr by simp
+  show ?thesis
+    unfolding top1_nbhd_of_set_def using hxS hxball by blast
+qed
+
 lemma Lemma_39_2:
   assumes hMet: "top1_metrizable_on X TX"
   assumes hCov: "top1_open_covering_on X TX \<A>"
   shows "\<exists>\<E>. top1_open_covering_on X TX \<E> \<and> top1_refines \<E> \<A> \<and> top1_sigma_locally_finite_family_on X TX \<E>"
-  sorry
+proof -
+  text \<open>Get the metric and topology facts.\<close>
+  obtain d where hd: "top1_metric_on X d" and hTX: "TX = top1_metric_topology_on X d"
+    using hMet unfolding top1_metrizable_on_def by blast
+  have hTop: "is_topology_on X TX"
+    using hTX hd top1_metric_topology_on_is_topology_on by fastforce
+  have hAsub: "\<A> \<subseteq> TX"
+    using hCov unfolding top1_open_covering_on_def by satx
+  have hAcovers: "X \<subseteq> \<Union>\<A>"
+    using hCov unfolding top1_open_covering_on_def by satx
+
+  text \<open>Well-order the elements of \<A> (using the well-ordering theorem on the type).\<close>
+  obtain r :: "'a set rel" where hWO: "Well_order r" and hField: "Field r = UNIV"
+    using well_ordering by fast
+
+  text \<open>Define the Munkres construction.\<close>
+  text \<open>S_n(U) = \{x \<in> X | ball(x, 1/(Suc n)) \<subseteq> U\}\<close>
+  define Sn where "Sn n U = {x \<in> X. top1_ball_on X d x (1 / real (Suc n)) \<subseteq> U}" for n :: nat and U
+  text \<open>T_n(U) = S_n(U) - \<Union>\{V \<in> \<A> | (V,U) \<in> r \<and> V \<noteq> U\}\<close>
+  define Tn where "Tn n U = Sn n U - \<Union>{V \<in> \<A>. (V, U) \<in> r \<and> V \<noteq> U}" for n :: nat and U
+  text \<open>E_n(U) = (1/(3*(Suc n)))-neighborhood of T_n(U).\<close>
+  define En where "En n U = top1_nbhd_of_set X d (Tn n U) (1 / (3 * real (Suc n)))" for n :: nat and U
+  text \<open>\<E>_n = \{E_n(U) | U \<in> \<A>\}, \<E> = \<Union>n. \<E>_n.\<close>
+  define \<E>n where "\<E>n n = {En n U | U. U \<in> \<A>}" for n :: nat
+  define \<E> where "\<E> = (\<Union>n. \<E>n n)"
+
+  text \<open>Basic subset facts.\<close>
+  have hSn_sub_X: "\<And>n U. Sn n U \<subseteq> X"
+    unfolding Sn_def by blast
+  have hTn_sub_X: "\<And>n U. Tn n U \<subseteq> X"
+    unfolding Tn_def using hSn_sub_X by fast
+  have hTn_sub_U: "\<And>n U. U \<in> \<A> \<Longrightarrow> Tn n U \<subseteq> U"
+  proof -
+    fix n U assume hU: "U \<in> \<A>"
+    show "Tn n U \<subseteq> U"
+    proof (rule subsetI)
+      fix x assume hx: "x \<in> Tn n U"
+      have hxSn: "x \<in> Sn n U" using hx unfolding Tn_def by blast
+      have hball: "top1_ball_on X d x (1 / real (Suc n)) \<subseteq> U"
+        using hxSn unfolding Sn_def by blast
+      have hxX: "x \<in> X" using hxSn unfolding Sn_def by fast
+      have hdxx: "d x x = 0" using hd hxX unfolding top1_metric_on_def by blast
+      have hxball: "x \<in> top1_ball_on X d x (1 / real (Suc n))"
+        unfolding top1_ball_on_def using hxX hdxx by auto
+      show "x \<in> U" using hball hxball by blast
+    qed
+  qed
+
+  text \<open>E_n(U) \<subseteq> U: T_n(U) has 1/(Suc n) margin inside U, E_n expands by 1/(3*(Suc n)) < 1/(Suc n).\<close>
+  have hEn_sub_U: "\<And>n U. U \<in> \<A> \<Longrightarrow> En n U \<subseteq> U"
+  proof -
+    fix n U assume hU: "U \<in> \<A>"
+    show "En n U \<subseteq> U"
+      unfolding En_def top1_nbhd_of_set_def
+    proof (rule subsetI)
+      fix y assume hy: "y \<in> (\<Union>x\<in>Tn n U. top1_ball_on X d x (1 / (3 * real (Suc n))))"
+      then obtain x where hxTn: "x \<in> Tn n U" and hyball: "y \<in> top1_ball_on X d x (1 / (3 * real (Suc n)))"
+        by blast
+      have hxSn: "x \<in> Sn n U" using hxTn unfolding Tn_def by fast
+      have hball_margin: "top1_ball_on X d x (1 / real (Suc n)) \<subseteq> U"
+        using hxSn unfolding Sn_def by blast
+      have hxX: "x \<in> X" using hxSn hSn_sub_X by blast
+      have hyX: "y \<in> X" using hyball unfolding top1_ball_on_def by blast
+      have hdxy: "d x y < 1 / (3 * real (Suc n))"
+        using hyball unfolding top1_ball_on_def by blast
+      have hdxy_lt: "d x y < 1 / real (Suc n)"
+      proof -
+        have h3pos: "0 < (3::real)" by simp
+        have hSnpos: "0 < real (Suc n)" by simp
+        have "1 / (3 * real (Suc n)) \<le> 1 / real (Suc n)"
+          using h3pos hSnpos by (simp add: divide_le_eq)
+        then show ?thesis using hdxy by argo
+      qed
+      have "y \<in> top1_ball_on X d x (1 / real (Suc n))"
+        unfolding top1_ball_on_def using hyX hdxy_lt by fast
+      then show "y \<in> U" using hball_margin by blast
+    qed
+  qed
+
+  text \<open>Key separation: T_n(V) and T_n(W) at distance \<ge> 1/(Suc n) for V \<noteq> W in \<A>.\<close>
+  have hTn_sep: "\<And>n V W. V \<in> \<A> \<Longrightarrow> W \<in> \<A> \<Longrightarrow> V \<noteq> W \<Longrightarrow>
+    \<forall>x\<in>Tn n V. \<forall>y\<in>Tn n W. d x y \<ge> 1 / real (Suc n)"
+    sorry (* Uses well-ordering: WLOG V < W, then x \<in> S_n(V) so ball(x,1/n) \<subseteq> V,
+             and y \<notin> V by definition of T_n(W). So d(x,y) \<ge> 1/n. Symmetric case by d-symmetry. *)
+
+  text \<open>Consequence: E_n(V) and E_n(W) at distance \<ge> 1/(3*(Suc n)) for V \<noteq> W.\<close>
+  have hEn_sep: "\<And>n V W. V \<in> \<A> \<Longrightarrow> W \<in> \<A> \<Longrightarrow> V \<noteq> W \<Longrightarrow>
+    \<forall>y1\<in>En n V. \<forall>y2\<in>En n W. d y1 y2 \<ge> 1 / (3 * real (Suc n))"
+    sorry (* Triangle inequality: y1 near some x1 in T_n(V), y2 near x2 in T_n(W).
+             d(x1,x2) >= 1/n. d(y1,x1) < 1/3n, d(y2,x2) < 1/3n.
+             By triangle: d(y1,y2) >= d(x1,x2) - d(y1,x1) - d(y2,x2) >= 1/n - 2/3n = 1/3n. *)
+
+  text \<open>\<E>_n is locally finite: ball(x, 1/(6*(Suc n))) meets at most one E_n(U).\<close>
+  have hEn_lf: "\<And>n. top1_locally_finite_family_on X TX (\<E>n n)"
+    sorry (* For x, ball(x,1/6n) meets at most 1 element since E_n's are 1/3n-separated. *)
+
+  text \<open>\<E>_n consists of open sets in TX.\<close>
+  have hEn_open: "\<And>n. \<E>n n \<subseteq> TX"
+  proof (rule subsetI)
+    fix n V assume hV: "V \<in> \<E>n n"
+    then obtain U where hU: "U \<in> \<A>" and hVeq: "V = En n U"
+      unfolding \<E>n_def by blast
+    have hopen: "En n U \<in> top1_metric_topology_on X d"
+      unfolding En_def
+      by (rule top1_nbhd_of_set_open[OF hd hTn_sub_X]) simp
+    show "V \<in> TX"
+      unfolding hVeq hTX using hopen by blast
+  qed
+
+  text \<open>\<E>_n refines \<A>.\<close>
+  have hEn_ref: "\<And>n. top1_refines (\<E>n n) \<A>"
+    unfolding top1_refines_def
+  proof (intro allI impI ballI)
+    fix n B assume hB: "B \<in> \<E>n n"
+    then obtain U where hU: "U \<in> \<A>" and hBeq: "B = En n U"
+      unfolding \<E>n_def by blast
+    show "\<exists>A\<in>\<A>. B \<subseteq> A"
+      using hU hEn_sub_U[OF hU, of n] hBeq by blast
+  qed
+
+  text \<open>\<Union>_n \<E>_n covers X.\<close>
+  have hE_covers: "X \<subseteq> \<Union>\<E>"
+    sorry (* For x \<in> X, let U0 = r-least of {U \<in> \<A>. x \<in> U}.
+             U0 is open so ball(x,1/(Suc n)) \<subseteq> U0 for some n.
+             Then x \<in> S_n(U0). By minimality of U0, x \<notin> V for V < U0.
+             So x \<in> T_n(U0) \<subseteq> E_n(U0) \<in> \<E>_n \<subseteq> \<E>. *)
+
+  text \<open>Assemble the final result.\<close>
+  have hE_cov: "top1_open_covering_on X TX \<E>"
+    unfolding top1_open_covering_on_def
+    using hEn_open hE_covers unfolding \<E>_def by blast
+
+  have hE_ref: "top1_refines \<E> \<A>"
+    unfolding top1_refines_def \<E>_def
+    using hEn_ref unfolding top1_refines_def by fast
+
+  have hE_slf: "top1_sigma_locally_finite_family_on X TX \<E>"
+    unfolding top1_sigma_locally_finite_family_on_def
+  proof (rule exI[where x="\<E>n"], intro conjI allI)
+    fix n show "top1_locally_finite_family_on X TX (\<E>n n)" by (rule hEn_lf)
+  next
+    show "\<E> = (\<Union>n. \<E>n n)" unfolding \<E>_def by (rule refl)
+  qed
+
+  show ?thesis
+    using hE_cov hE_ref hE_slf by blast
+qed
 
 section \<open>\<S>40 The Nagata-Smirnov Metrization Theorem\<close>
 
