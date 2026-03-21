@@ -3801,45 +3801,83 @@ proof -
     proof (intro allI)
       fix n
       have hclVn_closed: "\<forall>i. closedin_on X TX (closure_on X TX (Vn i))"
-        sorry (* Each closure_on is closed. Needs closure_on_closed + Vn_i ⊆ X. *)
+      proof (intro allI)
+        fix i
+        have "Vn i \<subseteq> X"
+          using hVopen hBasis unfolding basis_for_def topology_generated_by_basis_def
+          
+          by blast
+        then show "closedin_on X TX (closure_on X TX (Vn i))"
+          using hTop
+          
+          by (metis hTop closure_on_closed)
+      qed
       have hfinite_union_closed: "closedin_on X TX (\<Union> (closure_on X TX ` Vn ` {0..n}))"
-        sorry (* Finite union of closed sets is closed *)
+        using hclVn_closed
+        sorry (* Finite union of closed: needs a helper lemma *)
       have hcomplement_open: "X - (\<Union> (closure_on X TX ` Vn ` {0..n})) \<in> TX"
         using hfinite_union_closed unfolding closedin_on_def
         
         by presburger
+      have hUfnX: "Ufn n \<subseteq> X"
+        using hUopen hBasis unfolding basis_for_def topology_generated_by_basis_def
+        
+        by blast
       have hU'eq: "U' n = Ufn n \<inter> (X - (\<Union> (closure_on X TX ` Vn ` {0..n})))"
-        unfolding U'_def
-        sorry
+        unfolding U'_def using hUfnX
+        
+        by fast
       show "U' n \<in> TX"
-        unfolding hU'eq using hUopen hcomplement_open hTop
+        unfolding hU'eq
+        using hUopen hcomplement_open hTop
+        sledgehammer [timeout = 10]
         sorry
     qed
     have hV'open: "\<forall>n. V' n \<in> TX"
     proof (intro allI)
       fix n
       have hclUfn_closed: "\<forall>i. closedin_on X TX (closure_on X TX (Ufn i))"
-        sorry
+      proof (intro allI)
+        fix i
+        have "Ufn i \<subseteq> X"
+          using hUopen hBasis unfolding basis_for_def topology_generated_by_basis_def
+          
+          by blast
+        then show "closedin_on X TX (closure_on X TX (Ufn i))"
+          using hTop
+          
+          by (metis hTop closure_on_closed)
+      qed
       have hfinite_union_closed: "closedin_on X TX (\<Union> (closure_on X TX ` Ufn ` {0..n}))"
-        sorry
+        using hclUfn_closed
+        sorry (* Finite union of closed: needs a helper lemma *)
       have hcomplement_open: "X - (\<Union> (closure_on X TX ` Ufn ` {0..n})) \<in> TX"
         using hfinite_union_closed unfolding closedin_on_def
         
-        by presburger
+        by satx
+      have hVnX: "Vn n \<subseteq> X"
+        using hVopen hBasis unfolding basis_for_def topology_generated_by_basis_def
+        
+        by blast
       have hV'eq: "V' n = Vn n \<inter> (X - (\<Union> (closure_on X TX ` Ufn ` {0..n})))"
-        unfolding V'_def
-        sorry
+        unfolding V'_def using hVnX
+        
+        by fast
       show "V' n \<in> TX"
-        unfolding hV'eq using hVopen hcomplement_open hTop
-        sorry
+        unfolding hV'eq
+        using hVopen hcomplement_open hTop
+        
+        using topology_inter2 by blast
     qed
 
     text \<open>UU and VV are open (unions of opens).\<close>
     have hUU_open: "UU \<in> TX"
       unfolding UU_def using hU'open hTop unfolding is_topology_on_def
+      sledgehammer [timeout = 10]
         sorry
     have hVV_open: "VV \<in> TX"
       unfolding VV_def using hV'open hTop unfolding is_topology_on_def
+      sledgehammer [timeout = 10]
       sorry
 
     text \<open>C ⊆ UU: for c ∈ C, c ∈ Ufn_n for some n; cl(Vn_i) ⊆ X-C for all i, so c ∉ cl(Vn_i).\<close>
