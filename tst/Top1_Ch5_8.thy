@@ -5,10 +5,10 @@ begin
 section \<open>\<S>37 The Tychonoff Theorem\<close>
 
 text \<open>
-  Status note: the top-level definitions/lemmas/theorems for \<open>\<S>37\<close>--\<open>\<S>50\<close> are now present in
-  this theory (using \<open>sorry\<close> where appropriate).  Remaining admits are concentrated in the main results:
-  \<open>\<S>37\<close>: 1, \<open>\<S>38\<close>: 3, \<open>\<S>39\<close>: 1, \<open>\<S>40\<close>: 3, \<open>\<S>41\<close>: 8, \<open>\<S>42\<close>: 1, \<open>\<S>43\<close>: 4, \<open>\<S>44\<close>: 1,
-  \<open>\<S>45\<close>: 5, \<open>\<S>46\<close>: 4, \<open>\<S>47\<close>: 4, \<open>\<S>48\<close>: 3, \<open>\<S>49\<close>: 4, \<open>\<S>50\<close>: 8.
+  Status note: \<open>\<S>37\<close> (Tychonoff) is now fully proved.
+  Remaining admits (50 total) are in \<open>\<S>38\<close>--\<open>\<S>50\<close>:
+  \<open>\<S>38\<close>: 3, \<open>\<S>39\<close>: 1, \<open>\<S>40\<close>: 3, \<open>\<S>41\<close>: 8, \<open>\<S>42\<close>: 1, \<open>\<S>43\<close>: 4, \<open>\<S>44\<close>: 1,
+  \<open>\<S>45\<close>: 5, \<open>\<S>46\<close>: 4, \<open>\<S>47\<close>: 4, \<open>\<S>48\<close>: 2+1, \<open>\<S>49\<close>: 4, \<open>\<S>50\<close>: 8.
 \<close>
 
 text \<open>
@@ -776,6 +776,7 @@ qed
 
 lemma mem_of_eq: "x \<in> A \<Longrightarrow> A = B \<Longrightarrow> x \<in> B" by simp
 lemma mem_of_eq_sym: "x \<in> A \<Longrightarrow> y = x \<Longrightarrow> y \<in> A" by simp
+lemma mem_of_elem_eq: "x \<in> A \<Longrightarrow> x = y \<Longrightarrow> y \<in> A" by simp
 
 text \<open>Minimal test: project FIP and show intersection of closures is nonempty for one coord.\<close>
 lemma tychonoff_coord_point:
@@ -847,6 +848,100 @@ proof -
   moreover have "\<forall>D\<in>\<D>. xi \<in> closure_on Xi TXi ((\<lambda>f. f i) ` D)"
     using hxi by blast
   ultimately show ?thesis by blast
+qed
+
+text \<open>Product basis element equals finite intersection of cylinders.\<close>
+lemma top1_PiE_as_Inter_cylinders:
+  assumes hUsub: "\<forall>i\<in>I. U i \<subseteq> X i"
+  assumes hJdef: "J = {i \<in> I. U i \<noteq> X i}"
+  assumes hJne: "J \<noteq> {}"
+  defines "cyl i \<equiv> top1_PiE I (\<lambda>j. if j = i then U i else X j)"
+  shows "top1_PiE I U = \<Inter>(cyl ` J)"
+proof (rule equalityI)
+  show "top1_PiE I U \<subseteq> \<Inter>(cyl ` J)"
+  proof (rule subsetI)
+    fix f assume hf: "f \<in> top1_PiE I U"
+    show "f \<in> \<Inter>(cyl ` J)"
+    proof (rule InterI)
+      fix C assume "C \<in> cyl ` J"
+      then obtain i where hiJ: "i \<in> J" and hCeq: "C = cyl i" by blast
+      have hi: "i \<in> I" using hiJ hJdef by blast
+      show "f \<in> C"
+        unfolding hCeq cyl_def top1_PiE_iff
+      proof (intro conjI ballI impI allI)
+        fix j assume "j \<in> I"
+        show "f j \<in> (if j = i then U i else X j)"
+        proof (cases "j = i")
+          case True
+          have "f i \<in> U i" using hf hi by (simp add: top1_PiE_iff)
+          then show ?thesis using True by simp
+        next
+          case False
+          have "f j \<in> U j" using hf \<open>j \<in> I\<close> by (simp add: top1_PiE_iff)
+          then have "f j \<in> X j" using hUsub \<open>j \<in> I\<close> by blast
+          then show ?thesis using False by simp
+        qed
+      next
+        fix j assume "j \<notin> I"
+        then show "f j = undefined" using hf by (simp add: top1_PiE_iff)
+      qed
+    qed
+  qed
+next
+  show "\<Inter>(cyl ` J) \<subseteq> top1_PiE I U"
+  proof (rule subsetI)
+    fix f assume hf: "f \<in> \<Inter>(cyl ` J)"
+    show "f \<in> top1_PiE I U"
+      unfolding top1_PiE_iff
+    proof (intro conjI ballI impI allI)
+      fix i assume hiI: "i \<in> I"
+      show "f i \<in> U i"
+      proof (cases "i \<in> J")
+        case True
+        have "cyl i \<in> cyl ` J" using True by blast
+        then have hfcyl: "f \<in> cyl i" using hf by blast
+        have hfcyl': "f \<in> top1_PiE I (\<lambda>j. if j = i then U i else X j)"
+          using hfcyl unfolding cyl_def by simp
+        have "\<forall>j\<in>I. f j \<in> (if j = i then U i else X j)"
+          using hfcyl' by (simp add: top1_PiE_iff)
+        then have "f i \<in> (if i = i then U i else X i)"
+          using hiI by blast
+        then show ?thesis by simp
+      next
+        case False
+        have hUiXi: "U i = X i" using False hiI hJdef by blast
+        obtain i0 where hi0J: "i0 \<in> J" using hJne by blast
+        have "cyl i0 \<in> cyl ` J" using hi0J by blast
+        then have hfi0: "f \<in> cyl i0" using hf by blast
+        have hfi0': "f \<in> top1_PiE I (\<lambda>j. if j = i0 then U i0 else X j)"
+          using hfi0 unfolding cyl_def by simp
+        have "\<forall>j\<in>I. f j \<in> (if j = i0 then U i0 else X j)"
+          using hfi0' by (simp add: top1_PiE_iff)
+        then have "f i \<in> (if i = i0 then U i0 else X i)"
+          using hiI by blast
+        then have "f i \<in> X i"
+        proof (cases "i = i0")
+          case True
+          have hi0I: "i0 \<in> I" using hi0J hJdef by blast
+          have "U i0 \<subseteq> X i0" using hUsub hi0I by blast
+          then show ?thesis
+            using \<open>f i \<in> (if i = i0 then U i0 else X i)\<close> True by (simp, blast)
+        next
+          case False
+          then show ?thesis
+            using \<open>f i \<in> (if i = i0 then U i0 else X i)\<close> by simp
+        qed
+        then show "f i \<in> U i" using hUiXi by simp
+      qed
+    next
+      fix i assume "i \<notin> I"
+      obtain i0 where hi0J: "i0 \<in> J" using hJne by blast
+      have "cyl i0 \<in> cyl ` J" using hi0J by blast
+      then have "f \<in> cyl i0" using hf by blast
+      then show "f i = undefined"
+        using \<open>i \<notin> I\<close> unfolding cyl_def by (simp add: top1_PiE_iff)
+    qed
+  qed
 qed
 
 text \<open>Key step: every subbasis element (cylinder) containing x belongs to the maximal FIP family.\<close>
@@ -1036,8 +1131,42 @@ proof -
         using Lemma_37_2(1)[OF hmax hProdNe, THEN spec, of "cyl ` J"]
               hcylset_fin hcylset_sub hcylset_ne
         by blast
+      text \<open>Express b as finite intersection of cylinders, then use Lemma 37.2(a).\<close>
+      have hUsub': "\<forall>i\<in>I. U i \<subseteq> X i" using hUopen by blast
+      have hUint: "\<forall>i\<in>I. U i \<inter> X i = U i" using hUopen by blast
+
+      text \<open>Since U i \<inter> X i = U i, cyl i equals the simpler cylinder.\<close>
+      have hcyl_simp: "\<forall>i\<in>J. cyl i = top1_PiE I (\<lambda>j. if j = i then U i else X j)"
+      proof (intro ballI)
+        fix i assume "i \<in> J"
+        then have "i \<in> I" unfolding J_def by simp
+        then have "U i \<inter> X i = U i" using hUint by blast
+        then show "cyl i = top1_PiE I (\<lambda>j. if j = i then U i else X j)"
+          unfolding cyl_def
+          by (intro arg_cong[where f="top1_PiE I"] ext) simp
+      qed
+
+      have hJeq: "J = {i \<in> I. U i \<noteq> X i}" unfolding J_def by (rule refl)
+
+      text \<open>Apply the Inter-cylinders lemma.\<close>
+      have hPiE_eq: "top1_PiE I U = (\<Inter>i\<in>J. top1_PiE I (\<lambda>j. if j = i then U i else X j))"
+        by (rule top1_PiE_as_Inter_cylinders[OF hUsub' hJeq False])
+
+      have hinter_cyl_eq: "\<Inter>(cyl ` J) = (\<Inter>i\<in>J. top1_PiE I (\<lambda>j. if j = i then U i else X j))"
+      proof (rule arg_cong[where f="\<Inter>"], rule image_cong[OF refl])
+        fix i assume "i \<in> J"
+        then show "cyl i = top1_PiE I (\<lambda>j. if j = i then U i else X j)"
+          using hcyl_simp by blast
+      qed
+
+      have hstep1: "b = (\<Inter>i\<in>J. top1_PiE I (\<lambda>j. if j = i then U i else X j))"
+        by (rule trans[OF hbdef hPiE_eq])
+      have hstep2: "\<Inter>(cyl ` J) = (\<Inter>i\<in>J. top1_PiE I (\<lambda>j. if j = i then U i else X j))"
+        by (rule hinter_cyl_eq)
+      have hb_inter: "b = \<Inter>(cyl ` J)"
+        by (rule trans[OF hstep1 hstep2[symmetric]])
       show "b \<in> \<D>"
-        sorry (* b = Inter(cyls) where cyls ⊆ D, so by Lemma 37.2(a), b in D *)
+        by (rule mem_of_elem_eq[OF hinter_in_D sym[OF hb_inter]])
     qed
   qed
 
