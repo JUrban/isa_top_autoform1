@@ -3075,7 +3075,25 @@ lemma paracompact_closure_union_avoidance:
   assumes hDD_lf: "top1_locally_finite_family_on X TX \<DD>"
   assumes hcl_avoid: "\<forall>D\<in>\<DD>. \<forall>x\<in>A. x \<notin> closure_on X TX D"
   shows "A \<subseteq> X - closure_on X TX (\<Union>\<DD>)"
-  sorry
+proof -
+  have hV_subX: "\<Union>\<DD> \<subseteq> X" using hDD_subX by blast
+  have hcl_eq: "closure_on X TX (\<Union>\<DD>) = \<Union>(closure_on X TX ` \<DD>)"
+    using Lemma_39_1(3)[OF hTop hDD_subX hDD_lf] by blast
+  show ?thesis
+  proof (rule subsetI)
+    fix x assume hxA: "x \<in> A"
+    have hxX: "x \<in> X" using hAX hxA by blast
+    have "x \<notin> closure_on X TX (\<Union>\<DD>)"
+    proof
+      assume "x \<in> closure_on X TX (\<Union>\<DD>)"
+      then have "x \<in> \<Union>(closure_on X TX ` \<DD>)"
+        by (rule mem_of_eq[OF _ hcl_eq])
+      then obtain D where "D \<in> \<DD>" "x \<in> closure_on X TX D" by blast
+      then show False using hcl_avoid hxA by blast
+    qed
+    then show "x \<in> X - closure_on X TX (\<Union>\<DD>)" using hxX by blast
+  qed
+qed
 
 lemma paracompact_regular_imp_normal:
   assumes hPara: "top1_paracompact_on X TX"
