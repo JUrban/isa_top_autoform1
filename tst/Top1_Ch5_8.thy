@@ -2892,7 +2892,16 @@ proof -
       text \<open>Step 3: Subcollection D = elements of CC that intersect C.\<close>
       let ?\<DD> = "{D \<in> \<CC>. D \<inter> C \<noteq> {}}"
       have hD_covers_C: "C \<subseteq> \<Union>?\<DD>"
-        sorry (* each c in C is in some D in CC; that D intersects C *)
+      proof (rule subsetI)
+        fix c assume hcC: "c \<in> C"
+        have hcX: "c \<in> X" using hCX hcC by blast
+        have "c \<in> \<Union>\<CC>"
+          using hCC_cov hcX unfolding top1_open_covering_on_def by blast
+        then obtain D where hDCC: "D \<in> \<CC>" and hcD: "c \<in> D" by blast
+        have "D \<inter> C \<noteq> {}" using hcD hcC by blast
+        then have "D \<in> ?\<DD>" using hDCC by blast
+        then show "c \<in> \<Union>?\<DD>" using hcD by blast
+      qed
 
       text \<open>For each D in DD, a is not in cl(D): D refines some Ub b, so cl(D) \<subseteq> cl(Ub b),
         and a \<notin> cl(Ub b) because a has a neighborhood disjoint from Ub b.\<close>
