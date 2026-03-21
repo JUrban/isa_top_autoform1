@@ -5306,13 +5306,73 @@ proof -
     define \<B> where "\<B> = {E C0 \<inter> parent C0 | C0. C0 \<in> \<C>}"
 
     text \<open>E(C0) is open: bad(C0) is a subfamily of LF closed D, so ∪bad is closed.\<close>
+    have hD_closed: "\<forall>D0\<in>\<D>. closedin_on X TX D0"
+    proof (intro ballI)
+      fix D0 assume "D0 \<in> \<D>"
+      then obtain C0 where hC0: "C0 \<in> \<C>" and hD0eq: "D0 = closure_on X TX C0"
+        unfolding \<D>_def
+        
+        by blast
+      show "closedin_on X TX D0"
+        unfolding hD0eq using hTop hC_subX hC0
+        
+        by (metis hTop hC_subX hC0 closure_on_closed)
+    qed
+    have hD_subX: "\<forall>D0\<in>\<D>. D0 \<subseteq> X"
+      using hD_closed unfolding closedin_on_def
+      
+      by auto
     have hE_open: "\<forall>C0\<in>\<C>. E C0 \<in> TX"
-      sorry (* ∪(bad C0) is closed (LF union of closed = closed by Lemma 39.1).
-               E C0 = X - ∪(bad C0) is open. *)
+    proof (intro ballI)
+      fix C0 assume hC0: "C0 \<in> \<C>"
+      have hbad_sub_D: "bad C0 \<subseteq> \<D>" unfolding bad_def
+        
+        by blast
+      have hbad_lf: "top1_locally_finite_family_on X TX (bad C0)"
+        using Lemma_39_1(1)[OF hTop hD_subX hD_lf] hbad_sub_D
+        
+        by presburger
+      have hbad_subX: "\<forall>D0\<in>bad C0. D0 \<subseteq> X"
+        using hD_subX hbad_sub_D
+        
+        by blast
+      have hbad_closed: "\<forall>D0\<in>bad C0. closedin_on X TX D0"
+        using hD_closed hbad_sub_D
+        
+        by blast
+      have hcl_eq: "closure_on X TX (\<Union>(bad C0)) = \<Union>(closure_on X TX ` bad C0)"
+        using Lemma_39_1(3)[OF hTop hbad_subX hbad_lf]
+        
+        by presburger
+      have hUnion_bad_closed: "closedin_on X TX (\<Union>(bad C0))"
+        sorry (* cl(∪bad) = ∪cl(elem) = ∪elem = ∪bad since each closed. So closed. *)
+      show "E C0 \<in> TX"
+        unfolding E_def using hUnion_bad_closed unfolding closedin_on_def
+        
+        by presburger
+    qed
 
     text \<open>B is open (intersection of two opens).\<close>
+    have hA_sub_TX: "\<A> \<subseteq> TX" using hCov unfolding top1_open_covering_on_def
+      
+      by presburger
     have hB_open: "\<B> \<subseteq> TX"
-      sorry (* E(C0) ∈ TX and parent(C0) ∈ A ⊆ TX. Intersection of opens = open. *)
+    proof (rule subsetI)
+      fix B assume "B \<in> \<B>"
+      then obtain C0 where hC0: "C0 \<in> \<C>" and hBeq: "B = E C0 \<inter> parent C0"
+        unfolding \<B>_def
+        
+        by auto
+      have "E C0 \<in> TX" using hE_open hC0
+        
+        by fast
+      moreover have "parent C0 \<in> TX" using hparent hC0 hA_sub_TX
+        
+        by fast
+      ultimately show "B \<in> TX" unfolding hBeq using hTop
+        
+        using topology_inter2 by blast
+    qed
 
     text \<open>B covers X: C0 ⊆ E(C0) ∩ parent(C0).\<close>
     have hB_covers: "X \<subseteq> \<Union>\<B>"
