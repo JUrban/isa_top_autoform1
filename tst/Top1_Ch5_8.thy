@@ -859,7 +859,74 @@ lemma tychonoff_subbasis_in_maxFIP:
   assumes hxProd: "x \<in> top1_PiE I X"
   assumes hxcl: "\<forall>D\<in>\<D>. x i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D)"
   shows "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j) \<in> \<D>"
-  sorry
+proof -
+  let ?cyl = "top1_PiE I (\<lambda>j. if j = i then U \<inter> X i else X j)"
+  have hTi: "is_topology_on (X i) (TX i)" using hTop hi by blast
+
+  have hFIP_D: "top1_FIP_on (top1_PiE I X) \<D>"
+    using hmax unfolding top1_FIP_maximal_on_def by simp
+  have hDsub: "\<forall>D0\<in>\<D>. D0 \<subseteq> top1_PiE I X"
+    using hFIP_D unfolding top1_FIP_on_def by simp
+
+  text \<open>The cylinder is a subset of the product.\<close>
+  have hcyl_sub: "?cyl \<subseteq> top1_PiE I X"
+    by (rule top1_PiE_mono) (simp add: le_infI1)
+
+  text \<open>The cylinder intersects every D in D.\<close>
+  have hcyl_inter: "\<forall>D0\<in>\<D>. intersects ?cyl D0"
+  proof (intro ballI)
+    fix D0 assume hD0: "D0 \<in> \<D>"
+    have hxicl: "x i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D0)"
+      using hxcl hD0 by blast
+    have hproj_sub: "(\<lambda>f. f i) ` D0 \<subseteq> X i"
+    proof (rule image_subsetI)
+      fix f assume "f \<in> D0"
+      then have "f \<in> top1_PiE I X" using hDsub hD0 by blast
+      then show "f i \<in> X i" using hi by (simp add: top1_PiE_iff)
+    qed
+    have hU_nbhd: "neighborhood_of (x i) (X i) (TX i) U"
+      unfolding neighborhood_of_def using hU hxU by simp
+    have hxiX: "x i \<in> X i"
+      using hxProd hi by (simp add: top1_PiE_iff)
+    have hclchar: "x i \<in> closure_on (X i) (TX i) ((\<lambda>f. f i) ` D0) \<longleftrightarrow>
+        (\<forall>V. neighborhood_of (x i) (X i) (TX i) V \<longrightarrow> intersects V ((\<lambda>f. f i) ` D0))"
+      by (rule Theorem_17_5a[OF hTi hxiX hproj_sub])
+    have hU_inter_proj: "intersects U ((\<lambda>f. f i) ` D0)"
+      using iffD1[OF hclchar hxicl] hU_nbhd by blast
+    then obtain z where hzU: "z \<in> U" and hzproj: "z \<in> (\<lambda>f. f i) ` D0"
+      unfolding intersects_def by blast
+    obtain f where hfD: "f \<in> D0" and hfi: "f i = z" using hzproj by blast
+    have hfProd: "f \<in> top1_PiE I X" using hDsub hD0 hfD by blast
+    have "f \<in> ?cyl"
+      unfolding top1_PiE_iff
+    proof (intro conjI ballI impI allI)
+      fix j
+      show "j \<in> I \<Longrightarrow> f j \<in> (if j = i then U \<inter> X i else X j)"
+      proof (cases "j = i")
+        case True
+        have "f i \<in> X i" using hfProd hi by (simp add: top1_PiE_iff)
+        then have "z \<in> X i" using hfi by simp
+        then show ?thesis using True hfi hzU by simp
+      next
+        case False
+        assume hjI: "j \<in> I"
+        have "f j \<in> X j" using hfProd hjI by (simp add: top1_PiE_iff)
+        then show ?thesis using False by simp
+      qed
+    next
+      fix j
+      show "j \<notin> I \<Longrightarrow> f j = undefined"
+        using hfProd by (simp add: top1_PiE_iff)
+    qed
+    then have "f \<in> ?cyl \<inter> D0" using hfD by blast
+    then show "intersects ?cyl D0" unfolding intersects_def by blast
+  qed
+
+  text \<open>By Lemma 37.2(b), the cylinder belongs to D.\<close>
+  show "?cyl \<in> \<D>"
+    using Lemma_37_2(2)[OF hmax hProdNe, THEN spec, of ?cyl] hcyl_sub hcyl_inter
+    by blast
+qed
 
 text \<open>Key step: x is in the closure of every D, using the fact that every basis element
   containing x belongs to D and D has FIP.\<close>
