@@ -4091,6 +4091,13 @@ lemma Lemma_40_2:
     top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f
     \<and> (\<forall>x\<in>A. f x = 0) \<and> (\<forall>x\<in>X - A. 0 < f x)"
   sorry
+  (* Proof sketch (Munkres Lemma 40.2):
+     A = ∩(U n) open from G-delta. For each n, Urysohn (Thm 33.1) gives
+     f_n: X → [0,1] with f_n(A) = 0, f_n(X-U_n) = 1.
+     Define f(x) = Σ f_n(x)/2^n. Series converges uniformly (comparison with Σ1/2^n).
+     f is continuous (uniform limit of continuous functions).
+     f = 0 on A. f > 0 on X-A (at least one f_n(x) > 0 since x ∉ some U_n).
+     Requires: Urysohn lemma (proved), uniform convergence → continuity (needs real analysis). *)
 
 (** from \S40 Theorem 40.3 (Nagata-Smirnov metrization theorem) [top1.tex:5727] **)
 theorem Theorem_40_3:
