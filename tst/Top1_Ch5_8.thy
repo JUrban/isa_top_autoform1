@@ -3266,6 +3266,8 @@ theorem Theorem_41_1:
         paracompact_hausdorff_imp_regular[OF hPara hHaus hTsub] hTsub])
 
 (** from \S41 Theorem 41.2 [top1.tex:5851] **)
+text \<open>Proof strategy (Munkres Thm 41.2): extend subspace cover to X by adding X-A,
+  take locally finite refinement, restrict back to A.\<close>
 theorem Theorem_41_2:
   assumes hPara: "top1_paracompact_on X TX"
   assumes hClosed: "closedin_on X TX A"

@@ -1,8 +1,7 @@
 session Top1 = HOL +
-options[quick_and_dirty,timeout=150]
-(* NOTE: timeout increased from 120 to 150 to accommodate the
-   paracompact_closure_avoidance_step proof which adds ~90s.
-   Should be reduced back to 120 if the proof is optimized or
-   moved to a separate session. *)
+options[quick_and_dirty,timeout=180]
+(* NOTE: timeout increased from 120 to 180 to accommodate
+   paracompact_closure_avoidance_step + normality proof chain (~165s total).
+   Should be reduced back to 120 after optimization or splitting into sessions. *)
 theories
     Top1
