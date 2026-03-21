@@ -3837,7 +3837,7 @@ proof -
     text \<open>UU and VV are open (unions of opens).\<close>
     have hUU_open: "UU \<in> TX"
       unfolding UU_def using hU'open hTop unfolding is_topology_on_def
-      sorry
+        sorry
     have hVV_open: "VV \<in> TX"
       unfolding VV_def using hV'open hTop unfolding is_topology_on_def
       sorry
