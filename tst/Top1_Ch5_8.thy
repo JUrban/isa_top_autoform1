@@ -11374,9 +11374,21 @@ proof -
   qed
 
   have hC_sub_cont: "C \<subseteq> {x \<in> X. top1_continuous_at_on X TX Y ?TY g x}"
-    sorry (* Step 4: for x₀ ∈ C, given ε > 0, pick k with 1/(k+1) < ε/3.
-             x₀ ∈ U(1/(k+1)), so x₀ ∈ Int(A_N(1/(k+1))).
-             f_N continuous + triangle inequality → g continuous at x₀. ~40 lines. *)
+    sorry (* Step 4 of Munkres' proof (~40 lines):
+       For x₀ ∈ C and ε > 0:
+       1. Pick k with 1/(Suc k) < ε/3.
+       2. x₀ ∈ U(1/(Suc k)) = ∪_N Int(AN N (1/(Suc k))).
+          So x₀ ∈ Int(AN N₀ (1/(Suc k))) for some N₀.
+       3. Int(AN N₀ ...) is open and contained in AN N₀.
+          So x₀ has nbhd inside AN N₀.
+       4. f_{N₀} continuous at x₀ → ∃ W nbhd with d(f_{N₀}(x), f_{N₀}(x₀)) < ε/3.
+       5. Take W' = W ∩ Int(AN N₀) (open nbhd of x₀).
+          For x ∈ W': d(f_n(x), f_{N₀}(x)) ≤ 1/(Suc k) for n ≥ N₀ (from AN).
+       6. Let n → ∞: d(g(x), f_{N₀}(x)) ≤ 1/(Suc k) < ε/3 (metric limit).
+       7. Similarly d(g(x₀), f_{N₀}(x₀)) < ε/3.
+       8. Triangle: d(g(x), g(x₀)) ≤ d(g(x), f_{N₀}(x)) + d(f_{N₀}(x), f_{N₀}(x₀))
+                                        + d(f_{N₀}(x₀), g(x₀)) < ε.
+       Needs: metric limit properties, AN membership, interior_on properties. *)
 
   show ?thesis
     unfolding top1_densein_on_def
