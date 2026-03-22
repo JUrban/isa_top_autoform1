@@ -8214,11 +8214,72 @@ theorem Theorem_43_6b:
            (top1_PiE X (\<lambda>_. Y))
            (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
            (top1_bounded_maps_metric_on X Y d)"
-  sorry
-  (* Similar to 43.6a: use metric_seq_closed_imp_closed.
-     If f_n bounded and f_n → f uniformly, show f bounded:
-     pick N with ρ̄(f_N,f) < 1/2, then d(f_N(x),f(x)) < 1/2 for all x,
-     so diam(f(X)) ≤ diam(f_N(X)) + 1 < ∞. *)
+proof (rule metric_seq_closed_imp_closed)
+  show hrho_m: "top1_metric_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d)"
+    using top1_uniform_metric_is_metric[OF hXne hd]
+    by satx
+  show "top1_bounded_maps_metric_on X Y d \<subseteq> top1_PiE X (\<lambda>_. Y)"
+    unfolding top1_bounded_maps_metric_on_def
+    by blast
+  show "\<forall>s. (\<forall>n::nat. s n \<in> top1_bounded_maps_metric_on X Y d) \<longrightarrow>
+    (\<forall>x. seq_converges_to_on s x (top1_PiE X (\<lambda>_. Y))
+      (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d)) \<longrightarrow>
+      x \<in> top1_bounded_maps_metric_on X Y d)"
+  proof (intro allI impI)
+    fix s x
+    assume hsB: "\<forall>n::nat. s n \<in> top1_bounded_maps_metric_on X Y d"
+    assume hconv: "seq_converges_to_on s x (top1_PiE X (\<lambda>_. Y))
+      (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))"
+    have hxPiE: "x \<in> top1_PiE X (\<lambda>_. Y)"
+      using hconv unfolding seq_converges_to_on_def
+      by satx
+    have hsPiE: "\<forall>n::nat. s n \<in> top1_PiE X (\<lambda>_. Y)"
+      using hsB unfolding top1_bounded_maps_metric_on_def
+      by fast
+    text \<open>Get uniform convergence.\<close>
+    have hunif: "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>xa\<in>X. d (s n xa) (x xa) < \<epsilon>"
+      using uniform_metric_conv_imp_pointwise_unif[OF hXne hd hxPiE hsPiE hconv]
+      by argo
+    obtain N :: nat where hN: "\<forall>xa\<in>X. d (s N xa) (x xa) < 1/2"
+    proof -
+      have "0 < (1::real)/2"
+        by simp
+      then obtain N :: nat where "\<forall>n\<ge>N. \<forall>xa\<in>X. d (s n xa) (x xa) < 1/2"
+        using hunif
+        by presburger
+      then have "\<forall>xa\<in>X. d (s N xa) (x xa) < 1/2"
+        by blast
+      then show ?thesis using that
+        by blast
+    qed
+    have hsBound: "top1_bounded_map_on X Y d (s N)"
+      using hsB unfolding top1_bounded_maps_metric_on_def
+      by blast
+    obtain y0 M where hy0: "y0 \<in> Y" and hM: "\<forall>xa\<in>X. d y0 (s N xa) \<le> M"
+      using hsBound unfolding top1_bounded_map_on_def
+      by blast
+    have hxBound: "top1_bounded_map_on X Y d x"
+      unfolding top1_bounded_map_on_def
+    proof (intro bexI exI ballI)
+      fix xa assume hxa: "xa \<in> X"
+      have hxaY: "x xa \<in> Y" using hxPiE hxa unfolding top1_PiE_def top1_Pi_def
+        by blast
+      have hsNxaY: "s N xa \<in> Y" using hsPiE hxa unfolding top1_PiE_def top1_Pi_def
+        by blast
+      have htri: "d y0 (x xa) \<le> d y0 (s N xa) + d (s N xa) (x xa)"
+        using hd hy0 hsNxaY hxaY unfolding top1_metric_on_def
+        by blast
+      show "d y0 (x xa) \<le> M + 1 / 2"
+        using htri hM hxa hN hxa
+        by fastforce
+    next
+      show "y0 \<in> Y" by (rule hy0)
+    qed
+    show "x \<in> top1_bounded_maps_metric_on X Y d"
+      unfolding top1_bounded_maps_metric_on_def using hxPiE hxBound
+      by fast
+  qed
+qed
 
 text \<open>Part (d): B(X,Y) complete when Y complete.\<close>
 theorem Theorem_43_6d:
