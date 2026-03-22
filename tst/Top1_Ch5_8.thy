@@ -11642,9 +11642,19 @@ proof -
     text \<open>For compact X: uniform = compact-convergence (46.7 + compact X is itself compact).
       Then both uniform subspaces equal compact-open by 46.8.\<close>
     have huni_eq_cc1: "top1_uniform_topology_on X Y d1 = top1_compact_convergence_topology_on X TX Y d1"
-      sorry
+    proof (rule equalityI)
+      show "top1_uniform_topology_on X Y d1 \<supseteq> top1_compact_convergence_topology_on X TX Y d1"
+        using top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd1] by blast
+      show "top1_compact_convergence_topology_on X TX Y d1 \<supseteq> top1_uniform_topology_on X Y d1"
+        sorry
+    qed
     have huni_eq_cc2: "top1_uniform_topology_on X Y d2 = top1_compact_convergence_topology_on X TX Y d2"
-      sorry
+    proof (rule equalityI)
+      show "top1_uniform_topology_on X Y d2 \<supseteq> top1_compact_convergence_topology_on X TX Y d2"
+        using top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd2] by blast
+      show "top1_compact_convergence_topology_on X TX Y d2 \<supseteq> top1_uniform_topology_on X Y d2"
+        sorry
+    qed
     show "subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d1)
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
      = subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d2)
