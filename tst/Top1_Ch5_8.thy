@@ -4165,8 +4165,12 @@ proof (intro iffI)
     text \<open>B = ∪_m Bm is sigma-LF.\<close>
     define B where "B = (\<Union>m. Bm m)"
     have hB_slf: "top1_sigma_locally_finite_family_on X TX B"
-      sorry (* B = ∪_m Bm. Each Bm is sigma-LF = ∪_n Bm_n (LF).
-               B = ∪_{m,n} Bm_n. Reindex ℕ×ℕ ≅ ℕ via pairing. *)
+      sorry (* Sigma-LF of union: each Bm is sigma-LF = ∪_n Bm_n (LF).
+               B = ∪_m ∪_n Bm_n. ℕ×ℕ is countable, so reindex as ∪_k C(k) with C(k) LF.
+               Needs: ℕ×ℕ countability or explicit surjection ℕ → ℕ×ℕ.
+               Could use: λk. Bm (fst (prod_decode k)) (snd (prod_decode k))
+               but prod_decode needs Library/Nat_Bijection which may not be imported.
+               Alternative: use diagonal enumeration (m+n = k, m varies). *)
     have hB_open: "B \<subseteq> TX"
       using hBm unfolding top1_open_covering_on_def B_def
       
