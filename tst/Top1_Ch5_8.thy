@@ -11842,8 +11842,28 @@ proof -
               
               by metis
             ultimately show "(\<Inter>M. DN M) \<noteq> {}" using hVne
-              
-              sorry (* ∩DN = {} → closure = {} ≠ V, contradiction *)
+            proof -
+              assume h1: "V \<subseteq> closure_on V ?TV (\<Inter>M. DN M)"
+              assume h2: "(\<Inter>M. DN M) \<subseteq> closure_on V ?TV (\<Inter>M. DN M)"
+              assume hne: "V \<noteq> {}"
+              show "(\<Inter>M. DN M) \<noteq> {}"
+              proof (rule ccontr)
+                assume "\<not> (\<Inter>M. DN M) \<noteq> {}"
+                then have hempty: "(\<Inter>M. DN M) = {}"
+                  
+                  by argo
+                have "closure_on V ?TV {} = {}"
+                  using closure_on_subset_of_closed
+                  
+                  by (simp add: hTop hVX subspace_topology_is_topology_on top1_closure_on_empty)
+                then have "V \<subseteq> {}" using h1 hempty
+                  
+                  by argo
+                then show False using hne
+                  
+                  by force
+              qed
+            qed
           qed
           then show False using hDN_inter
             
@@ -11900,9 +11920,49 @@ proof -
       qed
       show ?thesis
         unfolding top1_densein_on_def
-        sorry (* closure(U e) = X from hU_meets: every nonempty open V meets U e.
-                 For any x ∈ X and nbhd W of x (open, contains x), W ∩ U e ≠ {}.
-                 So x ∈ closure(U e). Hence X ⊆ closure(U e). Other direction from closure ⊆ X. *)
+      proof (rule equalityI)
+        have hUsubX: "U e \<subseteq> X"
+          unfolding U_def interior_on_def
+          using hTsub
+          
+          by blast
+        show "closure_on X TX (U e) \<subseteq> X"
+          using closure_on_subset_carrier[OF hTop hUsubX]
+          
+          by order
+        show "X \<subseteq> closure_on X TX (U e)"
+          unfolding closure_on_def
+        proof (rule subsetI)
+          fix x assume hxX: "x \<in> X"
+          show "x \<in> \<Inter>{C. closedin_on X TX C \<and> U e \<subseteq> C}"
+          proof (rule InterI)
+            fix C assume hC: "C \<in> {C. closedin_on X TX C \<and> U e \<subseteq> C}"
+            then have hCcl: "closedin_on X TX C" and hUC: "U e \<subseteq> C"
+              
+              by force+
+            show "x \<in> C"
+            proof (rule ccontr)
+              assume "x \<notin> C"
+              have hCX: "C \<subseteq> X" using hCcl unfolding closedin_on_def
+                
+                by presburger
+              have hXmC: "X - C \<in> TX" using hCcl unfolding closedin_on_def
+                
+                by argo
+              have hXmCne: "X - C \<noteq> {}" using hxX \<open>x \<notin> C\<close>
+                
+                by blast
+              have "(X - C) \<inter> U e \<noteq> {}"
+                using hU_meets hXmC hXmCne
+                
+                by presburger
+              then show False using hUC
+                
+                by auto
+            qed
+          qed
+        qed
+      qed
     qed
   qed
 
