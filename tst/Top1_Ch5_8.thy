@@ -15460,7 +15460,8 @@ proof (intro ballI notI)
   text \<open>If f is differentiable at x, difference quotients are bounded near x.
     But f ∈ ∩U_n means Δ_h(f) → ∞ as h → 0, contradicting the bound.\<close>
   then obtain L where hL: "(f has_derivative (\<lambda>h. h * L)) (at x)"
-    sorry
+    by (metis (lifting) ext bounded_linear_mult_right has_field_derivative_def
+      real_bounded_linear real_differentiableE)
   text \<open>For ε=1, get δ with |f(x+h)-f(x)-h*L|/|h| < 1 for |h|<δ, h≠0.\<close>
   have "\<exists>\<delta>>0. \<forall>h. 0 < \<bar>h\<bar> \<and> \<bar>h\<bar> < \<delta> \<longrightarrow> \<bar>(f(x+h) - f x) / h - L\<bar> < 1"
     sorry
