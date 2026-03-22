@@ -2012,6 +2012,158 @@ proof -
   qed
 qed
 
+text \<open>A finite union of locally finite families is locally finite.\<close>
+lemma finite_union_locally_finite:
+  assumes hTop: "is_topology_on X TX"
+  assumes hFin: "finite I"
+  assumes hLF: "\<forall>i\<in>I. top1_locally_finite_family_on X TX (F i)"
+  shows "top1_locally_finite_family_on X TX (\<Union>i\<in>I. F i)"
+  using hFin hLF
+proof (induction I rule: finite_induct)
+  case empty
+  show ?case
+    unfolding top1_locally_finite_family_on_def
+  proof (intro ballI)
+    fix x assume "x \<in> X"
+    then obtain U where hU: "U \<in> TX" and hxU: "x \<in> U"
+      using hTop unfolding is_topology_on_def
+      by blast
+    have hempty: "{A \<in> \<Union> (F ` {}). intersects A U} = {}"
+      by blast
+    show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> \<Union> (F ` {}). intersects A U}"
+      using hU hxU hempty
+      by auto
+  qed
+next
+  case (insert j I)
+  have hLF_j: "top1_locally_finite_family_on X TX (F j)"
+    using insert.prems
+    by blast
+  have hLF_rest: "top1_locally_finite_family_on X TX (\<Union>i\<in>I. F i)"
+    using insert.IH insert.prems
+    by blast
+  show ?case
+    unfolding top1_locally_finite_family_on_def
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    obtain U1 where hU1: "U1 \<in> TX" and hxU1: "x \<in> U1"
+      and hFin1: "finite {A \<in> F j. intersects A U1}"
+      using hLF_j hxX unfolding top1_locally_finite_family_on_def
+      by blast
+    obtain U2 where hU2: "U2 \<in> TX" and hxU2: "x \<in> U2"
+      and hFin2: "finite {A \<in> \<Union>i\<in>I. F i. intersects A U2}"
+      using hLF_rest hxX unfolding top1_locally_finite_family_on_def
+      by blast
+    let ?U = "U1 \<inter> U2"
+    have hU_open: "?U \<in> TX"
+      using topology_inter2[OF hTop hU1 hU2]
+      by satx
+    have hxU: "x \<in> ?U" using hxU1 hxU2
+      by blast
+    have hsub1: "{A \<in> F j. intersects A ?U} \<subseteq> {A \<in> F j. intersects A U1}"
+      unfolding intersects_def
+      by auto
+    have hsub2: "{A \<in> \<Union>i\<in>I. F i. intersects A ?U} \<subseteq> {A \<in> \<Union>i\<in>I. F i. intersects A U2}"
+      unfolding intersects_def
+      by blast
+    have hsub_union: "{A \<in> \<Union> (F ` insert j I). intersects A ?U} \<subseteq>
+          {A \<in> F j. intersects A ?U} \<union> {A \<in> \<Union>i\<in>I. F i. intersects A ?U}"
+      by blast
+    have hFin_j: "finite {A \<in> F j. intersects A ?U}"
+      using finite_subset[OF hsub1 hFin1]
+      by presburger
+    have hFin_rest: "finite {A \<in> \<Union>i\<in>I. F i. intersects A ?U}"
+      using finite_subset[OF hsub2 hFin2]
+      by presburger
+    have hFin_U: "finite {A \<in> \<Union> (F ` insert j I). intersects A ?U}"
+      using finite_subset[OF hsub_union] hFin_j hFin_rest
+      by blast
+    show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> \<Union> (F ` insert j I). intersects A U}"
+      using hU_open hxU hFin_U
+      by meson
+  qed
+qed
+
+text \<open>A countable union of sigma-locally-finite families is sigma-locally-finite.
+  Uses diagonal sum enumeration: index by k = m + n.\<close>
+lemma countable_union_sigma_lf:
+  assumes hTop: "is_topology_on X TX"
+  assumes hSLF: "\<forall>m::nat. top1_sigma_locally_finite_family_on X TX (Bm m)"
+  shows "top1_sigma_locally_finite_family_on X TX (\<Union>m. Bm m)"
+proof -
+  text \<open>Decompose each Bm m into a sequence of LF families.\<close>
+  have hex: "\<forall>m. \<exists>Cm::nat \<Rightarrow> 'a set set.
+    (\<forall>n. top1_locally_finite_family_on X TX (Cm n)) \<and> Bm m = (\<Union>n. Cm n)"
+    using hSLF unfolding top1_sigma_locally_finite_family_on_def
+    by satx
+  have hex2: "\<exists>Cm :: nat \<Rightarrow> nat \<Rightarrow> 'a set set.
+    (\<forall>m n. top1_locally_finite_family_on X TX (Cm m n)) \<and> (\<forall>m. Bm m = (\<Union>n. Cm m n))"
+    using hex
+    by metis
+  then obtain Cm :: "nat \<Rightarrow> nat \<Rightarrow> 'a set set" where
+    hCm_lf: "\<forall>m n. top1_locally_finite_family_on X TX (Cm m n)" and
+    hCm_eq: "\<forall>m. Bm m = (\<Union>n. Cm m n)"
+    by blast
+  text \<open>Diagonal enumeration: D k = \<Union>{Cm m (k - m) | m \<le> k}.\<close>
+  define D where "D k = (\<Union>m\<in>{0..k}. Cm m (k - m))" for k :: nat
+  have hD_lf: "\<forall>k. top1_locally_finite_family_on X TX (D k)"
+  proof (intro allI)
+    fix k :: nat
+    have hfin_k: "finite {0..k}"
+      by blast
+    have hlf_k: "\<forall>m\<in>{0..k}. top1_locally_finite_family_on X TX (Cm m (k - m))"
+      using hCm_lf
+      by blast
+    show "top1_locally_finite_family_on X TX (D k)"
+      unfolding D_def using finite_union_locally_finite[OF hTop hfin_k hlf_k]
+      by presburger
+  qed
+  have hD_sub1: "(\<Union>m. Bm m) \<subseteq> (\<Union>k. D k)"
+  proof (rule subsetI)
+    fix x assume "x \<in> (\<Union>m. Bm m)"
+    then obtain m where hxBm: "x \<in> Bm m"
+      by blast
+    then obtain n where hxCmn: "x \<in> Cm m n"
+      using hCm_eq
+      by blast
+    have hm_le: "m \<in> {0..m+n}"
+      by simp
+    have "Cm m ((m+n) - m) = Cm m n"
+      by auto
+    then have "x \<in> (\<Union>m'\<in>{0..m+n}. Cm m' ((m+n) - m'))"
+      using hxCmn hm_le
+      by fast
+    then have "x \<in> D (m + n)"
+      unfolding D_def
+      by presburger
+    then show "x \<in> (\<Union>k. D k)"
+      by fast
+  qed
+  have hD_sub2: "(\<Union>k. D k) \<subseteq> (\<Union>m. Bm m)"
+  proof (rule subsetI)
+    fix x assume "x \<in> (\<Union>k. D k)"
+    then obtain k where hxDk: "x \<in> D k"
+      by blast
+    then obtain m where hm: "m \<in> {0..k}" and hxCm: "x \<in> Cm m (k - m)"
+      unfolding D_def
+      by blast
+    have "Cm m (k - m) \<subseteq> Bm m"
+      using hCm_eq
+      by blast
+    then have "x \<in> Bm m" using hxCm
+      by blast
+    then show "x \<in> (\<Union>m. Bm m)"
+      by blast
+  qed
+  have hD_eq: "(\<Union>m. Bm m) = (\<Union>k. D k)"
+    using hD_sub1 hD_sub2
+    by blast
+  show ?thesis
+    unfolding top1_sigma_locally_finite_family_on_def
+    using hD_lf hD_eq
+    by blast
+qed
+
 lemma top1_intersects_closure_on_open_imp_intersects:
   assumes hTopX: "is_topology_on X TX"
   assumes hAX: "A \<subseteq> X"
@@ -4096,6 +4248,233 @@ lemma Lemma_40_1:
   
   by argo
 
+text \<open>Metric topologies are Hausdorff: distinct points separated by d/2-balls.\<close>
+lemma metric_topology_hausdorff:
+  assumes hd: "top1_metric_on X d"
+  shows "is_hausdorff_on X (top1_metric_topology_on X d)"
+proof -
+  let ?TX = "top1_metric_topology_on X d"
+  have hTop: "is_topology_on X ?TX"
+    using hd top1_metric_topology_on_is_topology_on
+    
+    by blast
+  have hSep: "\<forall>x y. x \<in> X \<and> y \<in> X \<and> x \<noteq> y \<longrightarrow>
+    (\<exists>U V. neighborhood_of x X ?TX U \<and> neighborhood_of y X ?TX V \<and> U \<inter> V = {})"
+  proof (intro allI impI)
+    fix x y assume hxy: "x \<in> X \<and> y \<in> X \<and> x \<noteq> y"
+    have hxX: "x \<in> X" and hyX: "y \<in> X" and hne: "x \<noteq> y"
+      using hxy
+      
+      by presburger+
+      have hdnonneg: "0 \<le> d x y" using hd hxX hyX unfolding top1_metric_on_def
+        
+        by blast
+      have hdzero: "d x y = 0 \<longleftrightarrow> x = y" using hd hxX hyX unfolding top1_metric_on_def
+        
+        by blast
+      have hdpos: "d x y > 0" using hdnonneg hdzero hne
+        
+        by simp
+      define r where "r = d x y / 2"
+      have hrpos: "r > 0" unfolding r_def using hdpos
+        
+        by simp
+      let ?U = "top1_ball_on X d x r"
+      let ?V = "top1_ball_on X d y r"
+      have hUopen: "?U \<in> ?TX"
+        using hd hxX hrpos top1_ball_open_in_metric_topology
+        
+        by fast
+      have hxU: "x \<in> ?U"
+        unfolding top1_ball_on_def
+        using hxX hd hrpos unfolding top1_metric_on_def
+        
+        by fastforce
+      have hVopen: "?V \<in> ?TX"
+        using hd hyX hrpos top1_ball_open_in_metric_topology
+        
+        by fast
+      have hyV: "y \<in> ?V"
+        unfolding top1_ball_on_def
+        using hyX hd hrpos unfolding top1_metric_on_def
+        
+        by fastforce
+      have hUV_disj: "?U \<inter> ?V = {}"
+      proof (rule ccontr)
+        assume "\<not> ?U \<inter> ?V = {}"
+        then obtain z where hzU: "z \<in> ?U" and hzV: "z \<in> ?V"
+          
+          by blast
+        have hzX: "z \<in> X" and hdxz: "d x z < r" and hdyz: "d y z < r"
+          using hzU hzV unfolding top1_ball_on_def
+          
+          by blast+
+        have htri: "d x y \<le> d x z + d z y"
+          using hd hxX hzX hyX unfolding top1_metric_on_def
+          
+          by blast
+        have hdsym: "d z y = d y z"
+          using hd hzX hyX unfolding top1_metric_on_def
+          
+          by blast
+        have "d x y < r + r" using htri hdsym hdxz hdyz
+          
+          by simp
+        then show False unfolding r_def using hdpos
+          
+          by auto
+      qed
+      have hUnbhd: "neighborhood_of x X ?TX ?U"
+        unfolding neighborhood_of_def using hUopen hxU
+        
+        by argo
+      have hVnbhd: "neighborhood_of y X ?TX ?V"
+        unfolding neighborhood_of_def using hVopen hyV
+        
+        by argo
+      show "\<exists>U V. neighborhood_of x X ?TX U \<and> neighborhood_of y X ?TX V \<and> U \<inter> V = {}"
+        using hUnbhd hVnbhd hUV_disj
+        
+        by blast
+  qed
+  show ?thesis
+    unfolding is_hausdorff_on_def using hTop hSep
+    
+    by blast
+qed
+
+text \<open>Metrizable spaces are regular: for x and closed C with x \<notin> C,
+  use d(x,C)/2 balls to separate.\<close>
+lemma metrizable_imp_regular:
+  assumes hMet: "top1_metrizable_on X TX"
+  shows "top1_regular_on X TX"
+proof -
+  obtain d where hd: "top1_metric_on X d" and hTX: "TX = top1_metric_topology_on X d"
+    using hMet unfolding top1_metrizable_on_def
+    
+    by blast
+  have hTop: "is_topology_on X TX"
+    using hTX hd top1_metric_topology_on_is_topology_on
+    
+    by blast
+  text \<open>Metric spaces are Hausdorff.\<close>
+  have hHaus: "is_hausdorff_on X TX"
+    unfolding hTX by (rule metric_topology_hausdorff[OF hd])
+  have hT1: "top1_T1_on X TX"
+    using hausdorff_imp_T1_on[OF hHaus]
+    
+    by satx
+  text \<open>Regularity: separate x from closed C.\<close>
+  show ?thesis
+    unfolding top1_regular_on_def
+  proof (intro conjI allI impI ballI)
+    show "top1_T1_on X TX" by (rule hT1)
+  next
+    fix x C assume hxX: "x \<in> X" and hxC: "closedin_on X TX C \<and> x \<notin> C"
+    have hCclosed: "closedin_on X TX C" and hxnotC: "x \<notin> C"
+      using hxC
+      by presburger+
+    have hXmC_open: "X - C \<in> TX" using hCclosed unfolding closedin_on_def
+      
+      by presburger
+    have hxXmC: "x \<in> X - C" using hxX hxnotC
+      
+      by blast
+    obtain r where hrpos: "0 < r" and hball_sub: "top1_ball_on X d x r \<subseteq> X - C"
+      using top1_metric_open_contains_ball[OF hd _ hxXmC] hXmC_open hTX
+      
+      by blast
+    define r2 where "r2 = r / 2"
+    have hr2pos: "0 < r2" unfolding r2_def using hrpos
+      
+      by simp
+    let ?U = "top1_ball_on X d x r2"
+    let ?V = "top1_nbhd_of_set X d C r2"
+    have hU_open: "?U \<in> TX"
+      using hd hxX hr2pos hTX
+      
+      using hTX hxX hd hr2pos top1_ball_open_in_metric_topology by fastforce
+    have hxU: "x \<in> ?U"
+    proof -
+      have "d x x = 0" using hd hxX unfolding top1_metric_on_def
+        
+        by blast
+      then show ?thesis unfolding top1_ball_on_def using hxX hr2pos
+        
+        by force
+    qed
+    have hCX: "C \<subseteq> X" using hCclosed unfolding closedin_on_def
+      
+      by presburger
+    have hV_open: "?V \<in> TX"
+      unfolding hTX using hd hCX hr2pos
+      by (rule top1_nbhd_of_set_open)
+    have hC_sub_V: "C \<subseteq> ?V"
+    proof (rule subsetI)
+      fix c assume hcC: "c \<in> C"
+      have hcX: "c \<in> X" using hcC hCX
+        
+        by fast
+      show "c \<in> ?V"
+        using top1_nbhd_of_set_contains[OF hd hcC hCX hr2pos]
+        
+        by presburger
+    qed
+    have hUV_disj: "?U \<inter> ?V = {}"
+    proof (rule ccontr)
+      assume "\<not> ?U \<inter> ?V = {}"
+      then obtain z where hzU: "z \<in> ?U" and hzV: "z \<in> ?V"
+        
+        by blast
+      have hzX: "z \<in> X" using hzU unfolding top1_ball_on_def
+        
+        by blast
+      have hdxz: "d x z < r2" using hzU unfolding top1_ball_on_def
+        
+        by blast
+      obtain c where hcC: "c \<in> C" and hzball: "z \<in> top1_ball_on X d c r2"
+        using hzV unfolding top1_nbhd_of_set_def
+        
+        by blast
+      have hcX: "c \<in> X" using hcC hCX
+        
+        by blast
+      have hdcz: "d c z < r2" using hzball unfolding top1_ball_on_def
+        
+        by blast
+      have htri: "d x c \<le> d x z + d z c"
+        using hd hxX hzX hcX unfolding top1_metric_on_def
+        
+        by blast
+      have hdsym: "d z c = d c z"
+        using hd hzX hcX unfolding top1_metric_on_def
+        
+        by blast
+      have "d x c < r" using htri hdsym hdxz hdcz unfolding r2_def
+        
+        by linarith
+      then have "c \<in> top1_ball_on X d x r"
+        unfolding top1_ball_on_def using hcX
+        
+        by blast
+      then have "c \<in> X - C" using hball_sub
+        
+        by auto
+      then show False using hcC
+        
+        by fastforce
+    qed
+    have hUnbhd: "neighborhood_of x X TX ?U"
+      unfolding neighborhood_of_def using hU_open hxU
+      
+      by argo
+    show "\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {}"
+      using hUnbhd hV_open hC_sub_V hUV_disj
+      
+      by blast
+  qed
+qed
+
 (** from \S40 Lemma 40.2 [top1.tex:5724] **)
 lemma Lemma_40_2:
   assumes hN: "top1_normal_on X TX"
@@ -4120,7 +4499,7 @@ theorem Theorem_40_3:
 proof (intro iffI)
   assume hMet: "top1_metrizable_on X TX"
   have hReg: "top1_regular_on X TX"
-    sorry (* metrizable → regular: proved later as metrizable_imp_regular *)
+    by (simp add: hMet metrizable_imp_regular)
   have "\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>"
   proof -
     obtain d where hd: "top1_metric_on X d" and hTXeq: "TX = top1_metric_topology_on X d"
@@ -4164,13 +4543,15 @@ proof (intro iffI)
       by blast
     text \<open>B = ∪_m Bm is sigma-LF.\<close>
     define B where "B = (\<Union>m. Bm m)"
+    have hTop_ctx: "is_topology_on X TX"
+      using hd hTXeq top1_metric_topology_on_is_topology_on
+      by blast
+    have hBm_slf: "\<forall>m. top1_sigma_locally_finite_family_on X TX (Bm m)"
+      using hBm
+      by blast
     have hB_slf: "top1_sigma_locally_finite_family_on X TX B"
-      sorry (* Sigma-LF of union: each Bm is sigma-LF = ∪_n Bm_n (LF).
-               B = ∪_m ∪_n Bm_n. ℕ×ℕ is countable, so reindex as ∪_k C(k) with C(k) LF.
-               Needs: ℕ×ℕ countability or explicit surjection ℕ → ℕ×ℕ.
-               Could use: λk. Bm (fst (prod_decode k)) (snd (prod_decode k))
-               but prod_decode needs Library/Nat_Bijection which may not be imported.
-               Alternative: use diagonal enumeration (m+n = k, m varies). *)
+      unfolding B_def using countable_union_sigma_lf[OF hTop_ctx hBm_slf]
+      by blast
     have hB_open: "B \<subseteq> TX"
       using hBm unfolding top1_open_covering_on_def B_def
       
@@ -4829,232 +5210,6 @@ next
     by blast
 qed
 
-text \<open>Metric topologies are Hausdorff: distinct points separated by d/2-balls.\<close>
-lemma metric_topology_hausdorff:
-  assumes hd: "top1_metric_on X d"
-  shows "is_hausdorff_on X (top1_metric_topology_on X d)"
-proof -
-  let ?TX = "top1_metric_topology_on X d"
-  have hTop: "is_topology_on X ?TX"
-    using hd top1_metric_topology_on_is_topology_on
-    
-    by blast
-  have hSep: "\<forall>x y. x \<in> X \<and> y \<in> X \<and> x \<noteq> y \<longrightarrow>
-    (\<exists>U V. neighborhood_of x X ?TX U \<and> neighborhood_of y X ?TX V \<and> U \<inter> V = {})"
-  proof (intro allI impI)
-    fix x y assume hxy: "x \<in> X \<and> y \<in> X \<and> x \<noteq> y"
-    have hxX: "x \<in> X" and hyX: "y \<in> X" and hne: "x \<noteq> y"
-      using hxy
-      
-      by presburger+
-      have hdnonneg: "0 \<le> d x y" using hd hxX hyX unfolding top1_metric_on_def
-        
-        by blast
-      have hdzero: "d x y = 0 \<longleftrightarrow> x = y" using hd hxX hyX unfolding top1_metric_on_def
-        
-        by blast
-      have hdpos: "d x y > 0" using hdnonneg hdzero hne
-        
-        by simp
-      define r where "r = d x y / 2"
-      have hrpos: "r > 0" unfolding r_def using hdpos
-        
-        by simp
-      let ?U = "top1_ball_on X d x r"
-      let ?V = "top1_ball_on X d y r"
-      have hUopen: "?U \<in> ?TX"
-        using hd hxX hrpos top1_ball_open_in_metric_topology
-        
-        by fast
-      have hxU: "x \<in> ?U"
-        unfolding top1_ball_on_def
-        using hxX hd hrpos unfolding top1_metric_on_def
-        
-        by fastforce
-      have hVopen: "?V \<in> ?TX"
-        using hd hyX hrpos top1_ball_open_in_metric_topology
-        
-        by fast
-      have hyV: "y \<in> ?V"
-        unfolding top1_ball_on_def
-        using hyX hd hrpos unfolding top1_metric_on_def
-        
-        by fastforce
-      have hUV_disj: "?U \<inter> ?V = {}"
-      proof (rule ccontr)
-        assume "\<not> ?U \<inter> ?V = {}"
-        then obtain z where hzU: "z \<in> ?U" and hzV: "z \<in> ?V"
-          
-          by blast
-        have hzX: "z \<in> X" and hdxz: "d x z < r" and hdyz: "d y z < r"
-          using hzU hzV unfolding top1_ball_on_def
-          
-          by blast+
-        have htri: "d x y \<le> d x z + d z y"
-          using hd hxX hzX hyX unfolding top1_metric_on_def
-          
-          by blast
-        have hdsym: "d z y = d y z"
-          using hd hzX hyX unfolding top1_metric_on_def
-          
-          by blast
-        have "d x y < r + r" using htri hdsym hdxz hdyz
-          
-          by simp
-        then show False unfolding r_def using hdpos
-          
-          by auto
-      qed
-      have hUnbhd: "neighborhood_of x X ?TX ?U"
-        unfolding neighborhood_of_def using hUopen hxU
-        
-        by argo
-      have hVnbhd: "neighborhood_of y X ?TX ?V"
-        unfolding neighborhood_of_def using hVopen hyV
-        
-        by argo
-      show "\<exists>U V. neighborhood_of x X ?TX U \<and> neighborhood_of y X ?TX V \<and> U \<inter> V = {}"
-        using hUnbhd hVnbhd hUV_disj
-        
-        by blast
-  qed
-  show ?thesis
-    unfolding is_hausdorff_on_def using hTop hSep
-    
-    by blast
-qed
-
-text \<open>Metrizable spaces are regular: for x and closed C with x \<notin> C,
-  use d(x,C)/2 balls to separate.\<close>
-lemma metrizable_imp_regular:
-  assumes hMet: "top1_metrizable_on X TX"
-  shows "top1_regular_on X TX"
-proof -
-  obtain d where hd: "top1_metric_on X d" and hTX: "TX = top1_metric_topology_on X d"
-    using hMet unfolding top1_metrizable_on_def
-    
-    by blast
-  have hTop: "is_topology_on X TX"
-    using hTX hd top1_metric_topology_on_is_topology_on
-    
-    by blast
-  text \<open>Metric spaces are Hausdorff.\<close>
-  have hHaus: "is_hausdorff_on X TX"
-    unfolding hTX by (rule metric_topology_hausdorff[OF hd])
-  have hT1: "top1_T1_on X TX"
-    using hausdorff_imp_T1_on[OF hHaus]
-    
-    by satx
-  text \<open>Regularity: separate x from closed C.\<close>
-  show ?thesis
-    unfolding top1_regular_on_def
-  proof (intro conjI allI impI ballI)
-    show "top1_T1_on X TX" by (rule hT1)
-  next
-    fix x C assume hxX: "x \<in> X" and hxC: "closedin_on X TX C \<and> x \<notin> C"
-    have hCclosed: "closedin_on X TX C" and hxnotC: "x \<notin> C"
-      using hxC
-      by presburger+
-    have hXmC_open: "X - C \<in> TX" using hCclosed unfolding closedin_on_def
-      
-      by presburger
-    have hxXmC: "x \<in> X - C" using hxX hxnotC
-      
-      by blast
-    obtain r where hrpos: "0 < r" and hball_sub: "top1_ball_on X d x r \<subseteq> X - C"
-      using top1_metric_open_contains_ball[OF hd _ hxXmC] hXmC_open hTX
-      
-      by blast
-    define r2 where "r2 = r / 2"
-    have hr2pos: "0 < r2" unfolding r2_def using hrpos
-      
-      by simp
-    let ?U = "top1_ball_on X d x r2"
-    let ?V = "top1_nbhd_of_set X d C r2"
-    have hU_open: "?U \<in> TX"
-      using hd hxX hr2pos hTX
-      
-      using hTX hxX hd hr2pos top1_ball_open_in_metric_topology by fastforce
-    have hxU: "x \<in> ?U"
-    proof -
-      have "d x x = 0" using hd hxX unfolding top1_metric_on_def
-        
-        by blast
-      then show ?thesis unfolding top1_ball_on_def using hxX hr2pos
-        
-        by force
-    qed
-    have hCX: "C \<subseteq> X" using hCclosed unfolding closedin_on_def
-      
-      by presburger
-    have hV_open: "?V \<in> TX"
-      unfolding hTX using hd hCX hr2pos
-      by (rule top1_nbhd_of_set_open)
-    have hC_sub_V: "C \<subseteq> ?V"
-    proof (rule subsetI)
-      fix c assume hcC: "c \<in> C"
-      have hcX: "c \<in> X" using hcC hCX
-        
-        by fast
-      show "c \<in> ?V"
-        using top1_nbhd_of_set_contains[OF hd hcC hCX hr2pos]
-        
-        by presburger
-    qed
-    have hUV_disj: "?U \<inter> ?V = {}"
-    proof (rule ccontr)
-      assume "\<not> ?U \<inter> ?V = {}"
-      then obtain z where hzU: "z \<in> ?U" and hzV: "z \<in> ?V"
-        
-        by blast
-      have hzX: "z \<in> X" using hzU unfolding top1_ball_on_def
-        
-        by blast
-      have hdxz: "d x z < r2" using hzU unfolding top1_ball_on_def
-        
-        by blast
-      obtain c where hcC: "c \<in> C" and hzball: "z \<in> top1_ball_on X d c r2"
-        using hzV unfolding top1_nbhd_of_set_def
-        
-        by blast
-      have hcX: "c \<in> X" using hcC hCX
-        
-        by blast
-      have hdcz: "d c z < r2" using hzball unfolding top1_ball_on_def
-        
-        by blast
-      have htri: "d x c \<le> d x z + d z c"
-        using hd hxX hzX hcX unfolding top1_metric_on_def
-        
-        by blast
-      have hdsym: "d z c = d c z"
-        using hd hzX hcX unfolding top1_metric_on_def
-        
-        by blast
-      have "d x c < r" using htri hdsym hdxz hdcz unfolding r2_def
-        
-        by linarith
-      then have "c \<in> top1_ball_on X d x r"
-        unfolding top1_ball_on_def using hcX
-        
-        by blast
-      then have "c \<in> X - C" using hball_sub
-        
-        by auto
-      then show False using hcC
-        
-        by fastforce
-    qed
-    have hUnbhd: "neighborhood_of x X TX ?U"
-      unfolding neighborhood_of_def using hU_open hxU
-      
-      by argo
-    show "\<exists>U V. neighborhood_of x X TX U \<and> V \<in> TX \<and> C \<subseteq> V \<and> U \<inter> V = {}"
-      using hUnbhd hV_open hC_sub_V hUV_disj
-      
-      by blast
-  qed
-qed
 
 text \<open>Key lemma for Theorem 41.4: sigma-locally-finite open covering → locally finite open covering.
   This is the (1)\<Rightarrow>(4) direction of Munkres' Lemma 41.3.\<close>
