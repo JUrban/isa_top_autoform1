@@ -5418,9 +5418,33 @@ next
       using hgB_prop unfolding top1_continuous_map_on_def top1_closed_interval_def
       by fast
     have hfJ_le1: "\<forall>p\<in>J. \<forall>x\<in>X. \<forall>y\<in>X. \<bar>fJ p x - fJ p y\<bar> \<le> 1"
-      unfolding J_def fJ_def using hgB_range
-      sledgehammer [timeout = 10]
-      sorry
+    proof (intro ballI)
+      fix p x y assume hp: "p \<in> J" and hx: "x \<in> X" and hy: "y \<in> X"
+      obtain n B where hpnB: "p = (n, B)" and hBn: "B \<in> Bn n"
+        using hp unfolding J_def by blast
+      have hBB: "B \<in> \<B>" using hBn hB_eq by blast
+      have "0 \<le> gB B x" "gB B x \<le> 1" using hgB_range hBB hx by blast+
+      have "0 \<le> gB B y" "gB B y \<le> 1" using hgB_range hBB hy by blast+
+      have "\<bar>fJ p x - fJ p y\<bar> = \<bar>gB B x / real (Suc n) - gB B y / real (Suc n)\<bar>"
+        unfolding fJ_def hpnB by simp
+      also have "... = \<bar>gB B x - gB B y\<bar> / real (Suc n)"
+      proof -
+        have "gB B x / real (Suc n) - gB B y / real (Suc n) = (gB B x - gB B y) / real (Suc n)"
+          by (simp add: diff_divide_distrib)
+        then show ?thesis by (simp add: abs_divide)
+      qed
+      also have "... \<le> 1 / real (Suc n)"
+      proof -
+        have "\<bar>gB B x - gB B y\<bar> \<le> 1"
+          using \<open>0 \<le> gB B x\<close> \<open>gB B x \<le> 1\<close> \<open>0 \<le> gB B y\<close> \<open>gB B y \<le> 1\<close>
+          by linarith
+        then show ?thesis
+          by (simp add: frac_le)
+      qed
+      also have "... \<le> 1"
+        by fastforce
+      finally show "\<bar>fJ p x - fJ p y\<bar> \<le> 1" .
+    qed
     have hfJ_bdd: "\<forall>x\<in>X. \<forall>y\<in>X. bdd_above ((\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J)"
       using hfJ_le1
       by fast
@@ -5468,8 +5492,14 @@ next
           text \<open>x ≠ y, {y} closed, X-{y} is neighborhood of x.\<close>
           have "closedin_on X TX {y}" using hT1 hyX
             by blast
+          have hXmy_open: "X - {y} \<in> TX" using \<open>closedin_on X TX {y}\<close>
+            unfolding closedin_on_def
+            by presburger
+          have hx_in: "x \<in> X - {y}" using hxX hne
+            by blast
           have "neighborhood_of x X TX (X - {y})"
-            sorry (* X-{y} open since {y} closed. x ∈ X-{y} since x≠y. *)
+            unfolding neighborhood_of_def using hXmy_open hx_in
+            by satx
           then obtain B where hB: "B \<in> \<B>" and hgBx: "0 < gB B x" and hgBy0: "\<forall>z\<in>X - (X - {y}). gB B z = 0"
             using hSep hxX
             by blast
@@ -5512,8 +5542,36 @@ next
       text \<open>Triangle: d x z ≤ d x y + d y z.\<close>
       fix x y z assume hxX: "x \<in> X" and hyX: "y \<in> X" and hzX: "z \<in> X"
       show "d x z \<le> d x y + d y z"
-        sorry (* Each |fJ p x - fJ p z| ≤ |fJ p x - fJ p y| + |fJ p y - fJ p z|
-                 ≤ d x y + d y z. So Sup ≤ d x y + d y z by cSup_least. *)
+      proof (cases "J = {}")
+        case True then show ?thesis unfolding d_def by simp
+      next
+        case False
+        have hne: "(\<lambda>p. \<bar>fJ p x - fJ p z\<bar>) ` J \<noteq> {}" using False by blast
+        have hd_xz_eq: "d x z = Sup ((\<lambda>p. \<bar>fJ p x - fJ p z\<bar>) ` J)"
+          unfolding d_def using False by simp
+        have hd_xy_eq: "d x y = Sup ((\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J)"
+          unfolding d_def using False by simp
+        have hd_yz_eq: "d y z = Sup ((\<lambda>p. \<bar>fJ p y - fJ p z\<bar>) ` J)"
+          unfolding d_def using False by simp
+        show ?thesis unfolding hd_xz_eq hd_xy_eq hd_yz_eq
+        proof (rule cSup_least[OF hne])
+          fix v assume "v \<in> (\<lambda>p. \<bar>fJ p x - fJ p z\<bar>) ` J"
+          then obtain p where hp: "p \<in> J" and hv: "v = \<bar>fJ p x - fJ p z\<bar>" by blast
+          have htri_p: "\<bar>fJ p x - fJ p z\<bar> \<le> \<bar>fJ p x - fJ p y\<bar> + \<bar>fJ p y - fJ p z\<bar>"
+            by argo
+          have hmem_xy: "\<bar>fJ p x - fJ p y\<bar> \<in> (\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J" using hp by blast
+          have hle_xy: "\<bar>fJ p x - fJ p y\<bar> \<le> Sup ((\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J)"
+            using cSup_upper[OF hmem_xy] hfJ_bdd hxX hyX
+            by fast
+          have hmem_yz: "\<bar>fJ p y - fJ p z\<bar> \<in> (\<lambda>p. \<bar>fJ p y - fJ p z\<bar>) ` J" using hp by blast
+          have hle_yz: "\<bar>fJ p y - fJ p z\<bar> \<le> Sup ((\<lambda>p. \<bar>fJ p y - fJ p z\<bar>) ` J)"
+            using cSup_upper[OF hmem_yz] hfJ_bdd hyX hzX
+            by fast
+          show "v \<le> Sup ((\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J) + Sup ((\<lambda>p. \<bar>fJ p y - fJ p z\<bar>) ` J)"
+            unfolding hv using htri_p hle_xy hle_yz
+            by argo
+        qed
+      qed
     qed
     text \<open>d-topology = TX: d-open → TX-open (from gB continuity), TX-open → d-open (from separation + LF).\<close>
     have hd_topology: "TX = top1_metric_topology_on X d"
