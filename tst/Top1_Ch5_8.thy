@@ -5337,12 +5337,60 @@ next
     text \<open>Step 3: The family {g_B | B ∈ B} separates points from closed sets.
       So by Theorem 34.2, the product map is an embedding.
       Then X homeomorphic to subspace of ℝ^J, which is metrizable.\<close>
+    text \<open>Choose g_B for each B ∈ B via choice.\<close>
+    obtain gB where hgB_prop: "\<forall>B\<in>\<B>. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (gB B)
+      \<and> (\<forall>x\<in>X - B. gB B x = 0) \<and> (\<forall>x\<in>B. 0 < gB B x)"
+      using bchoice[OF hgB_exists]
+      by presburger
+    text \<open>Define f_B: X → ℝ as gB composed with expand_range to ℝ.
+      {f_B | B ∈ B} separates points from closed sets: for x₀ and U neighborhood,
+      find B ∈ B with x₀ ∈ B ⊆ U, then f_B(x₀) > 0 and f_B = 0 outside B ⊆ U.\<close>
+    have hT1: "\<forall>x\<in>X. closedin_on X TX {x}"
+      using hReg unfolding top1_regular_on_def top1_T1_on_def
+      by satx
+    text \<open>Each gB B continuous into ℝ (expand range).\<close>
+    have hgB_cont_R: "\<forall>B\<in>\<B>. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (gB B)"
+    proof (intro ballI)
+      fix B assume "B \<in> \<B>"
+      then have "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (gB B)"
+        using hgB_prop
+        by blast
+      then show "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (gB B)"
+        by (metis Theorem_18_2(6) hTop order_topology_on_UNIV_is_topology_on
+          subspace_topology_is_topology_on subset_UNIV top1_closed_interval_topology_def)
+    qed
+    text \<open>Separation: for x₀ ∈ X and neighborhood U, find B with gB(x₀) > 0 and gB = 0 outside U.\<close>
+    have hSep: "\<forall>x0\<in>X. \<forall>U. neighborhood_of x0 X TX U \<longrightarrow>
+      (\<exists>B\<in>\<B>. 0 < gB B x0 \<and> (\<forall>x\<in>X - U. gB B x = 0))"
+    proof (intro ballI allI impI)
+      fix x0 U assume hx0: "x0 \<in> X" and hU: "neighborhood_of x0 X TX U"
+      obtain V where hV: "V \<in> TX" and hx0V: "x0 \<in> V" and hVU: "V \<subseteq> U"
+        using hU unfolding neighborhood_of_def
+        by blast
+      obtain B where hB: "B \<in> \<B>" and hx0B: "x0 \<in> B" and hBV: "B \<subseteq> V"
+        using basis_for_refine[OF hBasis hV hx0V]
+        by blast
+      have "0 < gB B x0" using hgB_prop hB hx0B
+        by blast
+      moreover have "\<forall>x\<in>X - U. gB B x = 0"
+      proof (intro ballI)
+        fix x assume "x \<in> X - U"
+        then have "x \<in> X - B" using hBV hVU
+          by blast
+        then show "gB B x = 0" using hgB_prop hB
+          by blast
+      qed
+      ultimately show "\<exists>B\<in>\<B>. 0 < gB B x0 \<and> (\<forall>x\<in>X - U. gB B x = 0)"
+        using hB
+        by blast
+    qed
+    text \<open>By Theorem 34.2, the product map F is an embedding into ℝ^B.
+      Then X ≅ F(X) ⊆ ℝ^B. Since ℝ^B with uniform metric is metrizable,
+      F(X) is metrizable, hence X is metrizable.\<close>
     show ?thesis
-      sorry (* Remaining: use Theorem 34.2 for embedding into product,
-               then show metrizable (subspace of metric space).
-               The key subtlety: uniform metric vs product topology.
-               For metrizable: subspace of ℝ^J with uniform metric is metrizable.
-               Estimated ~40 lines more. *)
+      sorry (* Final step: apply Theorem 34.2 for embedding, then conclude metrizable.
+               Needs: Theorem 34.2 application + metrizable subspace of metric space.
+               Estimated ~20 lines. *)
   qed
 qed
 
