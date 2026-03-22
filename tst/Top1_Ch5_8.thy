@@ -1683,6 +1683,20 @@ theorem Theorem_38_2:
                           \<and> (\<forall>x\<in>X. g' (e x) = f x)
                           \<longrightarrow> top1_eq_on Y g g')))"
   sorry
+  (* Proof outline (Munkres Theorem 38.2):
+     1. By Theorem 34.3, X embeds into [0,1]^J via F for some J.
+     2. Let Z = product space [0,1]^J with product topology.
+        Z is compact by Tychonoff (37.3) and Hausdorff.
+     3. Let Y = closure of F(X) in Z. Y is compact (closed in compact).
+        Y is Hausdorff (subspace of Hausdorff).
+     4. F: X → Y is an embedding with dense image.
+        So (Y, TY, F) is a compactification of X.
+     5. Extension: for bounded continuous g: X → R, g is in J (after rescaling).
+        π_g ∘ inclusion: Y → [0,1] is continuous and extends g.
+     6. Uniqueness: Lemma 38.3 (proved) — at most one extension to closure.
+     Requires: Tychonoff (proved), Theorem 34.3 (proved), closure properties,
+     product topology projections, Lemma 38.3 (proved).
+     Estimated ~100 lines. *)
 
 lemma top1_closedin_equalizer_of_continuous_maps:
   fixes f g :: "'a \<Rightarrow> 'b"
