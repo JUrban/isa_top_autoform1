@@ -5403,6 +5403,13 @@ next
       using local finiteness, then conclude metrizable. This is ~30 lines.
       Alternative: use that embedding_on gives homeomorphism to image, and pull back metric
       from product topology restricted to F(X) — but product topology not metrizable in general.\<close>
+    text \<open>Define metric d on X: d(x,y) = Sup{|g_B(x) - g_B(y)| / (n+1) | n, B ∈ B_n}.
+      This is the Nagata-Smirnov metric. All values in [0,1] since g_B ∈ [0,1] and divisor ≥ 1.
+      The f_{n,B} = g_B/(n+1) scaling ensures uniform metric continuity.\<close>
+    text \<open>For now, we sorry the final metrizability step.
+      The proof structure is: define d as above, show metric_on X d (from g_B properties),
+      show d-topology = TX (from separation + local finiteness + Archimedean).
+      All ingredients are proved; the assembly is ~40 lines of structured proof.\<close>
     show ?thesis
       sorry
   qed
