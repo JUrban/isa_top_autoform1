@@ -4665,8 +4665,21 @@ proof -
         sledgehammer [timeout = 10]
         sorry
       have hgeom_tail: "(\<Sum>i. (1/2::real) ^ Suc (i + n)) = (1/2::real)^n"
-        sledgehammer [timeout = 10]
-        sorry
+      proof -
+        have "(\<lambda>i. (1/2::real) ^ Suc (i + n)) = (\<lambda>i. (1/2)^(Suc n) * (1/2)^i)"
+          sledgehammer [timeout = 10]
+          sorry
+        then have "(\<Sum>i. (1/2::real) ^ Suc (i + n)) = (1/2)^(Suc n) * (\<Sum>i. (1/2::real)^i)"
+          using suminf_mult[of "\<lambda>i. (1/2::real)^i" "(1/2)^(Suc n)"]
+          by simp
+        also have "(1/2::real)^(Suc n) * (\<Sum>i. (1/2::real)^i) = (1/2)^(Suc n) * (1 / (1 - 1/2))"
+          using suminf_geometric[of "1/2::real"]
+          by auto
+        also have "(1/2::real)^(Suc n) * (1 / (1 - 1/2)) = (1/2)^n"
+          by simp
+        finally show ?thesis
+          by presburger
+      qed
       have hpow_mono: "((1/2::real)^n) \<le> (1/2)^N" using hnN
         by auto
       show "\<bar>(\<Sum>i<n. fn i x / 2 ^ Suc i) - f x\<bar> < \<epsilon>"
