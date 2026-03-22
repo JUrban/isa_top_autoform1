@@ -8055,6 +8055,134 @@ proof (rule metric_seq_closed_imp_closed)
   qed
 qed
 
+text \<open>Metric on a subset: restriction of a metric to a subset is a metric.\<close>
+lemma metric_on_subset:
+  assumes hd: "top1_metric_on X d"
+  assumes hAX: "A \<subseteq> X"
+  shows "top1_metric_on A d"
+  unfolding top1_metric_on_def
+  using hd hAX unfolding top1_metric_on_def
+  by blast
+
+text \<open>Convergent sequence eventually in closed set → limit in closed set.\<close>
+lemma metric_conv_eventually_in_closed:
+  assumes hd: "top1_metric_on X d"
+  assumes hCl: "closedin_on X (top1_metric_topology_on X d) A"
+  assumes hconv: "seq_converges_to_on s x X (top1_metric_topology_on X d)"
+  assumes hevent: "\<exists>N::nat. \<forall>n\<ge>N. s n \<in> A"
+  shows "x \<in> A"
+proof (rule ccontr)
+  assume hxnA: "x \<notin> A"
+  have hxX: "x \<in> X" using hconv unfolding seq_converges_to_on_def
+    by presburger
+  have hXmA_open: "X - A \<in> top1_metric_topology_on X d"
+    using hCl unfolding closedin_on_def
+    by presburger
+  have hxXmA: "x \<in> X - A" using hxX hxnA
+    by blast
+  obtain r where hrpos: "0 < r" and hball_sub: "top1_ball_on X d x r \<subseteq> X - A"
+    using top1_metric_open_contains_ball[OF hd hXmA_open hxXmA]
+    by blast
+  text \<open>s eventually in ball and eventually in A — contradiction.\<close>
+  have hball_open: "top1_ball_on X d x r \<in> top1_metric_topology_on X d"
+    using top1_ball_open_in_metric_topology[OF hd hxX hrpos]
+    by presburger
+  have "d x x = 0" using hd hxX unfolding top1_metric_on_def
+    by blast
+  have hx_in_ball: "x \<in> top1_ball_on X d x r"
+    unfolding top1_ball_on_def using hxX \<open>d x x = 0\<close> hrpos
+    by force
+  have hball_nbhd: "neighborhood_of x X (top1_metric_topology_on X d) (top1_ball_on X d x r)"
+    unfolding neighborhood_of_def using hball_open hx_in_ball
+    by presburger
+  obtain M :: nat where hM: "\<forall>n\<ge>M. s n \<in> top1_ball_on X d x r"
+    using hconv hball_nbhd unfolding seq_converges_to_on_def
+    by blast
+  obtain N :: nat where hN: "\<forall>n\<ge>N. s n \<in> A" using hevent
+    by auto
+  define k where "k = max M N"
+  have "s k \<in> top1_ball_on X d x r" using hM unfolding k_def
+    by fastforce
+  then have "s k \<in> X - A" using hball_sub
+    by blast
+  moreover have "s k \<in> A" using hN unfolding k_def
+    by fastforce
+  ultimately show False
+    by blast
+qed
+
+text \<open>Closed subset of a complete metric space is complete.\<close>
+lemma closed_subset_complete:
+  assumes hd: "top1_metric_on X d"
+  assumes hComp: "top1_complete_metric_on X d"
+  assumes hCl: "closedin_on X (top1_metric_topology_on X d) A"
+  shows "top1_complete_metric_on A d"
+proof -
+  have hAX: "A \<subseteq> X" using hCl unfolding closedin_on_def
+    by presburger
+  have hdA: "top1_metric_on A d" using metric_on_subset[OF hd hAX]
+    by presburger
+  show ?thesis unfolding top1_complete_metric_on_def
+  proof (intro conjI allI impI)
+    show "top1_metric_on A d" by (rule hdA)
+  next
+    fix s assume hCauchy_A: "top1_cauchy_seq_on A d s"
+    text \<open>s is Cauchy in X.\<close>
+    have hCauchy_X: "top1_cauchy_seq_on X d s"
+      unfolding top1_cauchy_seq_on_def
+    proof (intro allI impI)
+      fix e :: real assume "0 < e"
+      obtain N where "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> A \<and> s n \<in> A \<and> d (s m) (s n) < e"
+        using hCauchy_A \<open>0 < e\<close> unfolding top1_cauchy_seq_on_def
+        by presburger
+      then show "\<exists>N. \<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> X \<and> s n \<in> X \<and> d (s m) (s n) < e"
+        using hAX
+        by auto
+    qed
+    obtain x where hxX: "x \<in> X" and hconv: "seq_converges_to_on s x X (top1_metric_topology_on X d)"
+      using hComp hCauchy_X unfolding top1_complete_metric_on_def
+      by blast
+    text \<open>s is eventually in A (from Cauchy).\<close>
+    have hevent: "\<exists>N::nat. \<forall>n\<ge>N. s n \<in> A"
+    proof -
+      obtain N where "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> A \<and> s n \<in> A \<and> d (s m) (s n) < 1"
+        using hCauchy_A unfolding top1_cauchy_seq_on_def
+        by fastforce
+      then show ?thesis
+        by blast
+    qed
+    text \<open>x ∈ A by closedness.\<close>
+    have hxA: "x \<in> A"
+      using metric_conv_eventually_in_closed[OF hd hCl hconv hevent]
+      by presburger
+    text \<open>Convergence in subspace = convergence with restricted carrier.\<close>
+    have hconv_A: "seq_converges_to_on s x A (top1_metric_topology_on A d)"
+      unfolding metric_seq_conv_iff[OF hdA hxA]
+    proof (intro allI impI)
+      fix \<epsilon> :: real assume hepos: "0 < \<epsilon>"
+      have hconv_eps: "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. s n \<in> X \<and> d (s n) x < \<epsilon>"
+        using hconv unfolding metric_seq_conv_iff[OF hd hxX]
+        by argo
+      obtain N1 :: nat where hN1: "\<forall>n\<ge>N1. s n \<in> X \<and> d (s n) x < \<epsilon>"
+        using hconv_eps hepos
+        by presburger
+      obtain N2 :: nat where hN2: "\<forall>n\<ge>N2. s n \<in> A"
+        using hevent
+        by blast
+      show "\<exists>N::nat. \<forall>n\<ge>N. s n \<in> A \<and> d (s n) x < \<epsilon>"
+      proof (intro exI allI impI)
+        fix n assume "max N1 N2 \<le> n"
+        then have hN1n: "N1 \<le> n" by simp
+        have hN2n: "N2 \<le> n" using \<open>max N1 N2 \<le> n\<close> by simp
+        show "s n \<in> A \<and> d (s n) x < \<epsilon>" using hN1 hN2 hN1n hN2n by presburger
+      qed
+    qed
+    show "\<exists>x\<in>A. seq_converges_to_on s x A (top1_metric_topology_on A d)"
+      using hxA hconv_A
+      by blast
+  qed
+qed
+
 text \<open>Parts (b)-(d) of Theorem 43.6.\<close>
 theorem Theorem_43_6bcd:
   assumes hd: "top1_metric_on Y d"
