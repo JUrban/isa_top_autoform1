@@ -6622,6 +6622,16 @@ qed
 
 text \<open>Key lemma for Theorem 41.4: sigma-locally-finite open covering → locally finite open covering.
   This is the (1)\<Rightarrow>(4) direction of Munkres' Lemma 41.3.\<close>
+text \<open>Step (1)→(2): σ-LF open covering → LF covering (not necessarily open).
+  Extracted as reusable lemma for the expansion trick.\<close>
+lemma sigma_lf_to_lf_covering:
+  assumes hReg: "top1_regular_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
+  assumes hCov: "top1_open_covering_on X TX \<A>"
+  assumes hSLF: "top1_sigma_locally_finite_family_on X TX \<A>"
+  shows "\<exists>\<C>. (\<forall>C\<in>\<C>. C \<subseteq> X) \<and> X \<subseteq> \<Union>\<C> \<and> top1_refines \<C> \<A> \<and> top1_locally_finite_family_on X TX \<C>"
+  sorry
+
 lemma sigma_lf_to_lf_open_covering:
   assumes hReg: "top1_regular_on X TX"
   assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
@@ -7172,7 +7182,7 @@ proof -
         using hSLF_all hG_cov by blast
       text \<open>Apply step12 to G_s: get LF covering F_raw refining G_s.\<close>
       have hstep12_Gs: "\<exists>\<F>0. (\<forall>F\<in>\<F>0. F \<subseteq> X) \<and> X \<subseteq> \<Union>\<F>0 \<and> top1_refines \<F>0 \<G>s \<and> top1_locally_finite_family_on X TX \<F>0"
-        sorry
+        using sigma_lf_to_lf_covering[OF hReg hTsub hGs_cov hGs_slf] by blast
       obtain \<F>0 where hF0_subX: "\<forall>F\<in>\<F>0. F \<subseteq> X" and hF0_covers: "X \<subseteq> \<Union>\<F>0"
         and hF0_ref: "top1_refines \<F>0 \<G>s" and hF0_lf: "top1_locally_finite_family_on X TX \<F>0"
         using hstep12_Gs by blast
@@ -7230,13 +7240,39 @@ proof -
         qed
         have hfin_CW: "finite {C0 \<in> \<C>. intersects C0 W}"
           using finite_subset[OF hsub hfin_C] by blast
-        text \<open>Now: B-element meeting W → exists C0 meeting W with D ∩ C0 ≠ {}.\<close>
-        have hsub_B: "{B0 \<in> \<B>. intersects B0 W} \<subseteq>
-          (\<lambda>C0. E C0 \<inter> parent C0) ` {C0 \<in> \<C>. intersects C0 W}"
-          sorry
+        text \<open>Munkres argument: W ⊆ ∪F_i (F covers X). Each F_i meets finitely many
+          B-elements (if F meets E(C0)∩parent(C0) then F∩C0≠{}, and each F meets finitely
+          many C-elements). So total B-elements meeting W is finite.\<close>
+        have hfin_B: "finite {B0 \<in> \<B>. intersects B0 W}"
+        proof -
+          have hB_sub_FC: "{B0 \<in> \<B>. intersects B0 W} \<subseteq>
+            (\<lambda>C0. E C0 \<inter> parent C0) ` (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
+          proof (rule subsetI)
+            fix B0 assume "B0 \<in> {B0 \<in> \<B>. intersects B0 W}"
+            then have "B0 \<in> \<B>" "intersects B0 W" by blast+
+            obtain C0 where "C0 \<in> \<C>" "B0 = E C0 \<inter> parent C0"
+              using \<open>B0 \<in> \<B>\<close> unfolding \<B>_def by auto
+            obtain y where "y \<in> B0" "y \<in> W"
+              using \<open>intersects B0 W\<close> unfolding intersects_def by blast
+            then have "y \<in> X" using hTsub \<open>W \<in> TX\<close> by blast
+            obtain Fi where "Fi \<in> \<F>" "y \<in> Fi" using hF_covers \<open>y \<in> X\<close> by auto
+            have "intersects Fi W" unfolding intersects_def using \<open>y \<in> Fi\<close> \<open>y \<in> W\<close> by blast
+            text \<open>Fi meets E(C0), so Fi ∩ C0 ≠ {}.\<close>
+            have "y \<in> E C0" using \<open>y \<in> B0\<close> \<open>B0 = E C0 \<inter> parent C0\<close> by blast
+            have "Fi \<inter> E C0 \<noteq> {}" using \<open>y \<in> Fi\<close> \<open>y \<in> E C0\<close> by blast
+            have "intersects C0 Fi"
+              sorry
+            then have "C0 \<in> (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
+              using \<open>C0 \<in> \<C>\<close> \<open>Fi \<in> \<F>\<close> \<open>intersects Fi W\<close> by blast
+            then show "B0 \<in> (\<lambda>C0. E C0 \<inter> parent C0) ` (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
+              using \<open>C0 \<in> \<C>\<close> \<open>B0 = E C0 \<inter> parent C0\<close> by blast
+          qed
+          have "finite (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
+            using hF_star \<open>finite {F \<in> \<F>. intersects F W}\<close> by blast
+          then show ?thesis using finite_subset[OF hB_sub_FC finite_imageI] by blast
+        qed
         show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> \<B>. intersects A U}"
-          using \<open>W \<in> TX\<close> \<open>x \<in> W\<close> finite_subset[OF hsub_B finite_imageI[OF hfin_CW]]
-          by blast
+          using \<open>W \<in> TX\<close> \<open>x \<in> W\<close> hfin_B by blast
       qed
     qed
 
