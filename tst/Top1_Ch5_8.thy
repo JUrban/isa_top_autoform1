@@ -5294,11 +5294,25 @@ next
       using hSLF unfolding top1_sigma_locally_finite_family_on_def
       by blast
     text \<open>For each B in the basis, X-B is closed.\<close>
-    have hB_open: "\<B> \<subseteq> TX" using hBasis unfolding basis_for_def is_basis_on_def
-      sorry (* B is a basis for TX, so B ⊆ TX by topology_generated_by_basis properties. *)
+    have hB_open: "\<B> \<subseteq> TX"
+      using basis_elem_open_if_basis_for[OF hBasis]
+      by blast
+    have hB_subX: "\<forall>B\<in>\<B>. B \<subseteq> X"
+      using hBasis unfolding basis_for_def is_basis_on_def
+      by presburger
     have hXmB_closed: "\<forall>B\<in>\<B>. closedin_on X TX (X - B)"
-      sorry (* X-B is closed since B is open. Needs: B ⊆ TX + open/closed complement.
-               Also needs: B ⊆ X for set arithmetic. *)
+    proof (intro ballI)
+      fix B assume "B \<in> \<B>"
+      have "B \<in> TX" using hB_open \<open>B \<in> \<B>\<close>
+        by blast
+      have "B \<subseteq> X" using hB_subX \<open>B \<in> \<B>\<close>
+        by blast
+      then have "X - (X - B) = B"
+        by fast
+      then show "closedin_on X TX (X - B)"
+        unfolding closedin_on_def using \<open>B \<in> TX\<close>
+        by auto
+    qed
     text \<open>For each B, Lemma 40.2 gives g_B.\<close>
     have hgB_exists: "\<forall>B\<in>\<B>. \<exists>gB. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) gB
       \<and> (\<forall>x\<in>X - B. gB x = 0) \<and> (\<forall>x\<in>B. 0 < gB x)"
@@ -5313,8 +5327,8 @@ next
         using Lemma_40_2[OF hNorm hXmB_cl hXmB_gd]
         by blast
       text \<open>X - (X - B) = B ∩ X. Since B ⊆ X (from basis), this is B.\<close>
-      have "X - (X - B) = B" using hB hB_open
-        sorry (* Needs B ⊆ X from basis/topology. *)
+      have "X - (X - B) = B" using hB hB_subX
+        by fast
       then show "\<exists>gB. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) gB
         \<and> (\<forall>x\<in>X - B. gB x = 0) \<and> (\<forall>x\<in>B. 0 < gB x)"
         using hgB
