@@ -11404,9 +11404,62 @@ lemma metric_limit_preserves_bound:
   assumes hbY: "b \<in> Y"
   assumes hc: "0 \<le> c"
   shows "d a b \<le> c"
-  sorry (* ~20 lines: for any ε'>0, get M with d(s n, a) < ε' for n ≥ M.
-           Pick n = max(N,M). d(a,b) ≤ d(a, s n) + d(s n, b) < ε' + c.
-           Since ∀ε'>0. d(a,b) < c + ε', conclude d(a,b) ≤ c. *)
+proof (rule field_le_epsilon)
+  fix e' :: real assume he': "0 < e'"
+  have haY: "a \<in> Y"
+    using hconv unfolding seq_converges_to_on_def
+    
+    by satx
+  text \<open>Get M with d(s n, a) < e' for n ≥ M.\<close>
+  have hball_open: "top1_ball_on Y d a e' \<in> top1_metric_topology_on Y d"
+    using hd haY he' top1_ball_open_in_metric_topology
+    
+    by fast
+  have ha_in_ball: "a \<in> top1_ball_on Y d a e'"
+    unfolding top1_ball_on_def using haY hd he' unfolding top1_metric_on_def
+    
+    by fastforce
+  have hnbhd: "neighborhood_of a Y (top1_metric_topology_on Y d) (top1_ball_on Y d a e')"
+    unfolding neighborhood_of_def using hball_open ha_in_ball
+    
+    by satx
+  obtain M where hM: "\<forall>n\<ge>M. s n \<in> top1_ball_on Y d a e'"
+    using hconv hnbhd unfolding seq_converges_to_on_def
+    
+    by blast
+  text \<open>Pick n = max(N, M).\<close>
+  define n0 where "n0 = max N M"
+  have hn0N: "n0 \<ge> N" unfolding n0_def
+    
+    by simp
+  have hn0M: "n0 \<ge> M" unfolding n0_def
+    
+    by simp
+  have hsn0_ball: "s n0 \<in> top1_ball_on Y d a e'"
+    using hM hn0M
+    
+    by presburger
+  have hd_a_sn0: "d a (s n0) < e'"
+    using hsn0_ball unfolding top1_ball_on_def
+    
+    by blast
+  have hd_sn0_b: "d (s n0) b \<le> c"
+    using hbound hn0N
+    
+    by blast
+  have hsn0Y: "s n0 \<in> Y"
+    using hsn0_ball unfolding top1_ball_on_def
+    
+    by blast
+  have htri: "d a b \<le> d a (s n0) + d (s n0) b"
+    using hd haY hsn0Y hbY unfolding top1_metric_on_def
+    
+    by blast
+  show "d a b \<le> c + e'"
+    using htri hd_a_sn0 hd_sn0_b
+    
+    by argo
+qed
 
 (** from \S48 Theorem 48.5 [top1.tex:7222] **)
 text \<open>Helper for Theorem 48.5: A_N(ε) = {x ∈ X | ∀n,m ≥ N. d(f_n(x), f_m(x)) ≤ ε}.\<close>
