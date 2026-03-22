@@ -11436,9 +11436,36 @@ proof -
         using hSnm_closed
         
         by blast
+      text \<open>Intersection of closed sets is closed.\<close>
+      have hANsub: "AN N e \<subseteq> X" unfolding AN_def top1_AN_48_def
+        
+        by blast
+      have hXmAN: "X - AN N e \<in> TX"
+      proof -
+        have "X - AN N e = (\<Union>n\<in>{N..}. \<Union>m\<in>{N..}. X - Snm n m)"
+          unfolding hAN_eq
+          
+          by blast
+        also have "\<dots> \<in> TX"
+        proof -
+          have "\<forall>n m. X - Snm n m \<in> TX" using hSnm_closed unfolding closedin_on_def
+            
+            by blast
+          then have hsub_TX: "(\<lambda>(n,m). X - Snm n m) ` ({N..} \<times> {N..}) \<subseteq> TX"
+            by fast
+          have "(\<Union>n\<in>{N..}. \<Union>m\<in>{N..}. X - Snm n m) = \<Union>((\<lambda>(n,m). X - Snm n m) ` ({N..} \<times> {N..}))"
+            
+            by blast
+          then show ?thesis using hTop hsub_TX unfolding is_topology_on_def
+            
+            by presburger
+        qed
+        finally show ?thesis .
+      qed
       show "closedin_on X TX (AN N e)"
-        unfolding hAN_eq
-        sorry (* Intersection of closed sets is closed. Uses is_topology_on. *)
+        unfolding closedin_on_def using hANsub hXmAN
+        
+        by argo
     qed
     text \<open>∪_N AN N e = X.\<close>
     have hAN_covers: "X = (\<Union>N. AN N e)"
