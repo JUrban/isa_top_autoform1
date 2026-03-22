@@ -5723,10 +5723,24 @@ next
                     and hFin: "finite {B \<in> Bn n. intersects B Unbhd}"
                     using hBn_lf hxX unfolding top1_locally_finite_family_on_def
                     by blast
+                  text \<open>For B not meeting Unbhd: x ∉ B so gB B x = 0, fJ = 0 at x.
+                    For y ∈ Unbhd: y ∉ B so gB B y = 0, fJ = 0 at y. Diff = 0.\<close>
+                  have hzero_outside: "\<forall>B\<in>Bn n. \<not>intersects B Unbhd \<longrightarrow>
+                    (\<forall>y\<in>Unbhd. fJ (n, B) y = 0 \<and> fJ (n, B) x = 0)"
+                    sorry (* x ∈ Unbhd, B ∩ Unbhd = {} → x ∉ B → gB B x = 0 (hgB_prop).
+                             y ∈ Unbhd, B ∩ Unbhd = {} → y ∉ B → gB B y = 0. fJ = gB/(n+1) = 0. *)
+                  text \<open>For B meeting Unbhd: fJ continuous → preimage of (fJ(x)-ε/2, fJ(x)+ε/2).\<close>
+                  have hVB_ex: "\<forall>B\<in>{B \<in> Bn n. intersects B Unbhd}.
+                    \<exists>VB\<in>TX. x \<in> VB \<and> (\<forall>y\<in>VB. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> < \<epsilon>/2)"
+                    sorry (* fJ(n,B) continuous (hfJ_cont), so preimage of open ball in ℝ
+                             centered at fJ(n,B)(x) with radius ε/2 is TX-open containing x. *)
+                  text \<open>Combine: Wn = Unbhd ∩ ∩{VB | B meets Unbhd}.\<close>
                   show "\<exists>Wn\<in>TX. x \<in> Wn \<and> (\<forall>y\<in>Wn. \<forall>B\<in>Bn n. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2)"
-                    sorry (* Combine: For B not meeting Unbhd: fJ = 0 at x and y on Unbhd.
-                             For B meeting Unbhd (finite): fJ continuous → VB.
-                             Wn = Unbhd ∩ ∩{VB}, TX-open, bound holds. ~15 lines. *)
+                    sorry (* Choose VBs via hVB_ex. Wn = Unbhd ∩ ∩{VB} is finite intersection
+                             of TX-opens (hFin gives finitely many B meeting Unbhd).
+                             For y ∈ Wn and B ∈ Bn n:
+                               if B meets Unbhd: y ∈ VB → |diff| < ε/2 ≤ ε/2
+                               if B doesn't meet Unbhd: |diff| = 0 ≤ ε/2 (hzero_outside) *)
                 qed
                 then obtain Wn where hWn: "\<forall>n\<le>N. Wn n \<in> TX \<and> x \<in> Wn n
                   \<and> (\<forall>y\<in>Wn n. \<forall>B\<in>Bn n. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2)"
