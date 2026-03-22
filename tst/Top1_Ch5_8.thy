@@ -4757,8 +4757,46 @@ proof -
     using top1_continuous_sum_lessThan_real[OF hTop] hfn_scaled_cont_R
     by presburger
   text \<open>Partial sum range in [0,1], so continuous into [0,1].\<close>
+  have hpartial_range: "\<forall>n::nat. \<forall>x\<in>X. (\<Sum>i<n. fn i x / 2^(Suc i)) \<in> top1_closed_interval 0 1"
+  proof (intro allI ballI)
+    fix n :: nat and x assume hxX: "x \<in> X"
+    have hnn: "0 \<le> (\<Sum>i<n. fn i x / 2 ^ Suc i)"
+      using hfn_range hxX
+      by (simp add: sum_nonneg)
+    have hle_sum: "(\<Sum>i<n. fn i x / 2 ^ Suc i) \<le> suminf (\<lambda>i. fn i x / 2 ^ Suc i)"
+    proof (rule sum_le_suminf)
+      show "summable (\<lambda>i. fn i x / 2 ^ Suc i)" using hsummable hxX
+        by blast
+      show "finite {..<n}"
+        by simp
+      fix m assume "m \<in> - {..<n}"
+      show "0 \<le> fn m x / 2 ^ Suc m" using hfn_range hxX
+        by simp
+    qed
+    have hle1: "(\<Sum>i<n. fn i x / 2 ^ Suc i) \<le> 1"
+      using hle_sum hf_range hxX unfolding f_def
+      using order_trans by blast
+    show "(\<Sum>i<n. fn i x / 2 ^ Suc i) \<in> top1_closed_interval 0 1"
+      unfolding top1_closed_interval_def using hnn hle1
+      by fast
+  qed
   have hpartial_cont: "\<forall>n::nat. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (\<lambda>x. \<Sum>i<n. fn i x / 2^(Suc i))"
-    sorry (* Range ⊆ [0,1] from hf_range + partial sum ≤ f. Then restrict_range. *)
+  proof (intro allI)
+    fix n :: nat
+    have hcont_R: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. \<Sum>i<n. fn i x / 2 ^ Suc i)"
+      using hpartial_cont_R
+      by blast
+    have hI_sub: "top1_closed_interval (0::real) 1 \<subseteq> UNIV"
+      by auto
+    have hrange_sub: "(\<lambda>x. \<Sum>i<n. fn i x / 2 ^ Suc i) ` X \<subseteq> top1_closed_interval 0 1"
+      using hpartial_range
+      by blast
+    show "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (\<lambda>x. \<Sum>i<n. fn i x / 2 ^ Suc i)"
+      unfolding top1_closed_interval_topology_def
+      using Theorem_18_2(5)[OF hTop order_topology_on_UNIV_is_topology_on order_topology_on_UNIV_is_topology_on]
+        hcont_R hI_sub hrange_sub
+      by blast
+  qed
   have hf_cont: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
     sorry (* Uniform convergence (hunif_partial) + partial sums continuous (hpartial_cont)
              + f range in [0,1] (hf_range). Apply uniform_limit_continuous for ℝ metric,
