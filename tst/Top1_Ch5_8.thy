@@ -11993,21 +11993,24 @@ proof -
   qed
 
   have hC_sub_cont: "C \<subseteq> {x \<in> X. top1_continuous_at_on X TX Y ?TY g x}"
-    sorry (* Step 4 of Munkres' proof (~40 lines):
-       For x₀ ∈ C and ε > 0:
-       1. Pick k with 1/(Suc k) < ε/3.
-       2. x₀ ∈ U(1/(Suc k)) = ∪_N Int(AN N (1/(Suc k))).
-          So x₀ ∈ Int(AN N₀ (1/(Suc k))) for some N₀.
-       3. Int(AN N₀ ...) is open and contained in AN N₀.
-          So x₀ has nbhd inside AN N₀.
-       4. f_{N₀} continuous at x₀ → ∃ W nbhd with d(f_{N₀}(x), f_{N₀}(x₀)) < ε/3.
-       5. Take W' = W ∩ Int(AN N₀) (open nbhd of x₀).
-          For x ∈ W': d(f_n(x), f_{N₀}(x)) ≤ 1/(Suc k) for n ≥ N₀ (from AN).
-       6. Let n → ∞: d(g(x), f_{N₀}(x)) ≤ 1/(Suc k) < ε/3 (metric limit).
-       7. Similarly d(g(x₀), f_{N₀}(x₀)) < ε/3.
-       8. Triangle: d(g(x), g(x₀)) ≤ d(g(x), f_{N₀}(x)) + d(f_{N₀}(x), f_{N₀}(x₀))
-                                        + d(f_{N₀}(x₀), g(x₀)) < ε.
-       Needs: metric limit properties, AN membership, interior_on properties. *)
+    sorry (* FINAL sorry in Theorem 48.5. Step 4 of Munkres (~50 lines).
+       For x₀ ∈ C, show continuous_at_on: for every metric ε-ball around g(x₀),
+       find open neighborhood mapped inside.
+       1. Pick k: 1/(Suc k) < ε/3 (Archimedean).
+       2. x₀ ∈ C ⊆ U(1/(Suc k)) → x₀ ∈ Int(AN N₀ (1/(Suc k))) for some N₀.
+       3. Int(AN N₀) open in TX, x₀ ∈ it → x₀ has neighborhood ⊆ AN N₀.
+       4. f_{N₀} continuous → preimage of ball(f_{N₀}(x₀), ε/3) ∈ TX, contains x₀.
+       5. W = preimage ∩ Int(AN N₀) is open neighborhood of x₀.
+       6. For x ∈ W ⊆ AN N₀: d(f_n(x), f_{N₀}(x)) ≤ 1/(Suc k) for n ≥ N₀.
+       7. Metric limit: d(g(x), f_{N₀}(x)) ≤ 1/(Suc k) < ε/3 (from 6 + convergence).
+          Key fact: if d(a_n, b) ≤ c for all n ≥ N and a_n → a, then d(a, b) ≤ c.
+          This follows from d being continuous (metric) or directly from limit definition.
+       8. Similarly d(g(x₀), f_{N₀}(x₀)) ≤ 1/(Suc k) < ε/3.
+       9. d(f_{N₀}(x), f_{N₀}(x₀)) < ε/3 (from step 4, x ∈ preimage).
+       10. Triangle: d(g(x), g(x₀)) ≤ d(g(x), f_{N₀}(x)) + d(f_{N₀}(x), f_{N₀}(x₀))
+                                         + d(f_{N₀}(x₀), g(x₀)) < ε/3 + ε/3 + ε/3 = ε.
+       Main infrastructure needed: metric limit bound preservation (step 7),
+       interior_on ⊆ set, AN membership unfolding. *)
 
   show ?thesis
     unfolding top1_densein_on_def
