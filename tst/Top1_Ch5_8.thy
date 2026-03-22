@@ -11637,7 +11637,21 @@ proof -
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
      = subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d2)
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2)))"
-    sorry
+  proof (intro impI)
+    assume hCompX: "top1_compact_on X TX"
+    text \<open>For compact X: uniform = compact-convergence (46.7 + compact X is itself compact).
+      Then both uniform subspaces equal compact-open by 46.8.\<close>
+    have huni_eq_cc1: "top1_uniform_topology_on X Y d1 = top1_compact_convergence_topology_on X TX Y d1"
+      sorry
+    have huni_eq_cc2: "top1_uniform_topology_on X Y d2 = top1_compact_convergence_topology_on X TX Y d2"
+      sorry
+    show "subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d1)
+       (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
+     = subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d2)
+       (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))"
+      unfolding huni_eq_cc1 huni_eq_cc2 hCeq
+      using h1 h2 hTopEq by simp
+  qed
 qed
 
 (** from \S46 Theorem 46.10 [top1.tex:6863] **)
