@@ -8183,15 +8183,37 @@ proof -
   qed
 qed
 
-text \<open>Parts (b)-(d) of Theorem 43.6.\<close>
-theorem Theorem_43_6bcd:
+text \<open>Part (c): C(X,Y) complete when Y complete. Uses 43.5 + 43.6a + closed-subset-complete.\<close>
+theorem Theorem_43_6c:
+  assumes hd: "top1_metric_on Y d"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hXne: "X \<noteq> {}"
+  assumes hYcomp: "top1_complete_metric_on Y d"
+  shows "top1_complete_metric_on (top1_continuous_maps_metric_on X TX Y d) (top1_uniform_metric_on X d)"
+proof -
+  let ?PX = "top1_PiE X (\<lambda>_. Y)"
+  let ?rho = "top1_uniform_metric_on X d"
+  have hrho_m: "top1_metric_on ?PX ?rho"
+    using top1_uniform_metric_is_metric[OF hXne hd]
+    by blast
+  have hPX_complete: "top1_complete_metric_on ?PX ?rho"
+    using Theorem_43_5[OF hXne hYcomp]
+    by satx
+  have hClosed: "closedin_on ?PX (top1_metric_topology_on ?PX ?rho) (top1_continuous_maps_metric_on X TX Y d)"
+    using Theorem_43_6a[OF hd hTopX hXne]
+    by argo
+  show ?thesis
+    using closed_subset_complete[OF hrho_m hPX_complete hClosed]
+    by argo
+qed
+
+text \<open>Parts (b) and (d) of Theorem 43.6.\<close>
+theorem Theorem_43_6bd:
   assumes hd: "top1_metric_on Y d"
   shows "closedin_on
            (top1_PiE X (\<lambda>_. Y))
            (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
            (top1_bounded_maps_metric_on X Y d)"
-    and "top1_complete_metric_on Y d
-          \<longrightarrow> top1_complete_metric_on (top1_continuous_maps_metric_on X TX Y d) (top1_uniform_metric_on X d)"
     and "top1_complete_metric_on Y d
           \<longrightarrow> top1_complete_metric_on (top1_bounded_maps_metric_on X Y d) (top1_uniform_metric_on X d)"
   sorry
