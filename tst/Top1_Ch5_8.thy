@@ -11402,6 +11402,7 @@ definition top1_AN_48 :: "(nat \<Rightarrow> 'a \<Rightarrow> 'b) \<Rightarrow> 
 
 theorem Theorem_48_5:
   assumes hTop: "is_topology_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   assumes hB: "top1_baire_on X TX"
   assumes hd: "top1_metric_on Y d"
   assumes hfn: "\<forall>n. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) (f n)"
@@ -11695,20 +11696,111 @@ proof -
     qed
     text \<open>U(e) is dense: uses Baire.\<close>
     show "top1_densein_on X TX (U e)"
-      sorry (* Baire argument for density of U(e), ~40 lines.
-         For every nonempty open V ⊆ X, V ∩ U(e) ≠ {}:
-         1. V is Baire (Lemma_48_4[OF hTop hB _ hV_open]).
-         2. V_N = V ∩ AN N e is closed in subspace(V) (AN closed in X, V open).
-         3. ∪_N V_N = V (from hAN_covers: X = ∪AN, V ⊆ X → V = V ∩ ∪AN = ∪(V ∩ AN)).
-         4. V Baire + closed covering V_N → by Baire, some V_M nonempty interior in V.
-            (Baire says countable intersection of open dense is dense.
-             Equivalently: countable union of closed with nonempty interiors covers
-             → at least one has nonempty interior.)
-         5. Interior W ⊆ V_M ⊆ AN M e. W open in V (hence in X since V open).
-         6. W ⊆ AN M e → W ⊆ Int_X(AN M e) ⊆ U(e).
-         7. W ⊆ V and W ≠ {} → V ∩ U(e) ≠ {}.
-         Needs: Lemma_48_4, Baire property as "countable closed cover → some has interior",
-         which follows from Baire as stated. *)
+    proof -
+      text \<open>Show U e meets every nonempty open V.\<close>
+      have hU_meets: "\<forall>V. V \<in> TX \<and> V \<noteq> {} \<longrightarrow> V \<inter> U e \<noteq> {}"
+      proof (intro allI impI)
+        fix V assume hVprop: "V \<in> TX \<and> V \<noteq> {}"
+        have hV: "V \<in> TX" and hVne: "V \<noteq> {}" using hVprop
+          
+          by presburger+
+        have hVX: "V \<subseteq> X"
+          using hV hTsub
+          
+          by simp
+        let ?TV = "subspace_topology X TX V"
+        have hV_Baire: "top1_baire_on V ?TV"
+          using Lemma_48_4[OF hTop hB hVX hV]
+          
+          by presburger
+        text \<open>V ∩ AN covers V.\<close>
+        have hVAN_covers: "V = (\<Union>N. V \<inter> AN N e)"
+          using hAN_covers hVX
+          
+          by blast
+        text \<open>V ∩ AN N e is closed in V.\<close>
+        have hVAN_closed: "\<forall>N. closedin_on V ?TV (V \<inter> AN N e)"
+          sorry (* AN N e closed in X, V open → V ∩ AN closed in V.
+                   V - (V ∩ AN) = V ∩ (X - AN) = V ∩ open = open in subspace. *)
+        text \<open>Baire dual: some V ∩ AN M has nonempty interior in V.\<close>
+        have "\<exists>M. interior_on V ?TV (V \<inter> AN M e) \<noteq> {}"
+        proof (rule ccontr)
+          assume "\<not> (\<exists>M. interior_on V ?TV (V \<inter> AN M e) \<noteq> {})"
+          then have hall_empty: "\<forall>M. interior_on V ?TV (V \<inter> AN M e) = {}"
+            
+            by presburger
+          text \<open>Then V - (V ∩ AN M e) = open dense in V for each M.\<close>
+          define DN where "DN M = V - V \<inter> AN M e" for M :: nat
+          have hDN_open: "\<forall>M. DN M \<in> ?TV"
+            sorry (* V - closed-in-V = open in V *)
+          have hDN_dense: "\<forall>M. top1_densein_on V ?TV (DN M)"
+            sorry (* Interior(V ∩ AN M) = {} means V ∩ AN M has no open subset.
+                     So V - (V ∩ AN M) meets every nonempty open in V. Dense. *)
+          have hDN_inter: "(\<Inter>M. DN M) = {}"
+            unfolding DN_def using hVAN_covers
+            
+            by blast
+          text \<open>But Baire on V: ∩DN dense in V, hence nonempty (V ≠ {}).\<close>
+          have hDN_all: "\<forall>M. DN M \<in> ?TV \<and> top1_densein_on V ?TV (DN M)"
+            using hDN_open hDN_dense
+            
+            by simp
+          have "top1_densein_on V ?TV (\<Inter>M. DN M)"
+            using hV_Baire hDN_all unfolding top1_baire_on_def
+            
+            by presburger
+          then have "(\<Inter>M. DN M) \<noteq> {}"
+            using hVne
+            sorry (* dense in V and V ≠ {} → nonempty *)
+          then show False using hDN_inter
+            
+            by order
+        qed
+        then obtain M where hM: "interior_on V ?TV (V \<inter> AN M e) \<noteq> {}"
+          
+          by presburger
+        text \<open>Get nonempty open W ⊆ V ∩ AN M e in V.\<close>
+        obtain w where hwint: "w \<in> interior_on V ?TV (V \<inter> AN M e)"
+          using hM
+          
+          by blast
+        have hw_in_V_AN: "w \<in> V \<inter> AN M e"
+          using hwint unfolding interior_on_def
+          
+          by fast
+        obtain W where hW_TV: "W \<in> ?TV" and hWsub: "W \<subseteq> V \<inter> AN M e" and hwW: "w \<in> W"
+          using hwint unfolding interior_on_def
+          
+          by blast
+        text \<open>W open in V (subspace) → W open in X (V open).\<close>
+        have hWne: "W \<noteq> {}" using hwW
+          
+          by blast
+        have hW_TX: "W \<in> TX"
+          using hW_TV hV unfolding subspace_topology_def
+          sorry (* W ∈ subspace V = {V ∩ U | U ∈ TX}, so W = V ∩ U' for some U' ∈ TX.
+                   W ⊆ V and V ∈ TX, U' ∈ TX → W = V ∩ U' ∈ TX. *)
+        text \<open>W ⊆ AN M e and W ∈ TX → W ⊆ Int(AN M e) ⊆ U(e).\<close>
+        have "W \<subseteq> AN M e" using hWsub
+          
+          by blast
+        then have "W \<subseteq> interior_on X TX (AN M e)" using hW_TX
+          unfolding interior_on_def
+          
+          by blast
+        then have "W \<subseteq> U e" unfolding U_def
+          
+          by blast
+        moreover have "W \<subseteq> V" using hWsub
+          
+          by simp
+        ultimately show "V \<inter> U e \<noteq> {}" using hWne
+          
+          by auto
+      qed
+      show ?thesis
+        sorry (* From hU_meets: U e meets every nonempty open → closure(U e) = X → dense *)
+    qed
   qed
 
   text \<open>f is continuous at each point of C = ∩_k U(1/(k+1)).\<close>
