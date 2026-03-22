@@ -4570,8 +4570,37 @@ proof -
   qed
   text \<open>f > 0 on X - A.\<close>
   have hf_pos: "\<forall>x\<in>X - A. 0 < f x"
-    sorry (* x ∉ A = ∩U_n, so x ∉ U_k for some k. fn k x = 1.
-             f x ≥ fn k x / 2^(k+1) = 1/2^(k+1) > 0. *)
+  proof (intro ballI)
+    fix x assume hx: "x \<in> X - A"
+    have hxX: "x \<in> X" using hx
+      by blast
+    have hxnA: "x \<notin> A" using hx
+      by fast
+    text \<open>x ∉ ∩U_n, so x ∉ U_k for some k.\<close>
+    obtain k where hxnUk: "x \<notin> U k"
+      using hxnA hA_eq
+      by blast
+    have hxXmUk: "x \<in> X - U k" using hxX hxnUk
+      by blast
+    have hfnk1: "fn k x = 1" using hfn_XmU hxXmUk
+      by blast
+    text \<open>f x ≥ fn k x / 2^(k+1) = 1/2^(k+1) > 0.\<close>
+    have hterm_pos: "0 < fn k x / 2 ^ Suc k" using hfnk1
+      by simp
+    have hfn_nonneg: "\<forall>n. 0 \<le> fn n x / 2 ^ Suc n"
+      using hfn_range hxX
+      by force
+    have hsum_ge_term: "fn k x / 2 ^ Suc k \<le> f x"
+    proof -
+      have "sum (\<lambda>n. fn n x / 2 ^ Suc n) {k} \<le> suminf (\<lambda>n. fn n x / 2 ^ Suc n)"
+        using sum_le_suminf[of "\<lambda>n. fn n x / 2 ^ Suc n" "{k}"] hsummable hxX hfn_nonneg
+        by blast
+      then show ?thesis unfolding f_def
+        by auto
+    qed
+    show "0 < f x" using hterm_pos hsum_ge_term
+      by linarith
+  qed
   text \<open>f is continuous (uniform limit of partial sums).\<close>
   have hf_cont: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
     sorry (* Uniform convergence of partial sums Σ_{n<N} fn(n,x)/2^(n+1) → f(x).
