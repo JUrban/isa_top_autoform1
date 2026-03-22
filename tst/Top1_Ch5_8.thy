@@ -4534,10 +4534,40 @@ proof -
   define f where "f x = (\<Sum>n. fn n x / 2^(Suc n))" for x
   text \<open>Summability: each |fn(n,x)/2^(n+1)| ≤ 1/2^(n+1), geometric series converges.\<close>
   have hsummable: "\<forall>x\<in>X. summable (\<lambda>n. fn n x / 2^(Suc n))"
-    sorry (* Comparison test with 1/2^(n+1). Needs summable_comparison_test + summable_geometric. *)
+  proof (intro ballI)
+    fix x assume hxX: "x \<in> X"
+    show "summable (\<lambda>n. fn n x / 2 ^ Suc n)"
+    proof (rule summable_comparison_test)
+      show "\<exists>N. \<forall>n\<ge>N. norm (fn n x / 2 ^ Suc n) \<le> (1/2) ^ Suc n"
+      proof (intro exI allI impI)
+        fix n :: nat assume "0 \<le> n"
+        have "fn n x \<le> 1" using hfn_range hxX
+          by blast
+        moreover have "0 \<le> fn n x" using hfn_range hxX
+          by blast
+        ultimately have "fn n x / 2 ^ Suc n \<le> 1 / 2 ^ Suc n"
+          by (simp add: frac_le)
+        moreover have "0 \<le> fn n x / 2 ^ Suc n"
+          using \<open>0 \<le> fn n x\<close> by fastforce
+        ultimately show "norm (fn n x / 2 ^ Suc n) \<le> (1/2) ^ Suc n"
+          using \<open>fn n x / 2 ^ Suc n \<le> 1 / 2 ^ Suc n\<close>
+          by (simp add: power_divide abs_of_nonneg real_norm_def)
+      qed
+      show "summable (\<lambda>n. (1/2::real) ^ Suc n)"
+        by simp
+    qed
+  qed
   text \<open>f = 0 on A.\<close>
   have hf_A: "\<forall>x\<in>A. f x = 0"
-    sorry (* fn n x = 0 for all n when x ∈ A, so f x = Σ 0 = 0. *)
+  proof (intro ballI)
+    fix x assume hxA: "x \<in> A"
+    have "\<forall>n. fn n x = 0" using hfn_A hxA
+      by blast
+    then have "(\<lambda>n. fn n x / 2^(Suc n)) = (\<lambda>n. 0)"
+      by simp
+    then show "f x = 0" unfolding f_def
+      by simp
+  qed
   text \<open>f > 0 on X - A.\<close>
   have hf_pos: "\<forall>x\<in>X - A. 0 < f x"
     sorry (* x ∉ A = ∩U_n, so x ∉ U_k for some k. fn k x = 1.
