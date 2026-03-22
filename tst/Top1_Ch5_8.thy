@@ -15464,7 +15464,18 @@ proof (intro ballI notI)
       real_bounded_linear real_differentiableE)
   text \<open>For ε=1, get δ with |f(x+h)-f(x)-h*L|/|h| < 1 for |h|<δ, h≠0.\<close>
   have "\<exists>\<delta>>0. \<forall>h. 0 < \<bar>h\<bar> \<and> \<bar>h\<bar> < \<delta> \<longrightarrow> \<bar>(f(x+h) - f x) / h - L\<bar> < 1"
-    sorry
+  proof -
+    text \<open>From has_derivative, the difference quotient tends to L.\<close>
+    have hfd: "(f has_field_derivative L) (at x)"
+      using hL unfolding has_field_derivative_def by (simp add: mult_commute_abs)
+    then have htends: "((\<lambda>h. (f(x+h) - f x) / h) \<longlongrightarrow> L) (at 0)"
+      using DERIV_D by auto
+    then have "\<forall>e>0. eventually (\<lambda>h. \<bar>(f(x+h) - f x) / h - L\<bar> < e) (at 0)"
+      unfolding tendsto_iff dist_real_def by simp
+    then have "eventually (\<lambda>h. \<bar>(f(x+h) - f x) / h - L\<bar> < 1) (at 0)"
+      using zero_less_one by blast
+    then show ?thesis unfolding eventually_at dist_real_def by simp
+  qed
   then obtain \<delta> where "0 < \<delta>" and hbound: "\<forall>h. 0 < \<bar>h\<bar> \<and> \<bar>h\<bar> < \<delta> \<longrightarrow> \<bar>(f(x+h) - f x) / h - L\<bar> < 1"
     by blast
   text \<open>So |f(x+h)-f(x)|/|h| < |L|+1 for 0 < |h| < δ.\<close>
