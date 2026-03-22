@@ -11395,6 +11395,19 @@ proof -
   qed
 qed
 
+text \<open>Helper: metric convergence preserves distance bounds.
+  If a_n → a in metric Y, and d(a_n, b) ≤ c for all n ≥ N, then d(a, b) ≤ c.\<close>
+lemma metric_limit_preserves_bound:
+  assumes hd: "top1_metric_on Y d"
+  assumes hconv: "seq_converges_to_on s a Y (top1_metric_topology_on Y d)"
+  assumes hbound: "\<forall>n\<ge>N. d (s n) b \<le> c"
+  assumes hbY: "b \<in> Y"
+  assumes hc: "0 \<le> c"
+  shows "d a b \<le> c"
+  sorry (* ~20 lines: for any ε'>0, get M with d(s n, a) < ε' for n ≥ M.
+           Pick n = max(N,M). d(a,b) ≤ d(a, s n) + d(s n, b) < ε' + c.
+           Since ∀ε'>0. d(a,b) < c + ε', conclude d(a,b) ≤ c. *)
+
 (** from \S48 Theorem 48.5 [top1.tex:7222] **)
 text \<open>Helper for Theorem 48.5: A_N(ε) = {x ∈ X | ∀n,m ≥ N. d(f_n(x), f_m(x)) ≤ ε}.\<close>
 definition top1_AN_48 :: "(nat \<Rightarrow> 'a \<Rightarrow> 'b) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> 'a set \<Rightarrow> 'a set" where
