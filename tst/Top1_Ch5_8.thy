@@ -11748,8 +11748,70 @@ proof -
             
             by presburger
           have hDN_dense: "\<forall>M. top1_densein_on V ?TV (DN M)"
-            sorry (* Interior(V ∩ AN M) = {} means V ∩ AN M has no open subset.
-                     So V - (V ∩ AN M) meets every nonempty open in V. Dense. *)
+          proof (intro allI)
+            fix M
+            have hint_empty: "interior_on V ?TV (V \<inter> AN M e) = {}"
+              using hall_empty
+              
+              by presburger
+            show "top1_densein_on V ?TV (DN M)"
+              unfolding top1_densein_on_def
+            proof (rule equalityI)
+              have hTopV: "is_topology_on V ?TV"
+                using subspace_topology_is_topology_on[OF hTop hVX]
+                
+                by blast
+              show "closure_on V ?TV (DN M) \<subseteq> V"
+                using closure_on_subset_carrier[OF hTopV] unfolding DN_def
+                
+                by simp
+              show "V \<subseteq> closure_on V ?TV (DN M)"
+              proof (rule subsetI)
+                fix x assume hxV: "x \<in> V"
+                show "x \<in> closure_on V ?TV (DN M)"
+                  unfolding closure_on_def
+                proof (rule InterI)
+                  fix C assume hC: "C \<in> {C. closedin_on V ?TV C \<and> DN M \<subseteq> C}"
+                  then have hCcl: "closedin_on V ?TV C" and hDNsub: "DN M \<subseteq> C"
+                    
+                    by blast+
+                  have hCsubV: "C \<subseteq> V" using hCcl unfolding closedin_on_def
+                    
+                    by presburger
+                  text \<open>V - C is open in V and V - C ⊆ V ∩ AN M e (from DN M ⊆ C).\<close>
+                  have hVmC_open: "V - C \<in> ?TV" using hCcl unfolding closedin_on_def
+                    
+                    by satx
+                  have hVmC_sub: "V - C \<subseteq> V \<inter> AN M e"
+                    unfolding DN_def using hDNsub hCsubV
+                    
+                    using DN_def by blast
+                  text \<open>If x ∉ C, then x ∈ V - C. V - C open and ⊆ V ∩ AN M →
+                         V - C ⊆ interior(V ∩ AN M) = {}. So V - C = {} → x ∈ C.\<close>
+                  show "x \<in> C"
+                  proof (rule ccontr)
+                    assume "x \<notin> C"
+                    then have "x \<in> V - C" using hxV
+                      
+                      by blast
+                    then have "V - C \<noteq> {}"
+                      
+                      by blast
+                    have "V - C \<subseteq> interior_on V ?TV (V \<inter> AN M e)"
+                      unfolding interior_on_def using hVmC_open hVmC_sub
+                      
+                      by blast
+                    then have "interior_on V ?TV (V \<inter> AN M e) \<noteq> {}" using \<open>V - C \<noteq> {}\<close>
+                      
+                      by blast
+                    then show False using hint_empty
+                      
+                      by order
+                  qed
+                qed
+              qed
+            qed
+          qed
           have hDN_inter: "(\<Inter>M. DN M) = {}"
             unfolding DN_def using hVAN_covers
             
