@@ -4122,9 +4122,13 @@ proof (intro iffI)
   have hReg: "top1_regular_on X TX"
     sorry (* metrizable → regular: proved later as metrizable_imp_regular *)
   have "\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>"
-    sorry (* Forward: construct sigma-LF basis from metric.
-             For each m, cover X by 1/m-balls. By Lemma 39.2, get sigma-LF refinement B_m.
-             ∪_m B_m is a sigma-LF basis. ~40 lines. *)
+    sorry (* Forward: sigma-LF basis from metric (~40 lines).
+       For each m: cover Am = {ball(x,1/(Suc m)) | x ∈ X}.
+       By Lemma_39_2[OF hMet Am_cov], get sigma-LF refinement Bm of Am.
+       B = ∪_m Bm. B is sigma-LF (union of sigma-LF = sigma-LF via reindexing ℕ×ℕ ≅ ℕ).
+       B is a basis: for x ∈ U (open), pick ball(x,1/(Suc m)) ⊆ U.
+       Some B ∈ Bm contains x and B ⊆ ball(x,1/(Suc m)) ⊆ U.
+       Needs: Lemma_39_2 (proved), ball covers, Archimedean, basis_for definition. *)
   show "top1_regular_on X TX \<and> (\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>)"
     using hReg \<open>\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>\<close>
     
