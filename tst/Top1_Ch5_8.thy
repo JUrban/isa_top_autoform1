@@ -4122,13 +4122,46 @@ proof (intro iffI)
   have hReg: "top1_regular_on X TX"
     sorry (* metrizable → regular: proved later as metrizable_imp_regular *)
   have "\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>"
-    sorry (* Forward: sigma-LF basis from metric (~40 lines).
-       For each m: cover Am = {ball(x,1/(Suc m)) | x ∈ X}.
-       By Lemma_39_2[OF hMet Am_cov], get sigma-LF refinement Bm of Am.
-       B = ∪_m Bm. B is sigma-LF (union of sigma-LF = sigma-LF via reindexing ℕ×ℕ ≅ ℕ).
-       B is a basis: for x ∈ U (open), pick ball(x,1/(Suc m)) ⊆ U.
-       Some B ∈ Bm contains x and B ⊆ ball(x,1/(Suc m)) ⊆ U.
-       Needs: Lemma_39_2 (proved), ball covers, Archimedean, basis_for definition. *)
+  proof -
+    obtain d where hd: "top1_metric_on X d" and hTXeq: "TX = top1_metric_topology_on X d"
+      using hMet unfolding top1_metrizable_on_def
+      
+      by blast
+    text \<open>For each m, cover X by balls of radius 1/(Suc m).\<close>
+    define Am where "Am m = top1_ball_on X d ` X" for m :: nat
+    text \<open>Actually need radius 1/(Suc m) balls. Redefine.\<close>
+    define Bm_cover where "Bm_cover m = {top1_ball_on X d x (1 / real (Suc m)) | x. x \<in> X}" for m :: nat
+    have hBm_cov: "\<forall>m. top1_open_covering_on X TX (Bm_cover m)"
+      sorry (* Each ball is open in TX, and balls cover X (x ∈ ball(x, 1/(Suc m))). *)
+    text \<open>Apply Lemma 39.2 to each cover.\<close>
+    have hBm_ref: "\<forall>m. \<exists>\<E>m. top1_open_covering_on X TX \<E>m \<and> top1_refines \<E>m (Bm_cover m)
+            \<and> top1_sigma_locally_finite_family_on X TX \<E>m"
+      using Lemma_39_2[OF hMet] hBm_cov
+      
+      by presburger
+    obtain Bm where hBm: "\<forall>m. top1_open_covering_on X TX (Bm m) \<and> top1_refines (Bm m) (Bm_cover m)
+            \<and> top1_sigma_locally_finite_family_on X TX (Bm m)"
+      using choice[OF hBm_ref]
+      
+      by blast
+    text \<open>B = ∪_m Bm is sigma-LF.\<close>
+    define B where "B = (\<Union>m. Bm m)"
+    have hB_slf: "top1_sigma_locally_finite_family_on X TX B"
+      sorry (* B = ∪_m Bm. Each Bm is sigma-LF = ∪_n Bm_n (LF).
+               B = ∪_{m,n} Bm_n. Reindex ℕ×ℕ ≅ ℕ via pairing. *)
+    have hB_open: "B \<subseteq> TX"
+      using hBm unfolding top1_open_covering_on_def B_def
+      
+      by fast
+    text \<open>B is a basis for TX.\<close>
+    have hB_basis: "basis_for X B TX"
+      sorry (* For x ∈ U (open in TX = metric topology), ∃ ball(x, r) ⊆ U.
+               Pick m with 1/(Suc m) < r. Some B ∈ Bm m contains x, B ⊆ ball(x, 1/(Suc m)) ⊆ U.
+               So B is a basis. Needs: basis_for_def, metric open ↔ union of balls. *)
+    show ?thesis using hB_basis hB_slf
+      
+      by blast
+  qed
   show "top1_regular_on X TX \<and> (\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>)"
     using hReg \<open>\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>\<close>
     
