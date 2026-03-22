@@ -4177,9 +4177,18 @@ proof (intro iffI)
       by fast
     text \<open>B is a basis for TX.\<close>
     have hB_basis: "basis_for X B TX"
-      sorry (* For x ∈ U (open in TX = metric topology), ∃ ball(x, r) ⊆ U.
-               Pick m with 1/(Suc m) < r. Some B ∈ Bm m contains x, B ⊆ ball(x, 1/(Suc m)) ⊆ U.
-               So B is a basis. Needs: basis_for_def, metric open ↔ union of balls. *)
+      sorry (* ~40 lines. basis_for = is_basis_on X B ∧ TX = topology_generated_by_basis X B.
+         is_basis_on needs:
+         (a) ∀b∈B. b ⊆ X: from B ⊆ TX and TX elements ⊆ X (metric topology).
+         (b) ∀x∈X. ∃b∈B. x ∈ b: from Bm m covering X.
+         (c) ∀b1 b2 ∈ B. ∀x ∈ b1∩b2. ∃b3 ∈ B. x ∈ b3 ∧ b3 ⊆ b1∩b2:
+             b1∩b2 ∈ TX (intersection of opens). For x ∈ b1∩b2, find ball(x,r) ⊆ b1∩b2.
+             Pick m with 1/(Suc m) < r. B ∈ Bm m with x ∈ B ⊆ ball ⊆ b1∩b2.
+         TX = generated:
+           (⊆) B ⊆ TX → generated ⊆ TX (by topology_generated_by_basis_subset).
+           (⊇) For U ∈ TX, x ∈ U: find B ∈ B with x ∈ B ⊆ U. This means TX ⊆ generated.
+         Both directions use: metric open → ball containment → Bm refinement.
+         Needs: top1_metric_open_contains_ball, Archimedean, top1_refines. *)
     show ?thesis using hB_basis hB_slf
       
       by blast
