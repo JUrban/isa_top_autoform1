@@ -15426,7 +15426,38 @@ qed
 lemma top1_Inter_U49_nowhere_differentiable:
   assumes hf: "f \<in> (\<Inter>n. top1_U49 n)"
   shows "\<forall>x\<in>{0<..<1}. \<not> (f differentiable (at x))"
-  sorry
+proof (intro ballI notI)
+  fix x assume "x \<in> {0<..<1}" and "f differentiable (at x)"
+  text \<open>If f is differentiable at x, difference quotients are bounded near x.
+    But f ∈ ∩U_n means Δ_h(f) → ∞ as h → 0, contradicting the bound.\<close>
+  then obtain L where hL: "(f has_derivative (\<lambda>h. h * L)) (at x)"
+    sorry
+  text \<open>For ε=1, get δ with |f(x+h)-f(x)-h*L|/|h| < 1 for |h|<δ, h≠0.\<close>
+  have "\<exists>\<delta>>0. \<forall>h. 0 < \<bar>h\<bar> \<and> \<bar>h\<bar> < \<delta> \<longrightarrow> \<bar>(f(x+h) - f x) / h - L\<bar> < 1"
+    sorry
+  then obtain \<delta> where "0 < \<delta>" and hbound: "\<forall>h. 0 < \<bar>h\<bar> \<and> \<bar>h\<bar> < \<delta> \<longrightarrow> \<bar>(f(x+h) - f x) / h - L\<bar> < 1"
+    by blast
+  text \<open>So |f(x+h)-f(x)|/|h| < |L|+1 for 0 < |h| < δ.\<close>
+  have hM: "\<forall>h. 0 < \<bar>h\<bar> \<and> \<bar>h\<bar> < \<delta> \<longrightarrow> \<bar>(f(x+h) - f x) / h\<bar> < \<bar>L\<bar> + 1"
+    sorry
+  text \<open>Choose n > |L|+1 and with 1/(n+2) < min(δ, 1/2).
+    Then from f ∈ U_n: ∃h ≤ 1/(n+2) < δ with Δ_h(f) > n+2 > |L|+1.
+    But Δ_h(f) = Inf_x Δ(f,x,h) ≤ Δ(f,x,h) < |L|+1. Contradiction.\<close>
+  obtain n where "real (Suc (Suc n)) > \<bar>L\<bar> + 1" and "1 / real (Suc (Suc n)) < \<delta>"
+    sorry
+  have "f \<in> top1_U49 n" using hf by blast
+  then obtain h where "0 < h" "h \<le> 1 / real (Suc (Suc n))" "top1_Delta_h49 f h > real (Suc (Suc n))"
+    unfolding top1_U49_def by blast
+  text \<open>Since h ≤ 1/(n+2) < δ and h > 0: the difference quotient at x should be < |L|+1.
+    But Δ_h(f) ≤ Δ(f,x,h) < |L|+1, contradicting Δ_h(f) > n+2 > |L|+1.\<close>
+  have "h < \<delta>" using \<open>h \<le> 1 / real (Suc (Suc n))\<close> \<open>1 / real (Suc (Suc n)) < \<delta>\<close> by linarith
+  have "top1_Delta49 f x h < \<bar>L\<bar> + 1" sorry
+  have "top1_Delta_h49 f h \<le> top1_Delta49 f x h"
+    unfolding top1_Delta_h49_def sorry
+  then have "top1_Delta_h49 f h < \<bar>L\<bar> + 1" using \<open>top1_Delta49 f x h < \<bar>L\<bar> + 1\<close> by linarith
+  then show False using \<open>top1_Delta_h49 f h > real (Suc (Suc n))\<close> \<open>real (Suc (Suc n)) > \<bar>L\<bar> + 1\<close>
+    by linarith
+qed
 
 section \<open>\<S>50 Introduction to Dimension Theory\<close>
 
