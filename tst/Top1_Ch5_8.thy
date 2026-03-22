@@ -9791,7 +9791,40 @@ theorem Theorem_45_1:
   assumes hd: "top1_metric_on X d"
   shows "top1_compact_on X (top1_metric_topology_on X d)
     \<longleftrightarrow> (top1_complete_metric_on X d \<and> top1_totally_bounded_on X d)"
-  sorry
+proof (intro iffI)
+  assume hComp: "top1_compact_on X (top1_metric_topology_on X d)"
+  text \<open>→ direction: compact → complete + totally bounded.\<close>
+  have hComplete: "top1_complete_metric_on X d"
+    sorry
+  have hTB: "top1_totally_bounded_on X d"
+    unfolding top1_totally_bounded_on_def
+  proof (intro allI impI)
+    fix e :: real assume "0 < e"
+    text \<open>Cover X by e-balls. By compactness, finite subcover.\<close>
+    define \<U> where "\<U> = {top1_ball_on X d x e | x. x \<in> X}"
+    have "\<U> \<subseteq> top1_metric_topology_on X d"
+      sorry
+    moreover have "X \<subseteq> \<Union>\<U>"
+      sorry
+    ultimately have "top1_open_covering_on X (top1_metric_topology_on X d) \<U>"
+      unfolding top1_open_covering_on_def by blast
+    then obtain \<V> where "\<V> \<subseteq> \<U>" "finite \<V>" "X \<subseteq> \<Union>\<V>"
+      using hComp unfolding top1_compact_on_def
+      sorry
+    then obtain F where "finite F" "F \<subseteq> X" "X \<subseteq> (\<Union>x\<in>F. top1_ball_on X d x e)"
+      sorry
+    then show "\<exists>F. finite F \<and> F \<subseteq> X \<and> X \<subseteq> (\<Union>x\<in>F. top1_ball_on X d x e)"
+      by blast
+  qed
+  show "top1_complete_metric_on X d \<and> top1_totally_bounded_on X d"
+    using hComplete hTB by blast
+next
+  assume "top1_complete_metric_on X d \<and> top1_totally_bounded_on X d"
+  text \<open>← direction: complete + totally bounded → compact.
+    Uses diagonal subsequence argument (Munkres). Major proof.\<close>
+  then show "top1_compact_on X (top1_metric_topology_on X d)"
+    sorry
+qed
 
 definition top1_equicontinuous_family_on ::
   "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) set \<Rightarrow> bool" where
