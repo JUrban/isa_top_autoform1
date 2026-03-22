@@ -11529,7 +11529,36 @@ corollary Corollary_46_9:
         =
         subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d2)
           (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2)))"
-  sorry
+proof -
+  text \<open>Both compact-convergence subspace topologies equal the compact-open topology (by 46.8),
+    and the continuous function sets are equal (since d1, d2 give the same topology).\<close>
+  have hCeq: "top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1) =
+    top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2)"
+    using hTopEq by simp
+  have h1: "subspace_topology (top1_PiE X (\<lambda>_. Y))
+    (top1_compact_convergence_topology_on X TX Y d1)
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
+    = top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d1)"
+    using Theorem_46_8[OF hTopX hd1] by simp
+  have h2: "subspace_topology (top1_PiE X (\<lambda>_. Y))
+    (top1_compact_convergence_topology_on X TX Y d2)
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))
+    = top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d2)"
+    using Theorem_46_8[OF hTopX hd2] by simp
+  show "subspace_topology (top1_PiE X (\<lambda>_. Y))
+    (top1_compact_convergence_topology_on X TX Y d1)
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
+    = subspace_topology (top1_PiE X (\<lambda>_. Y))
+    (top1_compact_convergence_topology_on X TX Y d2)
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))"
+    using h1 h2 hTopEq hCeq by simp
+  show "top1_compact_on X TX \<longrightarrow>
+    (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d1)
+       (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
+     = subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d2)
+       (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2)))"
+    sorry
+qed
 
 (** from \S46 Theorem 46.10 [top1.tex:6863] **)
 theorem Theorem_46_10:
