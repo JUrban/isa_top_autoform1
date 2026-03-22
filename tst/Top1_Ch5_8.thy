@@ -5727,8 +5727,29 @@ next
                     For y ∈ Unbhd: y ∉ B so gB B y = 0, fJ = 0 at y. Diff = 0.\<close>
                   have hzero_outside: "\<forall>B\<in>Bn n. \<not>intersects B Unbhd \<longrightarrow>
                     (\<forall>y\<in>Unbhd. fJ (n, B) y = 0 \<and> fJ (n, B) x = 0)"
-                    sorry (* x ∈ Unbhd, B ∩ Unbhd = {} → x ∉ B → gB B x = 0 (hgB_prop).
-                             y ∈ Unbhd, B ∩ Unbhd = {} → y ∉ B → gB B y = 0. fJ = gB/(n+1) = 0. *)
+                  proof (intro ballI impI allI)
+                    fix B y assume hBn': "B \<in> Bn n" and hni: "\<not>intersects B Unbhd" and hyUn: "y \<in> Unbhd"
+                    have hBB: "B \<in> \<B>" using hBn' hB_eq
+                      by blast
+                    have "x \<notin> B" using hni hxUn unfolding intersects_def
+                      by blast
+                    then have "x \<in> X - B" using hxX
+                      by fast
+                    then have hgBx0: "gB B x = 0" using hgB_prop hBB
+                      by fast
+                    have "y \<notin> B" using hni hyUn unfolding intersects_def
+                      by blast
+                    have hyX: "y \<in> X" using hyUn hUn hBasis
+                      unfolding basis_for_def topology_generated_by_basis_def
+                      by blast
+                    then have "y \<in> X - B" using \<open>y \<notin> B\<close>
+                      by fast
+                    then have hgBy0: "gB B y = 0" using hgB_prop hBB
+                      by blast
+                    show "fJ (n, B) y = 0 \<and> fJ (n, B) x = 0"
+                      unfolding fJ_def using hgBx0 hgBy0
+                      by simp
+                  qed
                   text \<open>For B meeting Unbhd: fJ continuous → preimage of (fJ(x)-ε/2, fJ(x)+ε/2).\<close>
                   have hVB_ex: "\<forall>B\<in>{B \<in> Bn n. intersects B Unbhd}.
                     \<exists>VB\<in>TX. x \<in> VB \<and> (\<forall>y\<in>VB. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> < \<epsilon>/2)"
