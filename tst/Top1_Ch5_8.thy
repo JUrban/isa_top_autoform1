@@ -9859,9 +9859,11 @@ proof (intro conjI)
       assume "\<not> (\<exists>x\<in>X. seq_converges_to_on s x X ?T)"
       then have "\<forall>x\<in>X. \<not> seq_converges_to_on s x X ?T" by blast
       then have hEsc: "\<forall>x\<in>X. \<exists>ex>0. \<forall>N. \<exists>n\<ge>N. d (s n) x \<ge> ex" sorry
-      then obtain ex where hex: "\<forall>x\<in>X. ex x > 0 \<and> (\<forall>N. \<exists>n\<ge>N. d (s n) x \<ge> ex x)" sorry
-      then have hBalls: "(\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X \<subseteq> ?T" sorry
-      have hSelf: "\<forall>x\<in>X. x \<in> top1_ball_on X d x (ex x / 2)" sorry
+      then obtain ex where hex: "\<forall>x\<in>X. ex x > 0 \<and> (\<forall>N. \<exists>n\<ge>N. d (s n) x \<ge> ex x)" by meson
+      then have hBalls: "(\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X \<subseteq> ?T"
+        using top1_ball_open_in_metric_topology[OF hd] by fastforce
+      have hSelf: "\<forall>x\<in>X. x \<in> top1_ball_on X d x (ex x / 2)"
+        unfolding top1_ball_on_def using hd hex unfolding top1_metric_on_def by fastforce
       then have "X \<subseteq> \<Union>((\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X)" sorry
       then obtain F where "finite F" "F \<subseteq> X" "F \<noteq> {}"
         "\<forall>y\<in>X. \<exists>xf\<in>F. d y xf < ex xf / 2" sorry
