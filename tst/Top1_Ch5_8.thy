@@ -7294,8 +7294,65 @@ proof -
     by satx
   text \<open>Completeness in d implies completeness in bounded d.\<close>
   have hdb_complete: "top1_complete_metric_on Y ?db"
-    sorry (* Bounded metric preserves completeness.
-             Cauchy in db iff Cauchy in d (for small ε). Convergence same topology. *)
+  proof -
+    have htopo_eq: "top1_metric_topology_on Y ?db = top1_metric_topology_on Y d"
+      using Theorem_20_1[OF hdm]
+      by satx
+    show ?thesis unfolding top1_complete_metric_on_def
+    proof (intro conjI allI impI)
+      show "top1_metric_on Y ?db" by (rule hdbm)
+    next
+      fix s assume hCauchy_db: "top1_cauchy_seq_on Y ?db s"
+      text \<open>db-Cauchy implies d-Cauchy (for small eps, db = d).\<close>
+      have hCauchy_d: "top1_cauchy_seq_on Y d s"
+        unfolding top1_cauchy_seq_on_def
+      proof (intro allI impI)
+        fix e :: real assume hepos: "0 < e"
+        define e' where "e' = min e (1/2)"
+        have he'pos: "0 < e'"
+          unfolding e'_def using hepos
+          by auto
+        have he'le1: "e' \<le> 1" unfolding e'_def
+          by linarith
+        have he'le: "e' \<le> e" unfolding e'_def
+          by simp
+        obtain N where hN: "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> Y \<and> s n \<in> Y \<and> ?db (s m) (s n) < e'"
+          using hCauchy_db he'pos unfolding top1_cauchy_seq_on_def
+          by presburger
+        show "\<exists>N. \<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> Y \<and> s n \<in> Y \<and> d (s m) (s n) < e"
+        proof (intro exI allI impI)
+          fix m n :: nat assume hmN: "N \<le> m" and hnN: "N \<le> n"
+          have hsmY: "s m \<in> Y" using hN hmN hnN by presburger
+          have hsnY: "s n \<in> Y" using hN hmN hnN by presburger
+          have hdb_small: "?db (s m) (s n) < e'" using hN hmN hnN by presburger
+          have "d (s m) (s n) < e'"
+          proof -
+            have "?db (s m) (s n) = min (d (s m) (s n)) 1"
+              unfolding top1_bounded_metric_def
+              by presburger
+            then have "min (d (s m) (s n)) 1 < e'" using hdb_small
+              by presburger
+            then show "d (s m) (s n) < e'" using he'le1
+              by auto
+          qed
+          then show "s m \<in> Y \<and> s n \<in> Y \<and> d (s m) (s n) < e"
+            using hsmY hsnY he'le
+            by simp
+        qed
+      qed
+      text \<open>d-complete gives convergence in d-topology.\<close>
+      obtain x where hxY: "x \<in> Y" and hconv_d: "seq_converges_to_on s x Y (top1_metric_topology_on Y d)"
+        using hd hCauchy_d unfolding top1_complete_metric_on_def
+        by blast
+      text \<open>Same topology, so convergence in db-topology.\<close>
+      have hconv_db: "seq_converges_to_on s x Y (top1_metric_topology_on Y ?db)"
+        using hconv_d htopo_eq
+        by argo
+      show "\<exists>x\<in>Y. seq_converges_to_on s x Y (top1_metric_topology_on Y ?db)"
+        using hxY hconv_db
+        by blast
+    qed
+  qed
   text \<open>Every Cauchy seq in (PiE, rho) converges.\<close>
   show ?thesis unfolding top1_complete_metric_on_def
   proof (intro conjI allI impI)
