@@ -5273,8 +5273,21 @@ proof (intro iffI)
 next
   assume h: "top1_regular_on X TX \<and> (\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>)"
   show "top1_metrizable_on X TX"
-    sorry (* Backward: use 40.1 (normal + G-delta) + 40.2 (Urysohn for G-delta)
-             + embedding into R^J. Very substantial proof. *)
+  proof -
+    obtain \<B> where hBasis: "basis_for X \<B> TX" and hSLF: "top1_sigma_locally_finite_family_on X TX \<B>"
+      using h by blast
+    have hReg: "top1_regular_on X TX" using h by blast
+    text \<open>Step 1: Lemma 40.1 gives normality + G-delta.\<close>
+    have hNorm: "top1_normal_on X TX"
+      using Lemma_40_1[OF hReg hBasis hSLF] by blast
+    have hGdelta: "\<forall>A. closedin_on X TX A \<longrightarrow> top1_G_delta_on X TX A"
+      using Lemma_40_1[OF hReg hBasis hSLF] by blast
+    text \<open>Step 2+3: Embed X into [0,1]^J via Lemma 40.2 + Theorem 34.2.
+      Uses f_{n,B}: X → [0,1] with f>0 on B and f=0 on X-B (Lemma 40.2).
+      Needs: continuity of F in uniform metric (local finiteness argument).
+      Estimated ~80 lines.\<close>
+    show ?thesis sorry
+  qed
 qed
 
 section \<open>\<S>41 Paracompactness\<close>
