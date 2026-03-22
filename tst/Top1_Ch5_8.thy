@@ -4632,8 +4632,48 @@ proof -
   qed
   text \<open>Partial sums converge uniformly: |f(x) - S_N(x)| ≤ 1/2^N.\<close>
   have hunif_partial: "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>X. \<bar>(\<Sum>i<n. fn i x / 2^(Suc i)) - f x\<bar> < \<epsilon>"
-    sorry (* Tail bound: |f(x) - S_N(x)| = |Σ_{i≥N} fn(i,x)/2^(i+1)| ≤ Σ_{i≥N} 1/2^(i+1) = 1/2^N.
-             Uses suminf_minus_initial_segment, geometric series tail. *)
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume hepos: "0 < \<epsilon>"
+    text \<open>Pick N with 1/2^N < ε.\<close>
+    obtain N :: nat where hN: "(1/2::real)^N < \<epsilon>"
+      using real_arch_pow_inv[of \<epsilon> "1/2"] hepos
+      by auto
+    show "\<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>X. \<bar>(\<Sum>i<n. fn i x / 2 ^ Suc i) - f x\<bar> < \<epsilon>"
+    proof (intro exI allI impI ballI)
+      fix n :: nat and x assume hnN: "N \<le> n" and hxX: "x \<in> X"
+      text \<open>f(x) - S_n(x) = tail = ∑_{i≥n} fn(i,x)/2^(i+1).\<close>
+      have hfx_split: "f x = (\<Sum>i. fn (i + n) x / 2 ^ Suc (i + n)) + (\<Sum>i<n. fn i x / 2 ^ Suc i)"
+        unfolding f_def using suminf_split_initial_segment[of "\<lambda>i. fn i x / 2^Suc i" n]
+          hsummable hxX
+        by blast
+      have hdiff: "f x - (\<Sum>i<n. fn i x / 2 ^ Suc i) = (\<Sum>i. fn (i + n) x / 2 ^ Suc (i + n))"
+        using hfx_split
+        by argo
+      text \<open>Tail ≥ 0 (all terms non-negative).\<close>
+      have htail_nn: "0 \<le> (\<Sum>i. fn (i + n) x / 2 ^ Suc (i + n))"
+        using suminf_nonneg hsummable hxX hfn_range
+        sledgehammer [timeout = 10]
+        sorry
+      text \<open>|S_n(x) - f(x)| = f(x) - S_n(x) = tail.\<close>
+      have habs: "\<bar>(\<Sum>i<n. fn i x / 2 ^ Suc i) - f x\<bar> = f x - (\<Sum>i<n. fn i x / 2 ^ Suc i)"
+        using hdiff htail_nn
+        by simp
+      text \<open>Tail ≤ ∑_{i≥n} 1/2^(i+1) = (1/2)^n ≤ (1/2)^N < ε.\<close>
+      have htail_le: "(\<Sum>i. fn (i + n) x / 2 ^ Suc (i + n)) \<le> (\<Sum>i. (1/2::real) ^ Suc (i + n))"
+        using suminf_le[of "\<lambda>i. fn (i + n) x / 2 ^ Suc (i + n)" "\<lambda>i. (1/2::real)^Suc (i + n)"]
+          hsummable hxX hfn_range
+        sledgehammer [timeout = 10]
+        sorry
+      have hgeom_tail: "(\<Sum>i. (1/2::real) ^ Suc (i + n)) = (1/2::real)^n"
+        sledgehammer [timeout = 10]
+        sorry
+      have hpow_mono: "((1/2::real)^n) \<le> (1/2)^N" using hnN
+        by auto
+      show "\<bar>(\<Sum>i<n. fn i x / 2 ^ Suc i) - f x\<bar> < \<epsilon>"
+        using habs hdiff htail_le hgeom_tail hpow_mono hN
+        by argo
+    qed
+  qed
   text \<open>Each partial sum is continuous.\<close>
   have hpartial_cont: "\<forall>n::nat. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (\<lambda>x. \<Sum>i<n. fn i x / 2^(Suc i))"
     sorry (* Finite sum of continuous functions. Each fn i is continuous into [0,1].
