@@ -7932,16 +7932,83 @@ proof -
   qed
 qed
 
+text \<open>Convergence in uniform metric implies pointwise uniform convergence in d.\<close>
+lemma uniform_metric_conv_imp_pointwise_unif:
+  assumes hXne: "X \<noteq> {}"
+  assumes hd: "top1_metric_on Y d"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hf_PiE: "f \<in> top1_PiE X (\<lambda>_. Y)"
+  assumes hfn_PiE: "\<forall>n::nat. fseq n \<in> top1_PiE X (\<lambda>_. Y)"
+  assumes hconv: "seq_converges_to_on fseq f (top1_PiE X (\<lambda>_. Y))
+    (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))"
+  shows "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>X. d (fseq n x) (f x) < \<epsilon>"
+  sorry
+  (* Key step: from metric convergence get rho(f_n, f) < ε/2,
+     then d̄(f_n(x), f(x)) ≤ rho(f_n, f) < ε/2,
+     and for ε < 1, d̄ = d, so d(f_n(x), f(x)) < ε.
+     For ε ≥ 1, use ε' = min(ε, 1/2) < 1. *)
+
 (** from \S43 Theorem 43.6 [top1.tex:6272]
     Proof: (a-b) continuous/bounded maps closed in uniform topology (uniform limit theorem).
     (c-d) Closed subsets of complete spaces are complete. **)
-theorem Theorem_43_6:
+text \<open>Part (a): C(X,Y) is closed in Y^X under the uniform metric.\<close>
+theorem Theorem_43_6a:
   assumes hd: "top1_metric_on Y d"
+  assumes hTopX: "is_topology_on X TX"
+  assumes hXne: "X \<noteq> {}"
   shows "closedin_on
            (top1_PiE X (\<lambda>_. Y))
            (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
            (top1_continuous_maps_metric_on X TX Y d)"
-    and "closedin_on
+proof (rule metric_seq_closed_imp_closed)
+  show "top1_metric_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d)"
+    using top1_uniform_metric_is_metric[OF hXne hd]
+    by presburger
+  show "top1_continuous_maps_metric_on X TX Y d \<subseteq> top1_PiE X (\<lambda>_. Y)"
+    unfolding top1_continuous_maps_metric_on_def
+    by blast
+  show "\<forall>s. (\<forall>n::nat. s n \<in> top1_continuous_maps_metric_on X TX Y d) \<longrightarrow>
+    (\<forall>x. seq_converges_to_on s x (top1_PiE X (\<lambda>_. Y))
+      (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d)) \<longrightarrow>
+      x \<in> top1_continuous_maps_metric_on X TX Y d)"
+  proof (intro allI impI)
+    fix s x
+    assume hsC: "\<forall>n::nat. s n \<in> top1_continuous_maps_metric_on X TX Y d"
+    assume hconv: "seq_converges_to_on s x (top1_PiE X (\<lambda>_. Y))
+      (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))"
+    text \<open>x ∈ PiE X Y from convergence.\<close>
+    have hxPiE: "x \<in> top1_PiE X (\<lambda>_. Y)"
+      using hconv unfolding seq_converges_to_on_def
+      by satx
+    text \<open>Each s n is continuous.\<close>
+    have hscont: "\<forall>n::nat. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) (s n)"
+      using hsC unfolding top1_continuous_maps_metric_on_def
+      by fast
+    have hsPiE: "\<forall>n::nat. s n \<in> top1_PiE X (\<lambda>_. Y)"
+      using hsC unfolding top1_continuous_maps_metric_on_def
+      by blast
+    text \<open>s converges to x uniformly in d.\<close>
+    have hunif: "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>xa\<in>X. d (s n xa) (x xa) < \<epsilon>"
+      using uniform_metric_conv_imp_pointwise_unif[OF hXne hd hTopX hxPiE hsPiE hconv]
+      by argo
+    text \<open>x maps into Y.\<close>
+    have hxY: "\<forall>xa\<in>X. x xa \<in> Y"
+      using hxPiE unfolding top1_PiE_def top1_Pi_def
+      by fast
+    text \<open>By uniform limit theorem, x is continuous.\<close>
+    have hxcont: "top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) x"
+      using uniform_limit_continuous[OF hTopX hd hscont hunif hxY]
+      by argo
+    show "x \<in> top1_continuous_maps_metric_on X TX Y d"
+      unfolding top1_continuous_maps_metric_on_def using hxPiE hxcont
+      by force
+  qed
+qed
+
+text \<open>Parts (b)-(d) of Theorem 43.6.\<close>
+theorem Theorem_43_6bcd:
+  assumes hd: "top1_metric_on Y d"
+  shows "closedin_on
            (top1_PiE X (\<lambda>_. Y))
            (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
            (top1_bounded_maps_metric_on X Y d)"
