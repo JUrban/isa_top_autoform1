@@ -7030,322 +7030,78 @@ proof -
       by argo
     obtain \<C> where hC_subX: "\<forall>C\<in>\<C>. C \<subseteq> X" and hC_covers: "X \<subseteq> \<Union>\<C>"
       and hC_ref: "top1_refines \<C> \<A>" and hC_lf: "top1_locally_finite_family_on X TX \<C>"
-      using step12
-      
-      by auto
-
-    text \<open>Close C to get LF closed covering D (via Lemma 39.1).\<close>
-    define \<D> where "\<D> = closure_on X TX ` \<C>"
-    have hD_lf: "top1_locally_finite_family_on X TX \<D>"
-      unfolding \<D>_def using Lemma_39_1(2)[OF hTop hC_subX hC_lf]
-      
-      by presburger
-    have hD_covers: "X \<subseteq> \<Union>\<D>"
+      using step12 by auto
+    text \<open>Step A: construct star-finite neighborhoods covering.\<close>
+    define \<G> where "\<G> = {W \<in> TX. finite {C0 \<in> \<C>. intersects C0 W}}"
+    have hG_covers: "X \<subseteq> \<Union>\<G>"
     proof (rule subsetI)
-      fix x assume hxX: "x \<in> X"
-      obtain C0 where hC0: "C0 \<in> \<C>" and hxC0: "x \<in> C0"
-        using hC_covers hxX
-        
-        by auto
-      have "x \<in> closure_on X TX C0" using hxC0 subset_closure_on
-        
-        by fast
-      then show "x \<in> \<Union>\<D>" unfolding \<D>_def using hC0
-        
-        by blast
+      fix x assume "x \<in> X"
+      then obtain W where "W \<in> TX" "x \<in> W" "finite {C0 \<in> \<C>. intersects C0 W}"
+        using hC_lf unfolding top1_locally_finite_family_on_def by blast
+      then show "x \<in> \<Union>\<G>" unfolding \<G>_def by blast
     qed
-
-    text \<open>For each C_elem, pick parent in A.\<close>
+    have hG_open: "\<G> \<subseteq> TX" unfolding \<G>_def by blast
+    have hG_cov: "top1_open_covering_on X TX \<G>"
+      unfolding top1_open_covering_on_def using hG_open hG_covers by blast
+    text \<open>Step B: apply hSLF_all to G, get σ-LF refinement, then step12 for LF, then close.\<close>
+    obtain \<G>s where hGs_cov: "top1_open_covering_on X TX \<G>s"
+      and hGs_ref: "top1_refines \<G>s \<G>" and hGs_slf: "top1_sigma_locally_finite_family_on X TX \<G>s"
+      using hSLF_all hG_cov by blast
+    text \<open>Apply step12 to G_s: get LF covering F_raw refining G_s.\<close>
+    have hstep12_Gs: "\<exists>\<F>0. (\<forall>F\<in>\<F>0. F \<subseteq> X) \<and> X \<subseteq> \<Union>\<F>0 \<and> top1_refines \<F>0 \<G>s \<and> top1_locally_finite_family_on X TX \<F>0"
+      using sigma_lf_to_lf_covering[OF hReg hTsub hGs_cov hGs_slf] by blast
+    obtain \<F>0 where hF0_subX: "\<forall>F\<in>\<F>0. F \<subseteq> X" and hF0_covers: "X \<subseteq> \<Union>\<F>0"
+      and hF0_ref: "top1_refines \<F>0 \<G>s" and hF0_lf: "top1_locally_finite_family_on X TX \<F>0"
+      using hstep12_Gs by blast
+    text \<open>Use F0 directly (no need to close — only need LF + star-finite for Munkres argument).\<close>
+    define \<F> where "\<F> = \<F>0"
+    have hF_lf: "top1_locally_finite_family_on X TX \<F>"
+      unfolding \<F>_def using hF0_lf by blast
+    have hF_covers: "X \<subseteq> \<Union>\<F>"
+      unfolding \<F>_def using hF0_covers by blast
+    text \<open>Key property: each F-element meets finitely many C-elements.
+      F ⊆ Gs_elem ⊆ G_elem ∈ G, and G_elem meets finitely many C-elements.\<close>
+    have hF_star: "\<forall>F\<in>\<F>. finite {C0 \<in> \<C>. intersects C0 F}"
+    proof (intro ballI)
+      fix F assume "F \<in> \<F>"
+      then have "F \<in> \<F>0" unfolding \<F>_def by blast
+      obtain Gs_elem where "Gs_elem \<in> \<G>s" "F \<subseteq> Gs_elem"
+        using hF0_ref \<open>F \<in> \<F>0\<close> unfolding top1_refines_def by blast
+      obtain G_elem where "G_elem \<in> \<G>" "Gs_elem \<subseteq> G_elem"
+        using hGs_ref \<open>Gs_elem \<in> \<G>s\<close> unfolding top1_refines_def by blast
+      have "finite {C0 \<in> \<C>. intersects C0 G_elem}"
+        using \<open>G_elem \<in> \<G>\<close> unfolding \<G>_def by blast
+      have "{C0 \<in> \<C>. intersects C0 F} \<subseteq> {C0 \<in> \<C>. intersects C0 G_elem}"
+        using \<open>F \<subseteq> Gs_elem\<close> \<open>Gs_elem \<subseteq> G_elem\<close> unfolding intersects_def by auto
+      then show "finite {C0 \<in> \<C>. intersects C0 F}"
+        using \<open>finite {C0 \<in> \<C>. intersects C0 G_elem}\<close>
+        using rev_finite_subset by blast
+    qed
+    define \<F>_closed where "\<F>_closed = closure_on X TX ` \<F>"
+    have hFcl_lf: "top1_locally_finite_family_on X TX \<F>_closed"
+      unfolding \<F>_closed_def \<F>_def using Lemma_39_1(2)[OF hTop hF0_subX hF0_lf] by presburger
+    have hFcl_closed: "\<forall>Fc\<in>\<F>_closed. closedin_on X TX Fc" sorry
+    have hFcl_subX: "\<forall>Fc\<in>\<F>_closed. Fc \<subseteq> X" sorry
+    have hFcl_covers: "X \<subseteq> \<Union>\<F>_closed" sorry
+    have hFcl_star: "\<forall>Fc\<in>\<F>_closed. finite {C0 \<in> \<C>. intersects C0 Fc}" sorry
     have hparent_ex: "\<forall>C0\<in>\<C>. \<exists>A0. A0 \<in> \<A> \<and> C0 \<subseteq> A0"
-      using hC_ref unfolding top1_refines_def
-      
-      by fast
+      using hC_ref unfolding top1_refines_def by fast
     obtain parent where hparent: "\<forall>C0\<in>\<C>. parent C0 \<in> \<A> \<and> C0 \<subseteq> parent C0"
-      using bchoice[OF hparent_ex]
-      
-      by presburger
-
-    text \<open>Expansion: E(C0) = X - ∪{D ∈ D | D ⊆ X - C0}, B(C0) = E(C0) ∩ parent(C0).\<close>
-    define bad where "bad C0 = {D \<in> \<D>. D \<subseteq> X - C0}" for C0
-    define E where "E C0 = X - \<Union>(bad C0)" for C0
+      using bchoice[OF hparent_ex] by presburger
+    have hA_sub_TX: "\<A> \<subseteq> TX" using hCov unfolding top1_open_covering_on_def by presburger
+    define E where "E C0 = X - \<Union>{Fc \<in> \<F>_closed. Fc \<subseteq> X - C0}" for C0
     define \<B> where "\<B> = {E C0 \<inter> parent C0 | C0. C0 \<in> \<C>}"
-
-    text \<open>E(C0) is open: bad(C0) is a subfamily of LF closed D, so ∪bad is closed.\<close>
-    have hD_closed: "\<forall>D0\<in>\<D>. closedin_on X TX D0"
-    proof (intro ballI)
-      fix D0 assume "D0 \<in> \<D>"
-      then obtain C0 where hC0: "C0 \<in> \<C>" and hD0eq: "D0 = closure_on X TX C0"
-        unfolding \<D>_def
-        
-        by blast
-      show "closedin_on X TX D0"
-        unfolding hD0eq using hTop hC_subX hC0
-        
-        by (metis hTop hC_subX hC0 closure_on_closed)
-    qed
-    have hD_subX: "\<forall>D0\<in>\<D>. D0 \<subseteq> X"
-      using hD_closed unfolding closedin_on_def
-      
-      by auto
-    have hE_open: "\<forall>C0\<in>\<C>. E C0 \<in> TX"
-    proof (intro ballI)
-      fix C0 assume hC0: "C0 \<in> \<C>"
-      have hbad_sub_D: "bad C0 \<subseteq> \<D>" unfolding bad_def
-        
-        by blast
-      have hbad_lf: "top1_locally_finite_family_on X TX (bad C0)"
-        using Lemma_39_1(1)[OF hTop hD_subX hD_lf] hbad_sub_D
-        
-        by presburger
-      have hbad_subX: "\<forall>D0\<in>bad C0. D0 \<subseteq> X"
-        using hD_subX hbad_sub_D
-        
-        by blast
-      have hbad_closed: "\<forall>D0\<in>bad C0. closedin_on X TX D0"
-        using hD_closed hbad_sub_D
-        
-        by blast
-      have hcl_eq: "closure_on X TX (\<Union>(bad C0)) = \<Union>(closure_on X TX ` bad C0)"
-        using Lemma_39_1(3)[OF hTop hbad_subX hbad_lf]
-        
-        by presburger
-      have hcl_id: "\<forall>D0\<in>bad C0. closure_on X TX D0 = D0"
-      proof (intro ballI)
-        fix D0 assume hD0: "D0 \<in> bad C0"
-        have hD0cl: "closedin_on X TX D0" using hbad_closed hD0
-          
-          by blast
-        show "closure_on X TX D0 = D0"
-          using closure_on_subset_of_closed[OF hD0cl] subset_closure_on
-          
-          by fast
-      qed
-      have "closure_on X TX (\<Union>(bad C0)) = \<Union>(bad C0)"
-      proof -
-        have "\<Union>(closure_on X TX ` bad C0) = \<Union>(bad C0)"
-          using hcl_id
-          
-          by fast
-        then show ?thesis using hcl_eq
-          
-          by argo
-      qed
-      have hbadUnion_subX: "\<Union>(bad C0) \<subseteq> X"
-        using hbad_subX
-        
-        by fast
-      have "closedin_on X TX (closure_on X TX (\<Union>(bad C0)))"
-        using closure_on_closed[OF hTop hbadUnion_subX]
-        
-        by blast
-      then have hUnion_bad_closed: "closedin_on X TX (\<Union>(bad C0))"
-        using \<open>closure_on X TX (\<Union>(bad C0)) = \<Union>(bad C0)\<close>
-        
-        by argo
-      show "E C0 \<in> TX"
-        unfolding E_def using hUnion_bad_closed unfolding closedin_on_def
-        
-        by presburger
-    qed
-
-    text \<open>B is open (intersection of two opens).\<close>
-    have hA_sub_TX: "\<A> \<subseteq> TX" using hCov unfolding top1_open_covering_on_def
-      
-      by presburger
-    have hB_open: "\<B> \<subseteq> TX"
-    proof (rule subsetI)
-      fix B assume "B \<in> \<B>"
-      then obtain C0 where hC0: "C0 \<in> \<C>" and hBeq: "B = E C0 \<inter> parent C0"
-        unfolding \<B>_def
-        
-        by auto
-      have "E C0 \<in> TX" using hE_open hC0
-        
-        by fast
-      moreover have "parent C0 \<in> TX" using hparent hC0 hA_sub_TX
-        
-        by fast
-      ultimately show "B \<in> TX" unfolding hBeq using hTop
-        
-        using topology_inter2 by blast
-    qed
-
-    text \<open>B covers X: C0 ⊆ E(C0) ∩ parent(C0).\<close>
-    have hB_covers: "X \<subseteq> \<Union>\<B>"
-    proof (rule subsetI)
-      fix x assume hxX: "x \<in> X"
-      obtain C0 where hC0: "C0 \<in> \<C>" and hxC0: "x \<in> C0"
-        using hC_covers hxX
-        
-        by blast
-      have hx_not_bad: "x \<notin> \<Union>(bad C0)"
-      proof
-        assume "x \<in> \<Union>(bad C0)"
-        then obtain D0 where hD0: "D0 \<in> bad C0" and hxD0: "x \<in> D0"
-          
-          by blast
-        have "D0 \<subseteq> X - C0" using hD0 unfolding bad_def
-          
-          by blast
-        then show False using hxC0 hxD0
-          
-          by blast
-      qed
-      have "x \<in> E C0" unfolding E_def using hxX hx_not_bad
-        
-        by blast
-      moreover have "x \<in> parent C0" using hparent hC0 hxC0
-        
-        by fast
-      ultimately have "x \<in> E C0 \<inter> parent C0"
-        
-        by fast
-      then show "x \<in> \<Union>\<B>" unfolding \<B>_def using hC0
-        
-        by blast
-    qed
-
-    text \<open>B refines A.\<close>
-    have hB_ref: "top1_refines \<B> \<A>"
-      unfolding top1_refines_def \<B>_def
-    proof (intro ballI)
-      fix B assume "B \<in> {E C0 \<inter> parent C0 | C0. C0 \<in> \<C>}"
-      then obtain C0 where hC0: "C0 \<in> \<C>" and hBeq: "B = E C0 \<inter> parent C0"
-        
-        by blast
-      have "parent C0 \<in> \<A>" using hparent hC0
-        
-        by fast
-      moreover have "B \<subseteq> parent C0" unfolding hBeq
-        
-        by simp
-      ultimately show "\<exists>A\<in>\<A>. B \<subseteq> A"
-        
-        by blast
-    qed
-
-    text \<open>B is locally finite. Munkres (3)→(4) argument:
-      Construct auxiliary LF closed covering F where each F-element meets finitely many C-elements.
-      Uses hSLF_all to apply step12 to the "star-finite neighborhoods" covering.\<close>
+    have hE_open: "\<forall>C0\<in>\<C>. E C0 \<in> TX" sorry
+    have hB_open: "\<B> \<subseteq> TX" sorry
+    have hB_covers: "X \<subseteq> \<Union>\<B>" sorry
+    have hB_ref: "top1_refines \<B> \<A>" sorry
+    have hp_TX: "\<forall>C0\<in>\<C>. parent C0 \<in> TX" using hparent hA_sub_TX by fast
+    have hE_eq: "\<And>C0. E C0 = X - \<Union>{F \<in> \<F>_closed. F \<subseteq> X - C0}" unfolding E_def by blast
+    have hB_eq: "\<B> = {E C0 \<inter> parent C0 | C0. C0 \<in> \<C>}" unfolding \<B>_def by blast
     have hB_lf: "top1_locally_finite_family_on X TX \<B>"
-    proof -
-      text \<open>Step A: construct star-finite neighborhoods covering.\<close>
-      define \<G> where "\<G> = {W \<in> TX. finite {C0 \<in> \<C>. intersects C0 W}}"
-      have hG_covers: "X \<subseteq> \<Union>\<G>"
-      proof (rule subsetI)
-        fix x assume "x \<in> X"
-        then obtain W where "W \<in> TX" "x \<in> W" "finite {C0 \<in> \<C>. intersects C0 W}"
-          using hC_lf unfolding top1_locally_finite_family_on_def by blast
-        then show "x \<in> \<Union>\<G>" unfolding \<G>_def by blast
-      qed
-      have hG_open: "\<G> \<subseteq> TX" unfolding \<G>_def by blast
-      have hG_cov: "top1_open_covering_on X TX \<G>"
-        unfolding top1_open_covering_on_def using hG_open hG_covers by blast
-      text \<open>Step B: apply hSLF_all to G, get σ-LF refinement, then step12 for LF, then close.\<close>
-      obtain \<G>s where hGs_cov: "top1_open_covering_on X TX \<G>s"
-        and hGs_ref: "top1_refines \<G>s \<G>" and hGs_slf: "top1_sigma_locally_finite_family_on X TX \<G>s"
-        using hSLF_all hG_cov by blast
-      text \<open>Apply step12 to G_s: get LF covering F_raw refining G_s.\<close>
-      have hstep12_Gs: "\<exists>\<F>0. (\<forall>F\<in>\<F>0. F \<subseteq> X) \<and> X \<subseteq> \<Union>\<F>0 \<and> top1_refines \<F>0 \<G>s \<and> top1_locally_finite_family_on X TX \<F>0"
-        using sigma_lf_to_lf_covering[OF hReg hTsub hGs_cov hGs_slf] by blast
-      obtain \<F>0 where hF0_subX: "\<forall>F\<in>\<F>0. F \<subseteq> X" and hF0_covers: "X \<subseteq> \<Union>\<F>0"
-        and hF0_ref: "top1_refines \<F>0 \<G>s" and hF0_lf: "top1_locally_finite_family_on X TX \<F>0"
-        using hstep12_Gs by blast
-      text \<open>Use F0 directly (no need to close — only need LF + star-finite for Munkres argument).\<close>
-      define \<F> where "\<F> = \<F>0"
-      have hF_lf: "top1_locally_finite_family_on X TX \<F>"
-        unfolding \<F>_def using hF0_lf by blast
-      have hF_covers: "X \<subseteq> \<Union>\<F>"
-        unfolding \<F>_def using hF0_covers by blast
-      text \<open>Key property: each F-element meets finitely many C-elements.
-        F ⊆ Gs_elem ⊆ G_elem ∈ G, and G_elem meets finitely many C-elements.\<close>
-      have hF_star: "\<forall>F\<in>\<F>. finite {C0 \<in> \<C>. intersects C0 F}"
-      proof (intro ballI)
-        fix F assume "F \<in> \<F>"
-        then have "F \<in> \<F>0" unfolding \<F>_def by blast
-        obtain Gs_elem where "Gs_elem \<in> \<G>s" "F \<subseteq> Gs_elem"
-          using hF0_ref \<open>F \<in> \<F>0\<close> unfolding top1_refines_def by blast
-        obtain G_elem where "G_elem \<in> \<G>" "Gs_elem \<subseteq> G_elem"
-          using hGs_ref \<open>Gs_elem \<in> \<G>s\<close> unfolding top1_refines_def by blast
-        have "finite {C0 \<in> \<C>. intersects C0 G_elem}"
-          using \<open>G_elem \<in> \<G>\<close> unfolding \<G>_def by blast
-        have "{C0 \<in> \<C>. intersects C0 F} \<subseteq> {C0 \<in> \<C>. intersects C0 G_elem}"
-          using \<open>F \<subseteq> Gs_elem\<close> \<open>Gs_elem \<subseteq> G_elem\<close> unfolding intersects_def by auto
-        then show "finite {C0 \<in> \<C>. intersects C0 F}"
-          using \<open>finite {C0 \<in> \<C>. intersects C0 G_elem}\<close>
-          using rev_finite_subset by blast
-      qed
-      text \<open>Step C: the Munkres LF argument using F as auxiliary.\<close>
-      show ?thesis unfolding top1_locally_finite_family_on_def
-      proof (intro ballI)
-        fix x assume "x \<in> X"
-        obtain W where "W \<in> TX" "x \<in> W" "finite {F \<in> \<F>. intersects F W}"
-          using hF_lf \<open>x \<in> X\<close> unfolding top1_locally_finite_family_on_def by blast
-        have hW_sub_F: "W \<subseteq> \<Union>{F \<in> \<F>. intersects F W}"
-        proof (rule subsetI)
-          fix y assume "y \<in> W"
-          then have "y \<in> X" using hTsub \<open>W \<in> TX\<close> by blast
-          then obtain F where "F \<in> \<F>" "y \<in> F" using hF_covers by auto
-          then have "intersects F W" unfolding intersects_def using \<open>y \<in> W\<close> by blast
-          then show "y \<in> \<Union>{F \<in> \<F>. intersects F W}" using \<open>F \<in> \<F>\<close> \<open>y \<in> F\<close> by blast
-        qed
-        have hfin_C: "finite (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
-          using hF_star \<open>finite {F \<in> \<F>. intersects F W}\<close> by blast
-        have hsub: "{C0 \<in> \<C>. intersects C0 W} \<subseteq> (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
-        proof (rule subsetI)
-          fix C0 assume "C0 \<in> {C0 \<in> \<C>. intersects C0 W}"
-          then have "C0 \<in> \<C>" "intersects C0 W" by blast+
-          obtain z where "z \<in> C0" "z \<in> W" using \<open>intersects C0 W\<close> unfolding intersects_def by blast
-          then have "z \<in> X" using hTsub \<open>W \<in> TX\<close> by blast
-          then obtain F where "F \<in> \<F>" "z \<in> F" using hF_covers by auto
-          then have "intersects F W" "intersects C0 F"
-            unfolding intersects_def using \<open>z \<in> W\<close> \<open>z \<in> C0\<close> by blast+
-          then show "C0 \<in> (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
-            using \<open>F \<in> \<F>\<close> \<open>C0 \<in> \<C>\<close> by blast
-        qed
-        have hfin_CW: "finite {C0 \<in> \<C>. intersects C0 W}"
-          using finite_subset[OF hsub hfin_C] by blast
-        text \<open>Munkres argument: W ⊆ ∪F_i (F covers X). Each F_i meets finitely many
-          B-elements (if F meets E(C0)∩parent(C0) then F∩C0≠{}, and each F meets finitely
-          many C-elements). So total B-elements meeting W is finite.\<close>
-        have hfin_B: "finite {B0 \<in> \<B>. intersects B0 W}"
-        proof -
-          have hB_sub_FC: "{B0 \<in> \<B>. intersects B0 W} \<subseteq>
-            (\<lambda>C0. E C0 \<inter> parent C0) ` (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
-          proof (rule subsetI)
-            fix B0 assume "B0 \<in> {B0 \<in> \<B>. intersects B0 W}"
-            then have "B0 \<in> \<B>" "intersects B0 W" by blast+
-            obtain C0 where "C0 \<in> \<C>" "B0 = E C0 \<inter> parent C0"
-              using \<open>B0 \<in> \<B>\<close> unfolding \<B>_def by auto
-            obtain y where "y \<in> B0" "y \<in> W"
-              using \<open>intersects B0 W\<close> unfolding intersects_def by blast
-            then have "y \<in> X" using hTsub \<open>W \<in> TX\<close> by blast
-            obtain Fi where "Fi \<in> \<F>" "y \<in> Fi" using hF_covers \<open>y \<in> X\<close> by auto
-            have "intersects Fi W" unfolding intersects_def using \<open>y \<in> Fi\<close> \<open>y \<in> W\<close> by blast
-            text \<open>Fi meets E(C0), so Fi ∩ C0 ≠ {}.\<close>
-            have "y \<in> E C0" using \<open>y \<in> B0\<close> \<open>B0 = E C0 \<inter> parent C0\<close> by blast
-            have "Fi \<inter> E C0 \<noteq> {}" using \<open>y \<in> Fi\<close> \<open>y \<in> E C0\<close> by blast
-            have "intersects C0 Fi"
-              sorry
-            then have "C0 \<in> (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
-              using \<open>C0 \<in> \<C>\<close> \<open>Fi \<in> \<F>\<close> \<open>intersects Fi W\<close> by blast
-            then show "B0 \<in> (\<lambda>C0. E C0 \<inter> parent C0) ` (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
-              using \<open>C0 \<in> \<C>\<close> \<open>B0 = E C0 \<inter> parent C0\<close> by blast
-          qed
-          have "finite (\<Union>F\<in>{F \<in> \<F>. intersects F W}. {C0 \<in> \<C>. intersects C0 F})"
-            using hF_star \<open>finite {F \<in> \<F>. intersects F W}\<close> by blast
-          then show ?thesis using finite_subset[OF hB_sub_FC finite_imageI] by blast
-        qed
-        show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> \<B>. intersects A U}"
-          using \<open>W \<in> TX\<close> \<open>x \<in> W\<close> hfin_B by blast
-      qed
-    qed
-
+      by (rule expansion_lf_from_auxiliary[OF hTsub hFcl_lf hFcl_covers hFcl_subX hFcl_star hB_eq hE_eq hp_TX])
     show ?thesis
-      unfolding top1_open_covering_on_def
-      using hB_open hB_covers hB_ref hB_lf
-      
-      by blast
+      unfolding top1_open_covering_on_def using hB_open hB_covers hB_ref hB_lf by blast
   qed
 
   show ?thesis using step234
