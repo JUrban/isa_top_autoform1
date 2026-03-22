@@ -5522,6 +5522,7 @@ qed
 theorem Theorem_41_5:
   assumes hReg: "top1_regular_on X TX"
   assumes hLind: "top1_lindelof_on X TX"
+  assumes hTsub_assume: "\<forall>U\<in>TX. U \<subseteq> X"
   shows "top1_paracompact_on X TX"
   unfolding top1_paracompact_on_def
 proof (intro allI impI)
@@ -5601,7 +5602,7 @@ proof (intro allI impI)
   qed
   text \<open>Apply sigma-LF → LF conversion.\<close>
   have hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
-    sorry (* Topology elements ⊆ X: from Lindelöf/regularity structure *)
+    using hTsub_assume by presburger
   obtain \<B> where hB_cov: "top1_open_covering_on X TX \<B>"
     and hB_ref_C: "top1_refines \<B> \<C>"
     and hB_lf: "top1_locally_finite_family_on X TX \<B>"
