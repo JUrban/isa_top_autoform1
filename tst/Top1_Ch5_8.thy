@@ -4918,7 +4918,8 @@ proof -
       by blast
   qed
   have habs_metric: "top1_metric_on (UNIV::real set) (\<lambda>x y. \<bar>x - y\<bar>)"
-    sorry (* Absolute value is a metric on ℝ. *)
+    unfolding top1_metric_on_def
+    by auto
   have habs_eq_order: "top1_metric_topology_on (UNIV::real set) (\<lambda>x y. \<bar>x - y\<bar>) = order_topology_on_UNIV"
     sorry (* Standard: abs-metric topology on ℝ = order topology. *)
   have hpartial_cont_abs: "\<forall>n::nat. top1_continuous_map_on X TX (UNIV::real set)
