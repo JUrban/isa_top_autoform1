@@ -5717,10 +5717,17 @@ next
                 qed
                 have hWn_ex: "\<forall>n\<le>N. \<exists>Wn\<in>TX. x \<in> Wn \<and>
                   (\<forall>y\<in>Wn. \<forall>B\<in>Bn n. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2)"
-                  sorry (* For each n ≤ N: Bn n is LF → x has Un ∈ TX meeting finitely many B.
-                           For B not meeting Un: fJ = 0 on Un. For B meeting Un (finite): fJ continuous.
-                           Find VB where |fJ(n,B)(y)-fJ(n,B)(x)| < ε/2. Wn = Un ∩ ∩{VB}.
-                           Uses: hBn_lf, hfJ_cont, hgB_prop, finite intersection. *)
+                proof (intro allI impI)
+                  fix n assume hn: "n \<le> N"
+                  obtain Unbhd where hUn: "Unbhd \<in> TX" and hxUn: "x \<in> Unbhd"
+                    and hFin: "finite {B \<in> Bn n. intersects B Unbhd}"
+                    using hBn_lf hxX unfolding top1_locally_finite_family_on_def
+                    by blast
+                  show "\<exists>Wn\<in>TX. x \<in> Wn \<and> (\<forall>y\<in>Wn. \<forall>B\<in>Bn n. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2)"
+                    sorry (* Combine: For B not meeting Unbhd: fJ = 0 at x and y on Unbhd.
+                             For B meeting Unbhd (finite): fJ continuous → VB.
+                             Wn = Unbhd ∩ ∩{VB}, TX-open, bound holds. ~15 lines. *)
+                qed
                 then obtain Wn where hWn: "\<forall>n\<le>N. Wn n \<in> TX \<and> x \<in> Wn n
                   \<and> (\<forall>y\<in>Wn n. \<forall>B\<in>Bn n. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2)"
                   by metis
