@@ -5767,8 +5767,16 @@ next
                     have hV_eq: "V = {y \<in> X. fJ (n, B) y \<in> {z. \<bar>z - fJ (n, B) x\<bar> < \<epsilon>/2}}"
                       unfolding V_def
                       by fastforce
+                    have hball_eq: "{z :: real. \<bar>z - fJ (n, B) x\<bar> < \<epsilon>/2} = open_interval (fJ (n, B) x - \<epsilon>/2) (fJ (n, B) x + \<epsilon>/2)"
+                      unfolding open_interval_def using he2pos
+                      by (smt (verit, del_insts) Collect_cong)
+                    have hint_in_basis: "open_interval (fJ (n, B) x - \<epsilon>/2) (fJ (n, B) x + \<epsilon>/2) \<in> basis_order_topology"
+                      unfolding basis_order_topology_def using he2pos
+                      using he2pos by fastforce
                     have hball_open: "{z :: real. \<bar>z - fJ (n, B) x\<bar> < \<epsilon>/2} \<in> order_topology_on_UNIV"
-                      sorry (* Open ball in ℝ is open in order topology *)
+                      unfolding hball_eq order_topology_on_UNIV_def
+                      using basis_elem_open_if_basis_for[OF basis_for_order_topology_on_UNIV] hint_in_basis
+                      using order_topology_on_UNIV_def by blast
                     have "V \<in> TX"
                       unfolding hV_eq using hcont_nB hball_open unfolding top1_continuous_map_on_def
                       by fast
