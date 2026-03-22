@@ -9887,9 +9887,29 @@ proof (intro conjI)
       have hSelf: "\<forall>x\<in>X. x \<in> top1_ball_on X d x (ex x / 2)"
         unfolding top1_ball_on_def using hd hex unfolding top1_metric_on_def by fastforce
       then have "X \<subseteq> \<Union>((\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X)" by blast
-      then obtain F where "finite F" "F \<subseteq> X" "F \<noteq> {}"
-        "\<forall>y\<in>X. \<exists>xf\<in>F. d y xf < ex xf / 2" sorry
-      then show False using hCauchy hex hd sorry
+      then obtain \<V> where "finite \<V>" "\<V> \<subseteq> (\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X" "X \<subseteq> \<Union>\<V>"
+        using hComp hBalls unfolding top1_compact_on_def by blast
+      then obtain c where hc: "\<forall>V\<in>\<V>. c V \<in> X \<and> V = top1_ball_on X d (c V) (ex (c V) / 2)"
+        sorry  (* bchoice from V ⊆ image *)
+      define F where "F = c ` \<V>"
+      have hFfin: "finite F" unfolding F_def using \<open>finite \<V>\<close> by blast
+      have hFsub: "F \<subseteq> X" unfolding F_def using hc by blast
+      have hFcov: "\<forall>y\<in>X. \<exists>xf\<in>F. d y xf < ex xf / 2"
+      proof (intro ballI)
+        fix y assume "y \<in> X"
+        then obtain V where "V \<in> \<V>" "y \<in> V" using \<open>X \<subseteq> \<Union>\<V>\<close> by auto
+        have "V = top1_ball_on X d (c V) (ex (c V) / 2)" using hc \<open>V \<in> \<V>\<close> by blast
+        have "y \<in> top1_ball_on X d (c V) (ex (c V) / 2)"
+          using \<open>y \<in> V\<close> \<open>V = top1_ball_on X d (c V) (ex (c V) / 2)\<close> by simp
+        then have "d (c V) y < ex (c V) / 2"
+          unfolding top1_ball_on_def by simp
+        then have "d y (c V) < ex (c V) / 2"
+          using hd \<open>y \<in> X\<close> hc \<open>V \<in> \<V>\<close> unfolding top1_metric_on_def by force
+        moreover have "c V \<in> F" unfolding F_def using \<open>V \<in> \<V>\<close> by blast
+        ultimately show "\<exists>xf\<in>F. d y xf < ex xf / 2" by blast
+      qed
+      text \<open>Contradiction: Cauchy with δ < min(ex_i/2) → eventually all s_n near one center.\<close>
+      then show False using hCauchy hex hd hFfin hFsub sorry
     qed
   qed
 qed
