@@ -7377,7 +7377,32 @@ proof -
   have hV_cov: "top1_open_covering_on X TX V"
     unfolding top1_open_covering_on_def
     using hV_open hV_covers by presburger
-  have hV_lf: "top1_locally_finite_family_on X TX V" sorry
+  have hV_lf: "top1_locally_finite_family_on X TX V"
+    unfolding top1_locally_finite_family_on_def
+  proof (intro ballI)
+    fix x assume "x \<in> X"
+    obtain W where hW: "W \<in> TX" and hxW: "x \<in> W"
+      and hfin: "finite {B \<in> \<B>. intersects B W}"
+      using hB_lf \<open>x \<in> X\<close> unfolding top1_locally_finite_family_on_def by blast
+    have hsub: "{VA \<in> V. intersects VA W} \<subseteq> V_A ` (parent ` {B \<in> \<B>. intersects B W})"
+    proof (rule subsetI)
+      fix VA assume "VA \<in> {VA \<in> V. intersects VA W}"
+      then have "VA \<in> V" "intersects VA W" by blast+
+      then obtain A where "A \<in> \<A>" "VA = V_A A" unfolding V_def by blast
+      obtain z where "z \<in> VA" "z \<in> W" using \<open>intersects VA W\<close> unfolding intersects_def by blast
+      then obtain B where "B \<in> \<B>" "parent B = A" "z \<in> B"
+        using \<open>VA = V_A A\<close> unfolding V_A_def by blast
+      then have "B \<in> {B \<in> \<B>. intersects B W}"
+        using \<open>z \<in> W\<close> unfolding intersects_def by blast
+      then show "VA \<in> V_A ` (parent ` {B \<in> \<B>. intersects B W})"
+        using \<open>parent B = A\<close> \<open>VA = V_A A\<close> by blast
+    qed
+    have "finite {VA \<in> V. intersects VA W}"
+      using finite_subset[OF hsub finite_imageI[OF finite_imageI[OF hfin]]]
+      by linarith
+    then show "\<exists>U\<in>TX. x \<in> U \<and> finite {A \<in> V. intersects A U}"
+      using hW hxW by blast
+  qed
   have hV_cl: "\<forall>A\<in>\<A>. \<exists>VA\<in>V. VA \<in> TX \<and> closure_on X TX VA \<subseteq> A" sorry
   show ?thesis using hV_cl hV_cov hV_lf hV_ref by blast
 qed
