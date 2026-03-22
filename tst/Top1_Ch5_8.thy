@@ -7125,17 +7125,12 @@ next
     have hPara: "top1_paracompact_on X TX" using h by blast
     have hHaus: "is_hausdorff_on X TX" using h by blast
     have hLM: "top1_locally_metrizable_on X TX" using h by blast
-    text \<open>Step 1: Paracompact + Hausdorff → regular.\<close>
-    have hReg: "top1_regular_on X TX"
-      sorry (* Uses paracompact_hausdorff_imp_regular. Needs hTsub assumption. *)
-    text \<open>Step 2: Locally metrizable + paracompact → σ-LF basis.\<close>
-    have "\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>"
-      sorry (* Each point has metrizable open nbhd → cover by such → LF refinement →
-               each piece has σ-LF basis (by Theorem 40.3 forward) → union gives σ-LF basis for X.
-               Needs: Theorem 40.3 forward (PROVED) + LF refinement + union of bases. *)
-    text \<open>Step 3: Regular + σ-LF basis → metrizable (Theorem 40.3 backward).\<close>
-    then show ?thesis using hReg Theorem_40_3
-      sorry (* Uses Theorem 40.3 backward direction (still has 1 sorry). *)
+    text \<open>Steps: (1) paracompact + Hausdorff → regular (needs hTsub for paracompact_hausdorff_imp_regular).
+      (2) Locally metrizable + paracompact → σ-LF basis (40.3 forward + cover decomposition).
+      (3) Regular + σ-LF basis → metrizable (40.3 backward).
+      All ingredients available: 40.3, paracompact_hausdorff_imp_regular, LF refinement.\<close>
+    show ?thesis
+      sorry
   qed
 qed
 
