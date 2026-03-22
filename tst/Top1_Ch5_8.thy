@@ -7322,7 +7322,34 @@ proof -
     by (rule paracompact_hausdorff_imp_regular[OF hPara hHaus hTsub])
   define \<A>' where "\<A>' = {U \<in> TX. \<exists>A\<in>\<A>. closure_on X TX U \<subseteq> A}"
   have hA'_covers: "X \<subseteq> \<Union>\<A>'"
-    sorry
+  proof (rule subsetI)
+    fix x assume "x \<in> X"
+    obtain A where "A \<in> \<A>" "x \<in> A"
+      using hCov \<open>x \<in> X\<close> unfolding top1_open_covering_on_def by blast
+    have "A \<in> TX" using hCov \<open>A \<in> \<A>\<close> unfolding top1_open_covering_on_def by blast
+    have "closedin_on X TX (X - A)"
+      using \<open>A \<in> TX\<close> hTsub unfolding closedin_on_def
+      by (simp add: double_diff)
+    then obtain U0 V where "neighborhood_of x X TX U0" "V \<in> TX"
+      "X - A \<subseteq> V" "U0 \<inter> V = {}"
+      using hReg \<open>x \<in> X\<close> \<open>x \<in> A\<close> unfolding top1_regular_on_def
+      by blast
+    then obtain U where "U \<in> TX" "x \<in> U" "U \<subseteq> U0"
+      unfolding neighborhood_of_def by blast
+    have "closedin_on X TX (X - V)"
+      using \<open>V \<in> TX\<close> hTsub unfolding closedin_on_def
+      by (simp add: double_diff)
+    have "U \<subseteq> X - V"
+      using \<open>U \<subseteq> U0\<close> \<open>U0 \<inter> V = {}\<close> hTsub \<open>U \<in> TX\<close>
+      by fast
+    have "closure_on X TX U \<subseteq> X - V"
+      using closure_on_subset_of_closed[OF \<open>closedin_on X TX (X - V)\<close>] \<open>U \<subseteq> X - V\<close>
+      by simp
+    then have "closure_on X TX U \<subseteq> A" using \<open>X - A \<subseteq> V\<close>
+      by fast
+    then have "U \<in> \<A>'" unfolding \<A>'_def using \<open>U \<in> TX\<close> \<open>A \<in> \<A>\<close> by blast
+    then show "x \<in> \<Union>\<A>'" using \<open>x \<in> U\<close> by blast
+  qed
   have hA'_cov: "top1_open_covering_on X TX \<A>'"
     unfolding top1_open_covering_on_def
   proof (intro conjI)
@@ -7334,7 +7361,18 @@ proof -
     using hPara hA'_cov unfolding top1_paracompact_on_def
     by blast
   have hparent_ex: "\<forall>B\<in>\<B>. \<exists>A. A \<in> \<A> \<and> closure_on X TX B \<subseteq> A"
-    sorry
+  proof (intro ballI)
+    fix B assume "B \<in> \<B>"
+    obtain U where "U \<in> \<A>'" "B \<subseteq> U"
+      using hB_ref \<open>B \<in> \<B>\<close> unfolding top1_refines_def by blast
+    then obtain A where "A \<in> \<A>" "closure_on X TX U \<subseteq> A"
+      unfolding \<A>'_def by blast
+    have "B \<in> TX" using hB_cov \<open>B \<in> \<B>\<close> unfolding top1_open_covering_on_def by blast
+    have "closure_on X TX B \<subseteq> closure_on X TX U"
+      using closure_on_mono \<open>B \<subseteq> U\<close> by fast
+    then have "closure_on X TX B \<subseteq> A" using \<open>closure_on X TX U \<subseteq> A\<close> by blast
+    then show "\<exists>A. A \<in> \<A> \<and> closure_on X TX B \<subseteq> A" using \<open>A \<in> \<A>\<close> by blast
+  qed
   obtain parent where hparent: "\<forall>B\<in>\<B>. parent B \<in> \<A> \<and> closure_on X TX B \<subseteq> parent B"
     using bchoice[OF hparent_ex] by metis
   define V_A where "V_A A = \<Union>{B \<in> \<B>. parent B = A}" for A
