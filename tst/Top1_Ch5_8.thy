@@ -7548,6 +7548,130 @@ proof -
     by satx
 qed
 
+text \<open>In a metric space, if every convergent sequence from A has limit in A, then A is closed.\<close>
+lemma metric_seq_closed_imp_closed:
+  assumes hd: "top1_metric_on X d"
+  assumes hAX: "A \<subseteq> X"
+  assumes hSeqCl: "\<forall>s. (\<forall>n::nat. s n \<in> A) \<longrightarrow>
+    (\<forall>x. seq_converges_to_on s x X (top1_metric_topology_on X d) \<longrightarrow> x \<in> A)"
+  shows "closedin_on X (top1_metric_topology_on X d) A"
+proof -
+  let ?TX = "top1_metric_topology_on X d"
+  text \<open>Show X - A is open: for x ∈ X - A, find ε-ball in X - A.\<close>
+  have hXmA_open: "X - A \<in> ?TX"
+  proof (rule top1_open_of_local_subsets)
+    show "is_topology_on X ?TX" using hd top1_metric_topology_on_is_topology_on
+      by blast
+    show "X - A \<subseteq> X"
+      by auto
+    show "\<forall>x\<in>X - A. \<exists>U\<in>?TX. x \<in> U \<and> U \<subseteq> X - A"
+    proof (intro ballI)
+      fix x assume hx: "x \<in> X - A"
+      have hxX: "x \<in> X" using hx
+        by blast
+      have hxnA: "x \<notin> A" using hx
+        by blast
+      text \<open>Claim: ∃ε>0 with B(x,ε) ∩ A = {}. By contradiction, for each n, ∃a_n ∈ A ∩ B(x,1/(n+1)).\<close>
+      have "\<exists>\<epsilon>>0. top1_ball_on X d x \<epsilon> \<inter> A = {}"
+      proof (rule ccontr)
+        assume "\<not> (\<exists>\<epsilon>>0. top1_ball_on X d x \<epsilon> \<inter> A = {})"
+        then have hneg: "\<forall>\<epsilon>>0. top1_ball_on X d x \<epsilon> \<inter> A \<noteq> {}"
+          by auto
+        text \<open>Build sequence: for each n, pick a_n ∈ A with d(x, a_n) < 1/(n+1).\<close>
+        have "\<forall>n::nat. \<exists>a. a \<in> A \<and> d x a < 1 / real (Suc n)"
+        proof (intro allI)
+          fix n :: nat
+          have hpos: "0 < 1 / real (Suc n)"
+            by simp
+          then have "top1_ball_on X d x (1 / real (Suc n)) \<inter> A \<noteq> {}"
+            using hneg
+            by presburger
+          then obtain a where "a \<in> top1_ball_on X d x (1 / real (Suc n))" and "a \<in> A"
+            by fast
+          then have "a \<in> X \<and> d x a < 1 / real (Suc n)" unfolding top1_ball_on_def
+            by blast
+          then show "\<exists>a. a \<in> A \<and> d x a < 1 / real (Suc n)" using \<open>a \<in> A\<close>
+            by blast
+        qed
+        then obtain s where hs: "\<forall>n. s n \<in> A \<and> d x (s n) < 1 / real (Suc n)"
+          by meson
+        have hsA: "\<forall>n. s n \<in> A" using hs
+          by presburger
+        text \<open>s converges to x.\<close>
+        have hsconv: "seq_converges_to_on s x X ?TX"
+          unfolding metric_seq_conv_iff[OF hd hxX]
+        proof (intro allI impI)
+          fix \<epsilon> :: real assume hepos: "0 < \<epsilon>"
+          obtain N :: nat where hNe: "1 / real (Suc N) < \<epsilon>"
+          proof -
+            obtain k :: nat where hk: "1 / \<epsilon> < real k" using reals_Archimedean2
+              by blast
+            have "1 / real (Suc k) < \<epsilon>"
+            proof -
+              have "0 < \<epsilon>" by (rule hepos)
+              have "0 < real (Suc k)"
+                by simp
+              have "1 / \<epsilon> < real (Suc k)" using hk
+                by simp
+              then show ?thesis using \<open>0 < \<epsilon>\<close> \<open>0 < real (Suc k)\<close>
+                by (simp add: divide_less_eq mult.commute)
+            qed
+            then show ?thesis using that
+              by blast
+          qed
+          show "\<exists>N. \<forall>n\<ge>N. s n \<in> X \<and> d (s n) x < \<epsilon>"
+          proof (intro exI allI impI)
+            fix n assume hnN: "N \<le> n"
+            have hsnA: "s n \<in> A" using hsA
+              by simp
+            have hsnX: "s n \<in> X" using hsnA hAX
+              by blast
+            have "d x (s n) < 1 / real (Suc n)" using hs
+              by simp
+            also have "... \<le> 1 / real (Suc N)"
+            proof -
+              have "real (Suc N) \<le> real (Suc n)" using hnN
+                by auto
+              then show ?thesis
+                using frac_le[of 1 1 "real (Suc N)" "real (Suc n)"]
+                by linarith
+            qed
+            also have "... < \<epsilon>" by (rule hNe)
+            finally have "d x (s n) < \<epsilon>"
+              by presburger
+            have "d (s n) x = d x (s n)"
+              using hd hsnX hxX unfolding top1_metric_on_def
+              by blast
+            then show "s n \<in> X \<and> d (s n) x < \<epsilon>" using hsnX \<open>d x (s n) < \<epsilon>\<close>
+              by presburger
+          qed
+        qed
+        text \<open>By sequential closedness, x ∈ A. Contradiction.\<close>
+        have "x \<in> A" using hSeqCl hsA hsconv
+          by presburger
+        then show False using hxnA
+          by presburger
+      qed
+      then obtain \<epsilon> where hepos: "0 < \<epsilon>" and hdisj: "top1_ball_on X d x \<epsilon> \<inter> A = {}"
+        by blast
+      have hball_open: "top1_ball_on X d x \<epsilon> \<in> ?TX"
+        using top1_ball_open_in_metric_topology[OF hd hxX hepos]
+        by satx
+      have hball_sub: "top1_ball_on X d x \<epsilon> \<subseteq> X - A"
+        using hdisj unfolding top1_ball_on_def
+        by blast
+      have hx_in_ball: "x \<in> top1_ball_on X d x \<epsilon>"
+        unfolding top1_ball_on_def using hxX hd hepos unfolding top1_metric_on_def
+        by fastforce
+      show "\<exists>U\<in>?TX. x \<in> U \<and> U \<subseteq> X - A"
+        using hball_open hx_in_ball hball_sub
+        by blast
+    qed
+  qed
+  show ?thesis unfolding closedin_on_def using hAX hXmA_open
+    by argo
+qed
+
 (** from \S43 Theorem 43.5 [top1.tex:6242]
     Proof: Cauchy in uniform metric \<Rightarrow> coordinatewise Cauchy in Y \<Rightarrow> coordinatewise convergent
     (by completeness of Y) \<Rightarrow> uniform convergence. **)
