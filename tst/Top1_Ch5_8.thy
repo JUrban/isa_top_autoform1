@@ -11359,7 +11359,27 @@ proof -
              f_N continuous + triangle inequality → g continuous at x₀. ~40 lines. *)
 
   show ?thesis
-    sorry (* C is dense and C ⊆ {continuity points}, so {continuity points} is dense. *)
+    unfolding top1_densein_on_def
+  proof -
+    have "X = closure_on X TX C"
+      using hC_dense unfolding top1_densein_on_def
+      
+      by presburger
+    also have "... \<subseteq> closure_on X TX {x \<in> X. top1_continuous_at_on X TX Y ?TY g x}"
+      using closure_on_mono[OF hC_sub_cont]
+      
+      by fast
+    finally have "X \<subseteq> closure_on X TX {x \<in> X. top1_continuous_at_on X TX Y ?TY g x}"
+      
+      by satx
+    moreover have "closure_on X TX {x \<in> X. top1_continuous_at_on X TX Y ?TY g x} \<subseteq> X"
+      using closure_on_subset_carrier[OF hTop]
+      
+      by auto
+    ultimately show "closure_on X TX {x \<in> X. top1_continuous_at_on X TX Y ?TY g x} = X"
+      
+      by fast
+  qed
 qed
 
 section \<open>*\<S>49 A Nowhere-Differentiable Function\<close>
