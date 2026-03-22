@@ -15504,7 +15504,13 @@ proof (intro ballI notI)
   have "h < \<delta>" using \<open>h \<le> 1 / real (Suc (Suc n))\<close> \<open>1 / real (Suc (Suc n)) < \<delta>\<close> by linarith
   have "top1_Delta49 f x h < \<bar>L\<bar> + 1" sorry
   have "top1_Delta_h49 f h \<le> top1_Delta49 f x h"
-    unfolding top1_Delta_h49_def sorry
+    unfolding top1_Delta_h49_def
+  proof (rule cInf_lower)
+    show "top1_Delta49 f x h \<in> (\<lambda>x. top1_Delta49 f x h) ` top1_I01"
+      using \<open>x \<in> {0<..<1}\<close> unfolding top1_closed_interval_def by force
+    show "bdd_below ((\<lambda>x. top1_Delta49 f x h) ` top1_I01)"
+      unfolding top1_Delta49_def sorry
+  qed
   then have "top1_Delta_h49 f h < \<bar>L\<bar> + 1" using \<open>top1_Delta49 f x h < \<bar>L\<bar> + 1\<close> by linarith
   then show False using \<open>top1_Delta_h49 f h > real (Suc (Suc n))\<close> \<open>real (Suc (Suc n)) > \<bar>L\<bar> + 1\<close>
     by linarith
