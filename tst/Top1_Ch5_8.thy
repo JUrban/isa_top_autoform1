@@ -6630,20 +6630,6 @@ lemma sigma_lf_to_lf_covering:
   assumes hCov: "top1_open_covering_on X TX \<A>"
   assumes hSLF: "top1_sigma_locally_finite_family_on X TX \<A>"
   shows "\<exists>\<C>. (\<forall>C\<in>\<C>. C \<subseteq> X) \<and> X \<subseteq> \<Union>\<C> \<and> top1_refines \<C> \<A> \<and> top1_locally_finite_family_on X TX \<C>"
-  sorry  (* Proof: same as the step12 block inside sigma_lf_to_lf_open_covering below.
-            TODO: move step12 body here and have step12 reference this lemma. *)
-
-lemma sigma_lf_to_lf_open_covering:
-  assumes hReg: "top1_regular_on X TX"
-  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
-  assumes hCov: "top1_open_covering_on X TX \<A>"
-  assumes hSLF: "top1_sigma_locally_finite_family_on X TX \<A>"
-  assumes hSLF_all: "\<forall>\<G>. top1_open_covering_on X TX \<G> \<longrightarrow>
-    (\<exists>\<H>. top1_open_covering_on X TX \<H> \<and> top1_refines \<H> \<G> \<and> top1_sigma_locally_finite_family_on X TX \<H>)"
-  shows "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_locally_finite_family_on X TX \<B>"
-proof -
-  text \<open>Step (1)\<Rightarrow>(2): shrink sigma-LF to LF covering (not necessarily open).\<close>
-  have step12: "\<exists>\<C>. (\<forall>C\<in>\<C>. C \<subseteq> X) \<and> X \<subseteq> \<Union>\<C> \<and> top1_refines \<C> \<A> \<and> top1_locally_finite_family_on X TX \<C>"
   proof -
     have hTop: "is_topology_on X TX"
       using hReg unfolding top1_regular_on_def top1_T1_on_def
@@ -6954,6 +6940,19 @@ proof -
       
       by blast
   qed
+
+lemma sigma_lf_to_lf_open_covering:
+  assumes hReg: "top1_regular_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
+  assumes hCov: "top1_open_covering_on X TX \<A>"
+  assumes hSLF: "top1_sigma_locally_finite_family_on X TX \<A>"
+  assumes hSLF_all: "\<forall>\<G>. top1_open_covering_on X TX \<G> \<longrightarrow>
+    (\<exists>\<H>. top1_open_covering_on X TX \<H> \<and> top1_refines \<H> \<G> \<and> top1_sigma_locally_finite_family_on X TX \<H>)"
+  shows "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_locally_finite_family_on X TX \<B>"
+proof -
+  text \<open>Step (1)\<Rightarrow>(2): shrink sigma-LF to LF covering (not necessarily open).\<close>
+  have step12: "\<exists>\<C>. (\<forall>C\<in>\<C>. C \<subseteq> X) \<and> X \<subseteq> \<Union>\<C> \<and> top1_refines \<C> \<A> \<and> top1_locally_finite_family_on X TX \<C>"
+    using sigma_lf_to_lf_covering[OF hReg hTsub hCov hSLF] by blast
 
   text \<open>Steps (2)\<Rightarrow>(3)\<Rightarrow>(4) combined: from LF covering to LF open covering.
     Uses regularity + Lemma 39.1 for closure + expansion via auxiliary LF closed covering.
