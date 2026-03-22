@@ -7080,9 +7080,21 @@ proof -
     define \<F>_closed where "\<F>_closed = closure_on X TX ` \<F>"
     have hFcl_lf: "top1_locally_finite_family_on X TX \<F>_closed"
       unfolding \<F>_closed_def \<F>_def using Lemma_39_1(2)[OF hTop hF0_subX hF0_lf] by presburger
-    have hFcl_closed: "\<forall>Fc\<in>\<F>_closed. closedin_on X TX Fc" sorry
-    have hFcl_subX: "\<forall>Fc\<in>\<F>_closed. Fc \<subseteq> X" sorry
-    have hFcl_covers: "X \<subseteq> \<Union>\<F>_closed" sorry
+    have hFcl_closed: "\<forall>Fc\<in>\<F>_closed. closedin_on X TX Fc"
+    proof (intro ballI)
+      fix Fc assume "Fc \<in> \<F>_closed"
+      then obtain F0 where "F0 \<in> \<F>" "Fc = closure_on X TX F0" unfolding \<F>_closed_def by blast
+      then show "closedin_on X TX Fc"
+        using hTop hF0_subX unfolding \<F>_def by (metis closure_on_closed)
+    qed
+    have hFcl_subX: "\<forall>Fc\<in>\<F>_closed. Fc \<subseteq> X"
+      by (metis closedin_on_def hFcl_closed)
+    have hFcl_covers: "X \<subseteq> \<Union>\<F>_closed"
+    proof (rule subsetI)
+      fix x assume "x \<in> X"
+      then obtain F0 where "F0 \<in> \<F>" "x \<in> F0" using hF_covers by auto
+      then show "x \<in> \<Union>\<F>_closed" unfolding \<F>_closed_def using subset_closure_on by fast
+    qed
     have hFcl_star: "\<forall>Fc\<in>\<F>_closed. finite {C0 \<in> \<C>. intersects C0 Fc}" sorry
     have hparent_ex: "\<forall>C0\<in>\<C>. \<exists>A0. A0 \<in> \<A> \<and> C0 \<subseteq> A0"
       using hC_ref unfolding top1_refines_def by fast
