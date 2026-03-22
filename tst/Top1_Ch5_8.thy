@@ -11437,7 +11437,11 @@ proof -
           
           by blast
         have "\<exists>N. \<forall>n\<ge>N. \<forall>m\<ge>N. d (f n x) (f m x) \<le> e"
-          sorry (* Convergent → Cauchy + ε argument *)
+          sorry (* Convergent in metric → Cauchy:
+                   From hconv, for e/2 get N with d(f_n(x), g(x)) < e/2 for n ≥ N.
+                   Then d(f_n(x), f_m(x)) ≤ d(f_n(x), g(x)) + d(g(x), f_m(x)) < e.
+                   Needs: metric convergence → eventually in ball, metric triangle,
+                   metric symmetry. ~20 lines. *)
         then show "x \<in> (\<Union>N. AN N e)"
           unfolding AN_def top1_AN_48_def using hxX
           
