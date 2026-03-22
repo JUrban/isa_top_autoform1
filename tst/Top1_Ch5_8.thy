@@ -9889,8 +9889,10 @@ proof (intro conjI)
       then have "X \<subseteq> \<Union>((\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X)" by blast
       then obtain \<V> where "finite \<V>" "\<V> \<subseteq> (\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X" "X \<subseteq> \<Union>\<V>"
         using hComp hBalls unfolding top1_compact_on_def by blast
+      have "\<forall>V\<in>\<V>. \<exists>x. x \<in> X \<and> V = top1_ball_on X d x (ex x / 2)"
+        using \<open>\<V> \<subseteq> (\<lambda>x. top1_ball_on X d x (ex x / 2)) ` X\<close> by blast
       then obtain c where hc: "\<forall>V\<in>\<V>. c V \<in> X \<and> V = top1_ball_on X d (c V) (ex (c V) / 2)"
-        sorry  (* bchoice from V ⊆ image *)
+        using bchoice by metis
       define F where "F = c ` \<V>"
       have hFfin: "finite F" unfolding F_def using \<open>finite \<V>\<close> by blast
       have hFsub: "F \<subseteq> X" unfolding F_def using hc by blast
@@ -9909,7 +9911,36 @@ proof (intro conjI)
         ultimately show "\<exists>xf\<in>F. d y xf < ex xf / 2" by blast
       qed
       text \<open>Contradiction: Cauchy with δ < min(ex_i/2) → eventually all s_n near one center.\<close>
-      then show False using hCauchy hex hd hFfin hFsub sorry
+      have hFne: "F \<noteq> {}"
+        using hFcov hCauchy unfolding top1_cauchy_seq_on_def
+        by (meson dual_order.refl empty_iff zero_less_one)
+      define \<delta> where "\<delta> = Min ((\<lambda>xf. ex xf / 2) ` F)"
+      have h\<delta>pos: "0 < \<delta>"
+        using hex hFsub hFne hFfin unfolding \<delta>_def by auto
+      obtain N where hN: "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> X \<and> s n \<in> X \<and> d (s m) (s n) < \<delta>"
+        using hCauchy h\<delta>pos unfolding top1_cauchy_seq_on_def by blast
+      have "s N \<in> X" using hN by blast
+      then obtain xj where "xj \<in> F" "d (s N) xj < ex xj / 2"
+        using hFcov by blast
+      have h\<delta>le: "\<delta> \<le> ex xj / 2"
+        using \<open>xj \<in> F\<close> hFfin unfolding \<delta>_def
+        by (meson Min_le finite_imageI image_eqI)
+      have hxjX: "xj \<in> X" using \<open>xj \<in> F\<close> hFsub by blast
+      have "\<forall>n\<ge>N. d (s n) xj < ex xj"
+      proof (intro allI impI)
+        fix n assume "N \<le> n"
+        have "d (s n) xj \<le> d (s n) (s N) + d (s N) xj"
+          using hd hN \<open>N \<le> n\<close> hxjX unfolding top1_metric_on_def by blast
+        have "d (s n) (s N) < \<delta>" using hN \<open>N \<le> n\<close> by simp
+        show "d (s n) xj < ex xj"
+          using \<open>d (s n) xj \<le> d (s n) (s N) + d (s N) xj\<close>
+            \<open>d (s n) (s N) < \<delta>\<close> \<open>d (s N) xj < ex xj / 2\<close> h\<delta>le
+          by linarith
+      qed
+      have "\<exists>n\<ge>N. d (s n) xj \<ge> ex xj" using hex hxjX by blast
+      then obtain n where "n \<ge> N" "d (s n) xj \<ge> ex xj" by blast
+      have "d (s n) xj < ex xj" using \<open>\<forall>n\<ge>N. d (s n) xj < ex xj\<close> \<open>n \<ge> N\<close> by blast
+      then show False using \<open>d (s n) xj \<ge> ex xj\<close> by linarith
     qed
   qed
 qed
