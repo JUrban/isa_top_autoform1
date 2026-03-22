@@ -7273,6 +7273,73 @@ proof -
 qed
 
 text \<open>Metric convergence iff epsilon-delta convergence.\<close>
+
+text \<open>Helper: metric convergence preserves distance bounds.
+  If a_n → a in metric Y, and d(a_n, b) ≤ c for all n ≥ N, then d(a, b) ≤ c.\<close>
+lemma metric_limit_preserves_bound:
+  assumes hd: "top1_metric_on Y d"
+  assumes hconv: "seq_converges_to_on s a Y (top1_metric_topology_on Y d)"
+  assumes hbound: "\<forall>n\<ge>N. d (s n) b \<le> c"
+  assumes hbY: "b \<in> Y"
+  assumes hc: "0 \<le> c"
+  shows "d a b \<le> c"
+proof (rule field_le_epsilon)
+  fix e' :: real assume he': "0 < e'"
+  have haY: "a \<in> Y"
+    using hconv unfolding seq_converges_to_on_def
+    
+    by satx
+  text \<open>Get M with d(s n, a) < e' for n ≥ M.\<close>
+  have hball_open: "top1_ball_on Y d a e' \<in> top1_metric_topology_on Y d"
+    using hd haY he' top1_ball_open_in_metric_topology
+    
+    by fast
+  have ha_in_ball: "a \<in> top1_ball_on Y d a e'"
+    unfolding top1_ball_on_def using haY hd he' unfolding top1_metric_on_def
+    
+    by fastforce
+  have hnbhd: "neighborhood_of a Y (top1_metric_topology_on Y d) (top1_ball_on Y d a e')"
+    unfolding neighborhood_of_def using hball_open ha_in_ball
+    
+    by satx
+  obtain M where hM: "\<forall>n\<ge>M. s n \<in> top1_ball_on Y d a e'"
+    using hconv hnbhd unfolding seq_converges_to_on_def
+    
+    by blast
+  text \<open>Pick n = max(N, M).\<close>
+  define n0 where "n0 = max N M"
+  have hn0N: "n0 \<ge> N" unfolding n0_def
+    
+    by simp
+  have hn0M: "n0 \<ge> M" unfolding n0_def
+    
+    by simp
+  have hsn0_ball: "s n0 \<in> top1_ball_on Y d a e'"
+    using hM hn0M
+    
+    by presburger
+  have hd_a_sn0: "d a (s n0) < e'"
+    using hsn0_ball unfolding top1_ball_on_def
+    
+    by blast
+  have hd_sn0_b: "d (s n0) b \<le> c"
+    using hbound hn0N
+    
+    by blast
+  have hsn0Y: "s n0 \<in> Y"
+    using hsn0_ball unfolding top1_ball_on_def
+    
+    by blast
+  have htri: "d a b \<le> d a (s n0) + d (s n0) b"
+    using hd haY hsn0Y hbY unfolding top1_metric_on_def
+    
+    by blast
+  show "d a b \<le> c + e'"
+    using htri hd_a_sn0 hd_sn0_b
+    
+    by argo
+qed
+
 lemma metric_seq_conv_iff:
   assumes hd: "top1_metric_on X d"
   assumes hxX: "x \<in> X"
@@ -7529,11 +7596,95 @@ proof -
       using hflim hflim_ext
       by blast
     text \<open>Show s → flim in uniform metric.\<close>
+    text \<open>Show s → flim in uniform metric via ε-δ characterization.\<close>
+    have hconv_rho: "seq_converges_to_on s flim ?X (top1_metric_topology_on ?X ?rho)"
+      unfolding metric_seq_conv_iff[OF hrho_m hflim_PiE]
+    proof (intro allI impI)
+      fix \<epsilon> :: real assume hepos: "0 < \<epsilon>"
+      define e2 where "e2 = \<epsilon> / 2"
+      have he2pos: "0 < e2" unfolding e2_def using hepos
+        by auto
+      obtain N where hN: "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> ?X \<and> s n \<in> ?X \<and> ?rho (s m) (s n) < e2"
+        using hCauchy he2pos unfolding top1_cauchy_seq_on_def
+        by presburger
+      show "\<exists>N. \<forall>n\<ge>N. s n \<in> ?X \<and> ?rho (s n) flim < \<epsilon>"
+      proof (intro exI allI impI)
+        fix n assume hnN: "N \<le> n"
+        have hsnX: "s n \<in> ?X" using hN hnN
+          by auto
+        text \<open>For each α, d̄(s_n(α), flim(α)) ≤ e2.\<close>
+        have hcoord_bound: "\<forall>\<alpha>\<in>I. ?db (s n \<alpha>) (flim \<alpha>) \<le> e2"
+        proof (intro ballI)
+          fix \<alpha> assume h\<alpha>: "\<alpha> \<in> I"
+          text \<open>d̄(s_n(α), s_m(α)) < e2 for all m ≥ N (from Cauchy).\<close>
+          have hbound_m: "\<forall>m\<ge>N. ?db ((\<lambda>m. s m \<alpha>) m) (s n \<alpha>) \<le> e2"
+          proof (intro allI impI)
+            fix m assume hmN: "N \<le> m"
+            have "?db (s m \<alpha>) (s n \<alpha>) \<le> ?rho (s m) (s n)"
+            proof -
+              have hsmX: "s m \<in> ?X" using hN hmN hnN
+                by presburger
+              have hsnX2: "s n \<in> ?X" using hsnX
+                by argo
+              have hrho_eq2: "?rho (s m) (s n) = Sup ((\<lambda>i. ?db (s m i) (s n i)) ` I)"
+                using hIne unfolding top1_uniform_metric_on_def
+                by presburger
+              have hmem2: "?db (s m \<alpha>) (s n \<alpha>) \<in> (\<lambda>i. ?db (s m i) (s n i)) ` I" using h\<alpha>
+                by fast
+              have hbdd2: "bdd_above ((\<lambda>i. ?db (s m i) (s n i)) ` I)"
+              proof (intro bdd_aboveI)
+                fix x assume "x \<in> (\<lambda>i. ?db (s m i) (s n i)) ` I"
+                then show "x \<le> 1" unfolding top1_bounded_metric_def
+                  by force
+              qed
+              show ?thesis using cSup_upper[OF hmem2 hbdd2] hrho_eq2
+                by presburger
+            qed
+            also have "... < e2" using hN hmN hnN
+              by presburger
+            finally show "?db ((\<lambda>m. s m \<alpha>) m) (s n \<alpha>) \<le> e2"
+              by simp
+          qed
+          text \<open>s_m(α) → flim(α), so by limit-preserves-bound: d̄(s_n(α), flim(α)) ≤ e2.\<close>
+          have hconv_\<alpha>: "seq_converges_to_on (\<lambda>m. s m \<alpha>) (flim \<alpha>) Y (top1_metric_topology_on Y ?db)"
+            using hflim h\<alpha>
+            by auto
+          have hflim_\<alpha>Y: "flim \<alpha> \<in> Y" using hflim h\<alpha>
+            by blast
+          have hsn_\<alpha>Y: "s n \<alpha> \<in> Y" using hsnX h\<alpha> unfolding top1_PiE_def top1_Pi_def
+            by blast
+          have he2nn: "0 \<le> e2" using he2pos
+            by linarith
+          have "?db (flim \<alpha>) (s n \<alpha>) \<le> e2"
+            using metric_limit_preserves_bound[OF hdbm hconv_\<alpha> hbound_m hsn_\<alpha>Y he2nn]
+            by satx
+          have "?db (s n \<alpha>) (flim \<alpha>) = ?db (flim \<alpha>) (s n \<alpha>)"
+            using hdbm hsn_\<alpha>Y hflim_\<alpha>Y unfolding top1_metric_on_def
+            by blast
+          show "?db (s n \<alpha>) (flim \<alpha>) \<le> e2"
+            using \<open>?db (flim \<alpha>) (s n \<alpha>) \<le> e2\<close> \<open>?db (s n \<alpha>) (flim \<alpha>) = ?db (flim \<alpha>) (s n \<alpha>)\<close>
+            by presburger
+        qed
+        text \<open>rho(s_n, flim) = Sup ≤ e2 < ε.\<close>
+        have hrho_bound: "?rho (s n) flim \<le> e2"
+        proof -
+          have hrho_eq: "?rho (s n) flim = Sup ((\<lambda>i. ?db (s n i) (flim i)) ` I)"
+            using hIne unfolding top1_uniform_metric_on_def
+            by presburger
+          have hne: "(\<lambda>i. ?db (s n i) (flim i)) ` I \<noteq> {}" using hIne
+            by fast
+          show ?thesis unfolding hrho_eq
+            using cSup_least[OF hne] hcoord_bound
+            by blast
+        qed
+        show "s n \<in> ?X \<and> ?rho (s n) flim < \<epsilon>"
+          using hsnX hrho_bound unfolding e2_def
+          using hepos by force
+      qed
+    qed
     show "\<exists>x\<in>?X. seq_converges_to_on s x ?X (top1_metric_topology_on ?X ?rho)"
-      using hflim_PiE
-      sorry (* ~30 lines. For ε>0, pick N s.t. rho(s_n,s_m)<ε/2 for n,m≥N.
-               For each α, d̄(s_n(α), flim(α)) ≤ ε/2 (limit preserves bound).
-               So rho(s_n, flim) ≤ ε/2 < ε for n≥N. *)
+      using hflim_PiE hconv_rho
+      by blast
   qed
 qed
 
@@ -12269,72 +12420,6 @@ proof -
     show "top1_densein_on U ?TU (\<Inter>n. V n)"
       using hDenseU hIntDU by simp
   qed
-qed
-
-text \<open>Helper: metric convergence preserves distance bounds.
-  If a_n → a in metric Y, and d(a_n, b) ≤ c for all n ≥ N, then d(a, b) ≤ c.\<close>
-lemma metric_limit_preserves_bound:
-  assumes hd: "top1_metric_on Y d"
-  assumes hconv: "seq_converges_to_on s a Y (top1_metric_topology_on Y d)"
-  assumes hbound: "\<forall>n\<ge>N. d (s n) b \<le> c"
-  assumes hbY: "b \<in> Y"
-  assumes hc: "0 \<le> c"
-  shows "d a b \<le> c"
-proof (rule field_le_epsilon)
-  fix e' :: real assume he': "0 < e'"
-  have haY: "a \<in> Y"
-    using hconv unfolding seq_converges_to_on_def
-    
-    by satx
-  text \<open>Get M with d(s n, a) < e' for n ≥ M.\<close>
-  have hball_open: "top1_ball_on Y d a e' \<in> top1_metric_topology_on Y d"
-    using hd haY he' top1_ball_open_in_metric_topology
-    
-    by fast
-  have ha_in_ball: "a \<in> top1_ball_on Y d a e'"
-    unfolding top1_ball_on_def using haY hd he' unfolding top1_metric_on_def
-    
-    by fastforce
-  have hnbhd: "neighborhood_of a Y (top1_metric_topology_on Y d) (top1_ball_on Y d a e')"
-    unfolding neighborhood_of_def using hball_open ha_in_ball
-    
-    by satx
-  obtain M where hM: "\<forall>n\<ge>M. s n \<in> top1_ball_on Y d a e'"
-    using hconv hnbhd unfolding seq_converges_to_on_def
-    
-    by blast
-  text \<open>Pick n = max(N, M).\<close>
-  define n0 where "n0 = max N M"
-  have hn0N: "n0 \<ge> N" unfolding n0_def
-    
-    by simp
-  have hn0M: "n0 \<ge> M" unfolding n0_def
-    
-    by simp
-  have hsn0_ball: "s n0 \<in> top1_ball_on Y d a e'"
-    using hM hn0M
-    
-    by presburger
-  have hd_a_sn0: "d a (s n0) < e'"
-    using hsn0_ball unfolding top1_ball_on_def
-    
-    by blast
-  have hd_sn0_b: "d (s n0) b \<le> c"
-    using hbound hn0N
-    
-    by blast
-  have hsn0Y: "s n0 \<in> Y"
-    using hsn0_ball unfolding top1_ball_on_def
-    
-    by blast
-  have htri: "d a b \<le> d a (s n0) + d (s n0) b"
-    using hd haY hsn0Y hbY unfolding top1_metric_on_def
-    
-    by blast
-  show "d a b \<le> c + e'"
-    using htri hd_a_sn0 hd_sn0_b
-    
-    by argo
 qed
 
 (** from \S48 Theorem 48.5 [top1.tex:7222] **)
