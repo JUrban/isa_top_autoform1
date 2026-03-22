@@ -5657,12 +5657,29 @@ next
     next
       text \<open>(⊇) metric topology ⊆ TX: d-balls have TX-neighborhoods inside.\<close>
       show "top1_metric_topology_on X d \<subseteq> TX"
-        sorry (* For d-ball B(x₀,ε): pick N with 1/(N+1) < ε/2.
-                 For n ≤ N: Bn n is LF, so x₀ has neighborhood Un meeting finitely many B∈Bn n.
-                 The nonzero fJ(n,B) are continuous → find Vn ⊆ Un where each varies by < ε/2.
-                 For n > N: |fJ(n,B)(x)-fJ(n,B)(x₀)| ≤ 2/(n+1) < ε automatically.
-                 W = V₁∩...∩V_N is TX-open, and for x∈W: d(x,x₀) < ε.
-                 So every d-ball element has a TX-neighborhood in the ball → d-ball ∈ TX. *)
+        unfolding top1_metric_topology_on_def
+      proof (rule topology_generated_by_basis_subset[OF hTop])
+        show "top1_metric_basis_on X d \<subseteq> TX"
+        proof (rule subsetI)
+          fix b assume "b \<in> top1_metric_basis_on X d"
+          then obtain x0 r where hx0: "x0 \<in> X" and hr: "0 < r" and hbeq: "b = top1_ball_on X d x0 r"
+            unfolding top1_metric_basis_on_def
+            sledgehammer [timeout = 10]
+            sorry
+          show "b \<in> TX"
+            unfolding hbeq
+          proof (rule top1_open_of_local_subsets[OF hTop])
+            show "top1_ball_on X d x0 r \<subseteq> X" unfolding top1_ball_on_def
+              sledgehammer [timeout = 10]
+              sorry
+            show "\<forall>x\<in>top1_ball_on X d x0 r. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> top1_ball_on X d x0 r"
+              sorry (* The local finiteness argument. ~30 lines.
+                       For x ∈ ball(x₀,r), ε = r - d(x₀,x) > 0. Need TX-W with d(x,·)<ε on W.
+                       Pick N with 1/(N+1) < ε/2. For n≤N: LF→finite nonzero→continuous→Vn.
+                       For n>N: fJ bounded by 1/(n+1)<ε/2. W = ∩Vn is TX-open with d(x,·)<ε. *)
+          qed
+        qed
+      qed
     qed
     show ?thesis unfolding top1_metrizable_on_def using hd_metric hd_topology
       by auto
