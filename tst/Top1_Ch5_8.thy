@@ -7105,8 +7105,24 @@ proof -
     define \<B> where "\<B> = {E C0 \<inter> parent C0 | C0. C0 \<in> \<C>}"
     have hE_open: "\<forall>C0\<in>\<C>. E C0 \<in> TX" sorry
     have hB_open: "\<B> \<subseteq> TX" sorry
-    have hB_covers: "X \<subseteq> \<Union>\<B>" sorry
-    have hB_ref: "top1_refines \<B> \<A>" sorry
+    have hB_covers: "X \<subseteq> \<Union>\<B>"
+    proof (rule subsetI)
+      fix x assume "x \<in> X"
+      then obtain C0 where "C0 \<in> \<C>" "x \<in> C0" using hC_covers by auto
+      have "x \<notin> \<Union>{Fc \<in> \<F>_closed. Fc \<subseteq> X - C0}" using \<open>x \<in> C0\<close> by blast
+      have "x \<in> E C0" unfolding E_def using \<open>x \<in> X\<close> \<open>x \<notin> \<Union>{Fc \<in> \<F>_closed. Fc \<subseteq> X - C0}\<close> by blast
+      moreover have "x \<in> parent C0" using hparent \<open>C0 \<in> \<C>\<close> \<open>x \<in> C0\<close> by blast
+      ultimately show "x \<in> \<Union>\<B>" unfolding \<B>_def using \<open>C0 \<in> \<C>\<close> by blast
+    qed
+    have hB_ref: "top1_refines \<B> \<A>"
+      unfolding top1_refines_def \<B>_def
+    proof (intro ballI)
+      fix W assume "W \<in> {E C0 \<inter> parent C0 | C0. C0 \<in> \<C>}"
+      then obtain C0 where "C0 \<in> \<C>" "W = E C0 \<inter> parent C0" by blast
+      have "W \<subseteq> parent C0" using \<open>W = E C0 \<inter> parent C0\<close> by blast
+      moreover have "parent C0 \<in> \<A>" using hparent \<open>C0 \<in> \<C>\<close> by blast
+      ultimately show "\<exists>A\<in>\<A>. W \<subseteq> A" by blast
+    qed
     have hp_TX: "\<forall>C0\<in>\<C>. parent C0 \<in> TX" using hparent hA_sub_TX by fast
     have hE_eq: "\<And>C0. E C0 = X - \<Union>{F \<in> \<F>_closed. F \<subseteq> X - C0}" unfolding E_def by blast
     have hB_eq: "\<B> = {E C0 \<inter> parent C0 | C0. C0 \<in> \<C>}" unfolding \<B>_def by blast
