@@ -4602,11 +4602,46 @@ proof -
       by linarith
   qed
   text \<open>f is continuous (uniform limit of partial sums).\<close>
+  text \<open>f(x) ∈ [0,1] for all x ∈ X.\<close>
+  have hf_range: "\<forall>x\<in>X. 0 \<le> f x \<and> f x \<le> 1"
+  proof (intro ballI conjI)
+    fix x assume hxX: "x \<in> X"
+    show "0 \<le> f x" unfolding f_def
+      using suminf_nonneg[of "\<lambda>n. fn n x / 2^(Suc n)"] hsummable hxX hfn_range
+      by fastforce
+    show "f x \<le> 1" unfolding f_def
+    proof -
+      have hle: "\<And>n. fn n x / 2^(Suc n) \<le> (1/2::real)^(Suc n)"
+      proof -
+        fix n
+        have "fn n x \<le> 1" using hfn_range hxX
+          by blast
+        then show "fn n x / 2 ^ Suc n \<le> (1 / 2) ^ Suc n"
+          by (simp add: power_divide divide_right_mono)
+      qed
+      have hgeom_sum: "summable (\<lambda>n. (1/2::real)^(Suc n))"
+        by fastforce
+      have hle_suminf: "suminf (\<lambda>n. fn n x / 2^(Suc n)) \<le> suminf (\<lambda>n. (1/2::real)^(Suc n))"
+        using suminf_le hle hsummable hxX hgeom_sum
+        by meson
+      have hgeom_le1: "suminf (\<lambda>n. (1/2::real)^(Suc n)) \<le> 1"
+        using hgeom_sum power_half_series sums_le by blast
+      show "(\<Sum>n. fn n x / 2 ^ Suc n) \<le> 1" using hle_suminf hgeom_le1
+        by argo
+    qed
+  qed
+  text \<open>Partial sums converge uniformly: |f(x) - S_N(x)| ≤ 1/2^N.\<close>
+  have hunif_partial: "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>X. \<bar>(\<Sum>i<n. fn i x / 2^(Suc i)) - f x\<bar> < \<epsilon>"
+    sorry (* Tail bound: |f(x) - S_N(x)| = |Σ_{i≥N} fn(i,x)/2^(i+1)| ≤ Σ_{i≥N} 1/2^(i+1) = 1/2^N.
+             Uses suminf_minus_initial_segment, geometric series tail. *)
+  text \<open>Each partial sum is continuous.\<close>
+  have hpartial_cont: "\<forall>n::nat. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (\<lambda>x. \<Sum>i<n. fn i x / 2^(Suc i))"
+    sorry (* Finite sum of continuous functions. Each fn i is continuous into [0,1].
+             fn i x / 2^(Suc i) is continuous (composition with scaling).
+             Sum of continuous is continuous. *)
   have hf_cont: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
-    sorry (* Uniform convergence of partial sums Σ_{n<N} fn(n,x)/2^(n+1) → f(x).
-             Each partial sum is continuous (finite sum of continuous).
-             Apply uniform_limit_continuous.
-             Also need f(x) ∈ [0,1]: f(x) ≤ Σ 1/2^(n+1) = 1, f(x) ≥ 0. *)
+    sorry (* Combines: uniform convergence + partial sums continuous + f range in [0,1].
+             Needs connecting to uniform_limit_continuous via the right metric. *)
   show ?thesis using hf_cont hf_A hf_pos
     by blast
 qed
