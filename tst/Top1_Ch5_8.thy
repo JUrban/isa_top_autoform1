@@ -4488,11 +4488,74 @@ next
   case False
   text \<open>For c ≠ 0, the map λy. c*y is a homeomorphism on ℝ, hence continuous.
     Compose with f to get continuity of λx. c * f(x).\<close>
+  have habs_m: "top1_metric_on (UNIV::real set) (\<lambda>x y. \<bar>x - y\<bar>)"
+    unfolding top1_metric_on_def
+    by fastforce
+  have habs_eq: "top1_metric_topology_on (UNIV::real set) (\<lambda>x y. \<bar>x - y\<bar>) = order_topology_on_UNIV"
+  proof -
+    have "top1_bounded_metric (\<lambda>x y :: real. \<bar>x - y\<bar>) = top1_real_bounded_metric"
+      unfolding top1_bounded_metric_def top1_real_bounded_metric_def
+      by order
+    then show ?thesis
+      using Theorem_20_1[OF habs_m] order_topology_on_UNIV_eq_bounded_metric_topology_real
+      by argo
+  qed
+  have hTopR_abs: "is_topology_on (UNIV::real set) (top1_metric_topology_on UNIV (\<lambda>x y. \<bar>x - y\<bar>))"
+    using habs_m top1_metric_topology_on_is_topology_on
+    by blast
+  have hscale_abs: "\<forall>V\<in>top1_metric_topology_on (UNIV::real set) (\<lambda>x y. \<bar>x - y\<bar>).
+    {x::real. c * x \<in> V} \<in> top1_metric_topology_on UNIV (\<lambda>x y. \<bar>x - y\<bar>)"
+  proof (intro ballI)
+    fix V :: "real set"
+    assume hV: "V \<in> top1_metric_topology_on UNIV (\<lambda>x y. \<bar>x - y\<bar>)"
+    let ?pre = "{x::real. c * x \<in> V}"
+    show "?pre \<in> top1_metric_topology_on UNIV (\<lambda>x y. \<bar>x - y\<bar>)"
+    proof (rule top1_open_of_local_subsets[OF hTopR_abs])
+      show "?pre \<subseteq> (UNIV::real set)"
+        by auto
+      show "\<forall>x0\<in>?pre. \<exists>U\<in>top1_metric_topology_on UNIV (\<lambda>x y. \<bar>x - y\<bar>). x0 \<in> U \<and> U \<subseteq> ?pre"
+      proof (intro ballI)
+        fix x0 :: real assume hx0: "x0 \<in> ?pre"
+        have hcx0V: "c * x0 \<in> V" using hx0
+          by blast
+        obtain \<epsilon> where hepos: "0 < \<epsilon>" and hball: "top1_ball_on UNIV (\<lambda>x y. \<bar>x - y\<bar>) (c * x0) \<epsilon> \<subseteq> V"
+          using top1_metric_open_contains_ball[OF habs_m hV hcx0V]
+          by blast
+        define \<delta> where "\<delta> = \<epsilon> / \<bar>c\<bar>"
+        have hdpos: "0 < \<delta>" unfolding \<delta>_def using hepos False
+          by auto
+        let ?U = "top1_ball_on UNIV (\<lambda>x y. \<bar>x - y\<bar>) x0 \<delta>"
+        have hU_open: "?U \<in> top1_metric_topology_on UNIV (\<lambda>x y. \<bar>x - y\<bar>)"
+          using top1_ball_open_in_metric_topology[OF habs_m _ hdpos]
+          by blast
+        have hx0U: "x0 \<in> ?U" unfolding top1_ball_on_def using hdpos
+          by force
+        have hU_sub: "?U \<subseteq> ?pre"
+        proof (rule subsetI)
+          fix y :: real assume hy: "y \<in> ?U"
+          have "\<bar>x0 - y\<bar> < \<delta>" using hy unfolding top1_ball_on_def
+            by fast
+          have "\<bar>c * x0 - c * y\<bar> = \<bar>c\<bar> * \<bar>x0 - y\<bar>"
+            by (metis abs_mult right_diff_distrib)
+          also have "... < \<bar>c\<bar> * \<delta>" using \<open>\<bar>x0 - y\<bar> < \<delta>\<close> False
+            by force
+          also have "... = \<epsilon>" unfolding \<delta>_def using False
+            by simp
+          finally have "c * y \<in> top1_ball_on UNIV (\<lambda>x y. \<bar>x - y\<bar>) (c * x0) \<epsilon>"
+            unfolding top1_ball_on_def
+            by blast
+          then show "y \<in> ?pre" using hball
+            by blast
+        qed
+        show "\<exists>U\<in>top1_metric_topology_on UNIV (\<lambda>x y. \<bar>x - y\<bar>). x0 \<in> U \<and> U \<subseteq> ?pre"
+          using hU_open hx0U hU_sub
+          by blast
+      qed
+    qed
+  qed
   have hscale_cont: "top1_continuous_map_on (UNIV::real set) order_topology_on_UNIV (UNIV::real set) order_topology_on_UNIV (\<lambda>y. c * y)"
-    sorry (* Key infrastructure: multiplication by nonzero constant continuous on ℝ.
-             Proof via order topology: preimage of (a,∞) is (a/c,∞) for c>0 or (-∞,a/c) for c<0.
-             Both are open in order topology. Similarly for (-∞,b).
-             Subbasis elements map to subbasis elements. *)
+    unfolding top1_continuous_map_on_def using hscale_abs habs_eq
+    by simp
   have hcomp: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV ((\<lambda>y. c * y) \<circ> f)"
     using Theorem_18_2(3)[OF hTopX order_topology_on_UNIV_is_topology_on order_topology_on_UNIV_is_topology_on] hf hscale_cont
     by blast
