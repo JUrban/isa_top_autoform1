@@ -5699,9 +5699,21 @@ proof (intro iffI)
     have hXopen: "X \<in> TX" using hd hTX
       
       by (meson is_topology_on_def top1_metric_topology_on_is_topology_on)
+    have hTX_sub: "\<forall>U\<in>TX. U \<subseteq> X"
+      using hTX unfolding top1_metric_topology_on_def topology_generated_by_basis_def
+      
+      by blast
+    have hint_eq: "\<forall>U\<in>TX. X \<inter> U = U" using hTX_sub
+      
+      by auto
+    have hsubspace_X: "subspace_topology X TX X = TX"
+      unfolding subspace_topology_def using hint_eq
+      
+      by fastforce
     show "\<exists>U\<in>TX. x \<in> U \<and> (\<exists>d. top1_metric_on U d \<and> subspace_topology X TX U = top1_metric_topology_on U d)"
-      sorry (* X itself is a neighborhood, metrizable. Subspace of metric = metric on subspace.
-               Needs: metric subspace lemma. *)
+      using hXopen hxX hd hTX hsubspace_X
+      
+      by auto
   qed
   show "top1_paracompact_on X TX \<and> is_hausdorff_on X TX \<and> top1_locally_metrizable_on X TX"
     using hPara hHaus hLM
