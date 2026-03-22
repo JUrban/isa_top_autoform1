@@ -7343,11 +7343,37 @@ proof -
     using hB_cov unfolding top1_open_covering_on_def
     by argo
   have hV_ref: "top1_refines V \<A>"
-    sorry
+    unfolding top1_refines_def
+  proof (intro ballI)
+    fix W assume "W \<in> V"
+    then obtain A where hAmem: "A \<in> \<A>" and hWeq: "W = V_A A"
+      unfolding V_def by blast
+    have "\<forall>B \<in> {B \<in> \<B>. parent B = A}. B \<subseteq> A"
+    proof (intro ballI)
+      fix B assume "B \<in> {B \<in> \<B>. parent B = A}"
+      then have "parent B = A" "B \<in> \<B>" by blast+
+      then show "B \<subseteq> A" using hparent subset_closure_on by fast
+    qed
+    then have "V_A A \<subseteq> A" unfolding V_A_def by blast
+    then show "\<exists>A\<in>\<A>. W \<subseteq> A" using hAmem hWeq by blast
+  qed
   have hV_covers: "X \<subseteq> \<Union>V"
-    sorry
+  proof (rule subsetI)
+    fix x assume "x \<in> X"
+    then obtain B where "B \<in> \<B>" "x \<in> B"
+      using hB_cov unfolding top1_open_covering_on_def by blast
+    then have "x \<in> V_A (parent B)" unfolding V_A_def by blast
+    moreover have "parent B \<in> \<A>" using hparent \<open>B \<in> \<B>\<close> by blast
+    ultimately show "x \<in> \<Union>V" unfolding V_def by blast
+  qed
   have hV_open: "V \<subseteq> TX"
-    sorry
+  proof (rule subsetI)
+    fix W assume "W \<in> V"
+    then obtain A where "W = V_A A" unfolding V_def by blast
+    have "{B \<in> \<B>. parent B = A} \<subseteq> TX" using hB_sub_TX by blast
+    then show "W \<in> TX" unfolding \<open>W = V_A A\<close> V_A_def
+      using hTop unfolding is_topology_on_def by auto
+  qed
   have hV_cov: "top1_open_covering_on X TX V"
     unfolding top1_open_covering_on_def
     using hV_open hV_covers by presburger
