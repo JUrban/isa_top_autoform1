@@ -8207,16 +8207,42 @@ proof -
     by argo
 qed
 
-text \<open>Parts (b) and (d) of Theorem 43.6.\<close>
-theorem Theorem_43_6bd:
+text \<open>Part (b): B(X,Y) is closed in Y^X under uniform metric.\<close>
+theorem Theorem_43_6b:
   assumes hd: "top1_metric_on Y d"
+  assumes hXne: "X \<noteq> {}"
   shows "closedin_on
            (top1_PiE X (\<lambda>_. Y))
            (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))
            (top1_bounded_maps_metric_on X Y d)"
-    and "top1_complete_metric_on Y d
-          \<longrightarrow> top1_complete_metric_on (top1_bounded_maps_metric_on X Y d) (top1_uniform_metric_on X d)"
   sorry
+  (* Similar to 43.6a: use metric_seq_closed_imp_closed.
+     If f_n bounded and f_n → f uniformly, show f bounded:
+     pick N with ρ̄(f_N,f) < 1/2, then d(f_N(x),f(x)) < 1/2 for all x,
+     so diam(f(X)) ≤ diam(f_N(X)) + 1 < ∞. *)
+
+text \<open>Part (d): B(X,Y) complete when Y complete.\<close>
+theorem Theorem_43_6d:
+  assumes hd: "top1_metric_on Y d"
+  assumes hXne: "X \<noteq> {}"
+  assumes hYcomp: "top1_complete_metric_on Y d"
+  shows "top1_complete_metric_on (top1_bounded_maps_metric_on X Y d) (top1_uniform_metric_on X d)"
+proof -
+  let ?PX = "top1_PiE X (\<lambda>_. Y)"
+  let ?rho = "top1_uniform_metric_on X d"
+  have hrho_m: "top1_metric_on ?PX ?rho"
+    using top1_uniform_metric_is_metric[OF hXne hd]
+    by presburger
+  have hPX_complete: "top1_complete_metric_on ?PX ?rho"
+    using Theorem_43_5[OF hXne hYcomp]
+    by blast
+  have hClosed: "closedin_on ?PX (top1_metric_topology_on ?PX ?rho) (top1_bounded_maps_metric_on X Y d)"
+    using Theorem_43_6b[OF hd hXne]
+    by blast
+  show ?thesis
+    using closed_subset_complete[OF hrho_m hPX_complete hClosed]
+    by argo
+qed
 
 definition top1_isometry_on ::
   "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> real)
