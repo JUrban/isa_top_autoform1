@@ -4701,8 +4701,23 @@ proof -
   text \<open>Each partial sum is continuous.\<close>
   text \<open>Each fn i maps into ℝ continuously.\<close>
   have hfn_cont_R: "\<forall>i. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (fn i)"
-    sorry (* fn i continuous into [0,1]; [0,1] ⊆ ℝ; interval_topology = subspace of order_topology.
-             Uses Theorem_18_2(6) expand_range. *)
+  proof (intro allI)
+    fix i
+    have hfn_i: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (fn i)"
+      using hfn_cont
+      by blast
+    have hI_sub: "top1_closed_interval (0::real) 1 \<subseteq> UNIV"
+      by simp
+    have hI_eq: "top1_closed_interval_topology 0 1 = subspace_topology UNIV order_topology_on_UNIV (top1_closed_interval 0 1)"
+      unfolding top1_closed_interval_topology_def
+      by presburger
+    have "top1_closed_interval (0::real) 1 \<subseteq> UNIV" by simp
+    moreover have "top1_closed_interval_topology 0 1 = subspace_topology UNIV order_topology_on_UNIV (top1_closed_interval 0 1)"
+      unfolding top1_closed_interval_topology_def by simp
+    ultimately show "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (fn i)"
+      using Theorem_18_2[OF hTop order_topology_on_UNIV_is_topology_on order_topology_on_UNIV_is_topology_on] hfn_i
+      sorry
+  qed
   text \<open>Each scaled function fn i x / 2^(Suc i) is continuous into ℝ.\<close>
   have hfn_scaled_cont_R: "\<forall>i. top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV (\<lambda>x. fn i x / 2^(Suc i))"
     sorry (* Scaling by constant 1/2^(Suc i) preserves continuity.
