@@ -5683,14 +5683,115 @@ next
                 For n > N where 1/(N+1) < ε/2: |fJ(n,B)| ≤ 1/(n+1), so diff ≤ 2/(n+1) < ε.
                 For n ≤ N: use LF of Bn n + continuity of finitely many gB.\<close>
               have "\<exists>W\<in>TX. x \<in> W \<and> (\<forall>y\<in>W. d x y < \<epsilon>)"
-                sorry (* The core ~40-line argument using local finiteness.
-                         Pick N with 2/(N+2) < ε. For each n≤N:
-                         - Bn n is LF → x has neighborhood Un ∈ TX meeting finitely many B∈Bn n.
-                         - For B not meeting Un: fJ(n,B) = 0 on Un (both x and y), diff = 0.
-                         - For B meeting Un: fJ(n,B) continuous → find Vn,B where diff < ε/2.
-                         - Vn = Un ∩ ∩{Vn,B} is TX-open (finite intersection).
-                         W = ∩{Vn | n≤N} is TX-open. For y∈W, all |fJ p y - fJ p x| < ε.
-                         So d(x,y) = Sup{...} < ε by cSup_least. *)
+              proof -
+                obtain N :: nat where hN: "2 / real (Suc (Suc N)) < \<epsilon>"
+                proof -
+                  obtain k :: nat where hk: "2 / \<epsilon> < real k" using reals_Archimedean2
+                    by blast
+                  have "2 / real (Suc (Suc k)) < \<epsilon>"
+                  proof -
+                    have "0 < real (Suc (Suc k))"
+                      by linarith
+                    moreover have "2 / \<epsilon> < real (Suc (Suc k))" using hk
+                      by simp
+                    ultimately show ?thesis using hepos
+                      by (simp add: field_simps)
+                  qed
+                  then show ?thesis using that
+                    by blast
+                qed
+                have hWn_ex: "\<forall>n\<le>N. \<exists>Wn\<in>TX. x \<in> Wn \<and>
+                  (\<forall>y\<in>Wn. \<forall>B\<in>Bn n. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2)"
+                  sorry (* LF + continuity argument for each n ≤ N *)
+                then obtain Wn where hWn: "\<forall>n\<le>N. Wn n \<in> TX \<and> x \<in> Wn n
+                  \<and> (\<forall>y\<in>Wn n. \<forall>B\<in>Bn n. \<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2)"
+                  by metis
+                define W where "W = (\<Inter>n\<in>{..N}. Wn n)"
+                have hW_open: "W \<in> TX"
+                  sorry (* Finite intersection of TX-opens *)
+                have hxW: "x \<in> W" unfolding W_def using hWn
+                  by blast
+                have hyX_W: "\<forall>y\<in>W. y \<in> X"
+                  using hW_open hBasis unfolding basis_for_def topology_generated_by_basis_def W_def
+                  by blast
+                define M where "M = max (\<epsilon>/2) (2 / real (Suc (Suc N)))"
+                have hMeps: "M < \<epsilon>" unfolding M_def using hN hepos
+                  by linarith
+                have "\<forall>y\<in>W. d x y < \<epsilon>"
+                proof (intro ballI)
+                  fix y assume hyW: "y \<in> W"
+                  have hyX: "y \<in> X" using hyX_W hyW
+                    by blast
+                  show "d x y < \<epsilon>"
+                  proof (cases "J = {}")
+                    case True then show ?thesis unfolding d_def using hepos
+                      by auto
+                  next
+                    case False
+                    have hne: "(\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J \<noteq> {}" using False
+                      by fast
+                    have hd_eq: "d x y = Sup ((\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J)"
+                      unfolding d_def using False
+                      by presburger
+                    have hbound: "\<forall>v\<in>(\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J. v \<le> M"
+                    proof (intro ballI)
+                      fix v assume "v \<in> (\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J"
+                      then obtain n B where hnB: "(n, B) \<in> J" and hv: "v = \<bar>fJ (n, B) x - fJ (n, B) y\<bar>"
+                        unfolding J_def
+                        by fast
+                      have hBn: "B \<in> Bn n" using hnB unfolding J_def
+                        by auto
+                      have hBB: "B \<in> \<B>" using hBn hB_eq
+                        by blast
+                      show "v \<le> M"
+                      proof (cases "n \<le> N")
+                        case True
+                        have hyWn: "y \<in> Wn n" using hyW unfolding W_def using True
+                          by fast
+                        have "\<bar>fJ (n, B) y - fJ (n, B) x\<bar> \<le> \<epsilon>/2"
+                          using hWn True hyWn hBn
+                          by blast
+                        then show ?thesis unfolding hv M_def
+                          by argo
+                      next
+                        case False
+                        then have hn_gt: "Suc (Suc N) \<le> Suc n"
+                          by presburger
+                        have hgBx01a: "0 \<le> gB B x" using hgB_range hBB hxX by blast
+                        have hgBx01b: "gB B x \<le> 1" using hgB_range hBB hxX by blast
+                        have hgBy01a: "0 \<le> gB B y" using hgB_range hBB hyX by blast
+                        have hgBy01b: "gB B y \<le> 1" using hgB_range hBB hyX by blast
+                        have hfJx: "fJ (n, B) x = gB B x / real (Suc n)" unfolding fJ_def
+                          by fast
+                        have hfJy: "fJ (n, B) y = gB B y / real (Suc n)" unfolding fJ_def
+                          by fastforce
+                        have hab_le: "\<bar>gB B x - gB B y\<bar> \<le> 2"
+                          using hgBx01a hgBx01b hgBy01a hgBy01b
+                          by fastforce
+                        have hstep1: "gB B x / real (Suc n) - gB B y / real (Suc n) = (gB B x - gB B y) / real (Suc n)"
+                          by (simp add: diff_divide_distrib)
+                        have hstep2: "\<bar>(gB B x - gB B y) / real (Suc n)\<bar> = \<bar>gB B x - gB B y\<bar> / real (Suc n)"
+                          by (simp add: abs_divide)
+                        have "\<bar>fJ (n, B) x - fJ (n, B) y\<bar> \<le> 2 / real (Suc n)"
+                          unfolding hfJx hfJy hstep1 hstep2 using hab_le
+                          by (simp add: frac_le)
+                        also have "2 / real (Suc n) \<le> 2 / real (Suc (Suc N))"
+                          using hn_gt
+                          by (simp add: frac_le)
+                        finally show ?thesis unfolding hv M_def
+                          by argo
+                      qed
+                    qed
+                    have "Sup ((\<lambda>p. \<bar>fJ p x - fJ p y\<bar>) ` J) \<le> M"
+                      using cSup_least[OF hne] hbound
+                      by blast
+                    then show ?thesis unfolding hd_eq using hMeps
+                      by linarith
+                  qed
+                qed
+                then show ?thesis using hW_open hxW
+                  by blast
+              qed
               then obtain W where hW: "W \<in> TX" and hxW: "x \<in> W" and hWeps: "\<forall>y\<in>W. d x y < \<epsilon>"
                 by blast
               have "W \<subseteq> top1_ball_on X d x0 r"
