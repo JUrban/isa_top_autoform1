@@ -5664,14 +5664,12 @@ next
           fix b assume "b \<in> top1_metric_basis_on X d"
           then obtain x0 r where hx0: "x0 \<in> X" and hr: "0 < r" and hbeq: "b = top1_ball_on X d x0 r"
             unfolding top1_metric_basis_on_def
-            sledgehammer [timeout = 10]
-            sorry
+            by force
           show "b \<in> TX"
             unfolding hbeq
           proof (rule top1_open_of_local_subsets[OF hTop])
             show "top1_ball_on X d x0 r \<subseteq> X" unfolding top1_ball_on_def
-              sledgehammer [timeout = 10]
-              sorry
+              by blast
             show "\<forall>x\<in>top1_ball_on X d x0 r. \<exists>U\<in>TX. x \<in> U \<and> U \<subseteq> top1_ball_on X d x0 r"
               sorry (* The local finiteness argument — hardest step of Nagata-Smirnov.
                        For x ∈ ball(x₀,r), ε = r - d(x₀,x) > 0.
