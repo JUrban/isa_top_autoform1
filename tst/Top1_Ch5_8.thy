@@ -7942,11 +7942,61 @@ lemma uniform_metric_conv_imp_pointwise_unif:
   assumes hconv: "seq_converges_to_on fseq f (top1_PiE X (\<lambda>_. Y))
     (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d))"
   shows "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>X. d (fseq n x) (f x) < \<epsilon>"
-  sorry
-  (* Key step: from metric convergence get rho(f_n, f) < ε/2,
-     then d̄(f_n(x), f(x)) ≤ rho(f_n, f) < ε/2,
-     and for ε < 1, d̄ = d, so d(f_n(x), f(x)) < ε.
-     For ε ≥ 1, use ε' = min(ε, 1/2) < 1. *)
+proof (intro allI impI)
+  let ?rho = "top1_uniform_metric_on X d"
+  let ?db = "top1_bounded_metric d"
+  let ?PX = "top1_PiE X (\<lambda>_. Y)"
+  have hrho_m: "top1_metric_on ?PX ?rho"
+    using top1_uniform_metric_is_metric[OF hXne hd]
+    by linarith
+  fix \<epsilon> :: real assume hepos: "0 < \<epsilon>"
+  define e' where "e' = min \<epsilon> (1/2)"
+  have he'pos: "0 < e'" unfolding e'_def using hepos
+    by auto
+  have he'le1: "e' \<le> 1" unfolding e'_def
+    by linarith
+  have he'le: "e' \<le> \<epsilon>" unfolding e'_def
+    by simp
+  text \<open>From metric convergence, get N with rho(f_n, f) < e'.\<close>
+  have heps_conv: "\<forall>e>0. \<exists>N::nat. \<forall>n\<ge>N. fseq n \<in> ?PX \<and> ?rho (fseq n) f < e"
+    using hconv unfolding metric_seq_conv_iff[OF hrho_m hf_PiE]
+    by argo
+  obtain N :: nat where hN: "\<forall>n\<ge>N. fseq n \<in> ?PX \<and> ?rho (fseq n) f < e'"
+    using heps_conv he'pos
+    by blast
+  show "\<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>X. d (fseq n x) (f x) < \<epsilon>"
+  proof (intro exI allI impI ballI)
+    fix n x assume hnN: "N \<le> n" and hxX: "x \<in> X"
+    have hrho_small: "?rho (fseq n) f < e'" using hN hnN
+      by presburger
+    text \<open>d̄(f_n(x), f(x)) ≤ rho(f_n, f).\<close>
+    have hdb_le: "?db (fseq n x) (f x) \<le> ?rho (fseq n) f"
+    proof -
+      have hrho_eq: "?rho (fseq n) f = Sup ((\<lambda>i. ?db (fseq n i) (f i)) ` X)"
+        using hXne unfolding top1_uniform_metric_on_def
+        by presburger
+      have hmem: "?db (fseq n x) (f x) \<in> (\<lambda>i. ?db (fseq n i) (f i)) ` X" using hxX
+        by blast
+      have hbdd: "bdd_above ((\<lambda>i. ?db (fseq n i) (f i)) ` X)"
+      proof (intro bdd_aboveI)
+        fix v assume "v \<in> (\<lambda>i. ?db (fseq n i) (f i)) ` X"
+        then show "v \<le> 1" unfolding top1_bounded_metric_def
+          by fastforce
+      qed
+      show ?thesis using cSup_upper[OF hmem hbdd] hrho_eq
+        by presburger
+    qed
+    have "?db (fseq n x) (f x) < e'" using hdb_le hrho_small
+      by linarith
+    text \<open>Since e' ≤ 1, d̄ = min(d, 1) < e' ≤ 1, so d < e'.\<close>
+    then have "min (d (fseq n x) (f x)) 1 < e'" unfolding top1_bounded_metric_def
+      by presburger
+    then have "d (fseq n x) (f x) < e'" using he'le1
+      by fastforce
+    then show "d (fseq n x) (f x) < \<epsilon>" using he'le
+      by linarith
+  qed
+qed
 
 (** from \S43 Theorem 43.6 [top1.tex:6272]
     Proof: (a-b) continuous/bounded maps closed in uniform topology (uniform limit theorem).
