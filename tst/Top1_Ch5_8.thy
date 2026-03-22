@@ -5575,13 +5575,75 @@ next
     qed
     text \<open>d-topology = TX: d-open → TX-open (from gB continuity), TX-open → d-open (from separation + LF).\<close>
     have hd_topology: "TX = top1_metric_topology_on X d"
-      sorry (* (⊆) For U ∈ TX and x₀ ∈ U: find basis B with x₀∈B⊆U.
-               gB B x₀ > 0, so fJ (n,B) x₀ > 0. Take ε = fJ(n,B)(x₀).
-               d(x,x₀) < ε → |fJ(n,B)(x)-fJ(n,B)(x₀)| < ε → fJ(n,B)(x) > 0 → x ∈ B ⊆ U.
-               (⊇) For d-ball B(x₀,ε): show x₀ has TX-neighborhood in B(x₀,ε).
-               Pick N with 1/(N+1) < ε/2. For n≤N, Bn n is LF, find Vn meeting finitely
-               many B with fJ≠0. Each fJ continuous → Vn where |fJ(n,B)(x)-fJ(n,B)(x₀)|<ε/2.
-               W = V₁∩...∩V_N is TX-open, and d(x,x₀) < ε for x∈W. *)
+    proof (rule equalityI)
+      text \<open>(⊆) TX ⊆ metric topology: for U ∈ TX and x₀ ∈ U, find d-ball in U.\<close>
+      show "TX \<subseteq> top1_metric_topology_on X d"
+        unfolding top1_metric_topology_on_def topology_generated_by_basis_def
+      proof (rule subsetI)
+        fix U assume hU: "U \<in> TX"
+        have hU_subX: "U \<subseteq> X"
+          sorry (* U ∈ TX, topology elements may not be subsets of X in general.
+                   But our basis_for means TX = generated, so U ⊆ X by definition. *)
+        show "U \<in> {U. U \<subseteq> X \<and> (\<forall>x\<in>U. \<exists>b\<in>top1_metric_basis_on X d. x \<in> b \<and> b \<subseteq> U)}"
+        proof (intro CollectI conjI ballI)
+          show "U \<subseteq> X" by (rule hU_subX)
+        next
+          fix x0 assume hx0U: "x0 \<in> U"
+          have hx0X: "x0 \<in> X" using hx0U hU_subX
+            by blast
+          obtain B where hBB: "B \<in> \<B>" and hx0B: "x0 \<in> B" and hBU: "B \<subseteq> U"
+            using basis_for_refine[OF hBasis hU hx0U]
+            by blast
+          obtain n where hBn: "B \<in> Bn n" using hBB hB_eq
+            by blast
+          have hgBx0: "0 < gB B x0" using hgB_prop hBB hx0B
+            by blast
+          have hpJ: "(n, B) \<in> J" unfolding J_def using hBn
+            by blast
+          define \<epsilon> where "\<epsilon> = fJ (n, B) x0"
+          have hepos: "0 < \<epsilon>" unfolding \<epsilon>_def fJ_def using hgBx0
+            by force
+          have hball_sub_U: "top1_ball_on X d x0 \<epsilon> \<subseteq> U"
+          proof (rule subsetI)
+            fix x assume hxball: "x \<in> top1_ball_on X d x0 \<epsilon>"
+            have hxX: "x \<in> X" using hxball unfolding top1_ball_on_def
+              by blast
+            have hdx: "d x0 x < \<epsilon>" using hxball unfolding top1_ball_on_def
+              by blast
+            text \<open>|fJ(n,B)(x) - fJ(n,B)(x₀)| ≤ d(x₀,x) < ε = fJ(n,B)(x₀).\<close>
+            have hfJ_le_d: "\<bar>fJ (n, B) x - fJ (n, B) x0\<bar> \<le> d x0 x"
+              sorry (* Individual term ≤ Sup. Uses cSup_upper + hpJ. *)
+            have "fJ (n, B) x > 0"
+              using hfJ_le_d hdx unfolding \<epsilon>_def
+              by auto
+            then have "gB B x > 0" unfolding fJ_def
+              by (simp add: zero_less_divide_iff)
+            then have "x \<in> B" using hgB_prop hBB hxX hB_subX
+              sorry (* gB B x > 0 implies x ∈ B (contrapositively: x ∉ B → gB B x = 0). *)
+            then show "x \<in> U" using hBU
+              by fast
+          qed
+          have hball_basis: "top1_ball_on X d x0 \<epsilon> \<in> top1_metric_basis_on X d"
+            unfolding top1_metric_basis_on_def using hx0X hepos
+            by blast
+          have hx0_ball: "x0 \<in> top1_ball_on X d x0 \<epsilon>"
+            unfolding top1_ball_on_def using hx0X hepos hd_metric unfolding top1_metric_on_def
+            by fastforce
+          show "\<exists>b\<in>top1_metric_basis_on X d. x0 \<in> b \<and> b \<subseteq> U"
+            using hball_basis hx0_ball hball_sub_U
+            by blast
+        qed
+      qed
+    next
+      text \<open>(⊇) metric topology ⊆ TX: d-balls have TX-neighborhoods inside.\<close>
+      show "top1_metric_topology_on X d \<subseteq> TX"
+        sorry (* For d-ball B(x₀,ε): pick N with 1/(N+1) < ε/2.
+                 For n ≤ N: Bn n is LF, so x₀ has neighborhood Un meeting finitely many B∈Bn n.
+                 The nonzero fJ(n,B) are continuous → find Vn ⊆ Un where each varies by < ε/2.
+                 For n > N: |fJ(n,B)(x)-fJ(n,B)(x₀)| ≤ 2/(n+1) < ε automatically.
+                 W = V₁∩...∩V_N is TX-open, and for x∈W: d(x,x₀) < ε.
+                 So every d-ball element has a TX-neighborhood in the ball → d-ball ∈ TX. *)
+    qed
     show ?thesis unfolding top1_metrizable_on_def using hd_metric hd_topology
       by auto
   qed
