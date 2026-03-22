@@ -11422,12 +11422,19 @@ proof -
             Show each {x ∈ X | d(f_n(x), f_m(x)) ≤ e} is closed.\<close>
       define Snm where "Snm n m = {x \<in> X. d (f n x) (f m x) \<le> e}" for n m :: nat
       have hSnm_closed: "\<forall>n m. closedin_on X TX (Snm n m)"
-        sorry (* Each Snm is closed: complement is open.
-                 For x₀ not in Snm: d(f_n(x₀), f_m(x₀)) > e.
-                 Let δ = (d(...) - e)/2. By continuity of f_n, f_m at x₀,
-                 get W nbhd with d(f_n(x), f_n(x₀)) < δ and d(f_m(x), f_m(x₀)) < δ.
-                 Triangle: d(f_n(x), f_m(x)) ≥ d(f_n(x₀), f_m(x₀)) - 2δ > e.
-                 ~25 lines. *)
+        sorry (* Each Snm n m = {x ∈ X | d(f_n(x), f_m(x)) ≤ e} is closed.
+           Proof: show complement X - Snm = {x ∈ X | d(f_n(x), f_m(x)) > e} is open.
+           For x₀ in complement: d(f_n(x₀), f_m(x₀)) > e.
+           Let δ = (d(f_n(x₀), f_m(x₀)) - e) / 3 > 0.
+           f_n continuous: get U₁ nbhd of x₀ with f_n(U₁) ⊆ ball(f_n(x₀), δ).
+           f_m continuous: get U₂ nbhd of x₀ with f_m(U₂) ⊆ ball(f_m(x₀), δ).
+           For x ∈ U₁ ∩ U₂:
+             d(f_n(x), f_m(x)) ≥ d(f_n(x₀), f_m(x₀)) - d(f_n(x), f_n(x₀)) - d(f_m(x), f_m(x₀))
+                               ≥ (e + 3δ) - δ - δ = e + δ > e.
+           So U₁ ∩ U₂ ⊆ complement. U₁ ∩ U₂ open. Complement is open.
+           Needs: top1_continuous_map_on → preimage of open ball is open,
+           metric triangle, metric symmetry. ~30 lines.
+           Can be factored as helper: preimage of open under continuous = open. *)
       have hAN_eq: "AN N e = (\<Inter>n\<in>{N..}. \<Inter>m\<in>{N..}. Snm n m)"
         unfolding AN_def top1_AN_48_def Snm_def
         
