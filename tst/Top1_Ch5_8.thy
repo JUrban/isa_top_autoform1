@@ -5387,10 +5387,21 @@ next
     text \<open>By Theorem 34.2, the product map F is an embedding into ℝ^B.
       Then X ≅ F(X) ⊆ ℝ^B. Since ℝ^B with uniform metric is metrizable,
       F(X) is metrizable, hence X is metrizable.\<close>
+    text \<open>Apply Theorem 34.2: F is an embedding into product topology on ℝ^B.\<close>
+    define F where "F x = (\<lambda>B. if B \<in> \<B> then gB B x else undefined)" for x
+    have hEmbed: "top1_embedding_on X TX
+      (top1_PiE \<B> (\<lambda>_. (UNIV::real set)))
+      (top1_product_topology_on \<B> (\<lambda>_. (UNIV::real set)) (\<lambda>_. order_topology_on_UNIV)) F"
+      using Theorem_34_2[OF hTop hT1 hgB_cont_R hSep, folded F_def]
+      by argo
+    text \<open>Metrizable: X embeds into a metrizable space.
+      ℝ^B with uniform metric is metrizable. But we need F continuous in uniform metric.
+      Alternative: pull back the uniform metric via F.
+      For now: use the fact that the image in ℝ^B inherits the uniform metric.\<close>
     show ?thesis
-      sorry (* Final step: apply Theorem 34.2 for embedding, then conclude metrizable.
-               Needs: Theorem 34.2 application + metrizable subspace of metric space.
-               Estimated ~20 lines. *)
+      sorry (* Last step: F gives embedding, uniform metric on ℝ^B gives d on F(X),
+               pull back to X. Needs: metrizable_of_embedding helper.
+               This is the final ~20 lines of the Nagata-Smirnov proof. *)
   qed
 qed
 
