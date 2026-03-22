@@ -4483,14 +4483,74 @@ lemma Lemma_40_2:
   shows "\<exists>f::'a \<Rightarrow> real.
     top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f
     \<and> (\<forall>x\<in>A. f x = 0) \<and> (\<forall>x\<in>X - A. 0 < f x)"
-  sorry
-  (* Proof sketch (Munkres Lemma 40.2):
-     A = ∩(U n) open from G-delta. For each n, Urysohn (Thm 33.1) gives
-     f_n: X → [0,1] with f_n(A) = 0, f_n(X-U_n) = 1.
-     Define f(x) = Σ f_n(x)/2^n. Series converges uniformly (comparison with Σ1/2^n).
-     f is continuous (uniform limit of continuous functions).
-     f = 0 on A. f > 0 on X-A (at least one f_n(x) > 0 since x ∉ some U_n).
-     Requires: Urysohn lemma (proved), uniform convergence → continuity (needs real analysis). *)
+proof -
+  have hTop: "is_topology_on X TX"
+    using hN unfolding top1_normal_on_def top1_T1_on_def
+    by presburger
+  have hAX: "A \<subseteq> X" using hA unfolding closedin_on_def
+    by presburger
+  text \<open>A = ∩(U n) with each U n open.\<close>
+  obtain U :: "nat \<Rightarrow> 'a set" where hU_open: "\<forall>n. U n \<in> TX" and hA_eq: "A = (\<Inter>n. U n)"
+    using hG unfolding top1_G_delta_on_def
+    by blast
+  text \<open>X - U n is closed and disjoint from A.\<close>
+  have hXmU_closed: "\<forall>n. closedin_on X TX (X - U n)"
+  proof (intro allI)
+    fix n
+    have "X - U n \<subseteq> X"
+      by blast
+    moreover have "X - (X - U n) = X \<inter> U n"
+      by fastforce
+    moreover have "X \<inter> U n \<in> TX"
+      using topology_inter2[OF hTop _ hU_open[THEN spec, of n]]
+      using hTop is_topology_on_def by blast
+    ultimately show "closedin_on X TX (X - U n)" unfolding closedin_on_def
+      by argo
+  qed
+  have hA_disj_XmU: "\<forall>n. A \<inter> (X - U n) = {}"
+    using hA_eq
+    by blast
+  text \<open>Urysohn gives f_n: X → [0,1] with f_n|A = 0, f_n|(X-U_n) = 1.\<close>
+  have "\<forall>n. \<exists>fn. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) fn
+    \<and> (\<forall>x\<in>A. fn x = 0) \<and> (\<forall>x\<in>X - U n. fn x = 1)"
+  proof (intro allI)
+    fix n
+    have "A \<inter> (X - U n) = {}" using hA_disj_XmU
+      by simp
+    then show "\<exists>fn. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) fn
+      \<and> (\<forall>x\<in>A. fn x = 0) \<and> (\<forall>x\<in>X - U n. fn x = 1)"
+      using Theorem_33_1[OF hN hA hXmU_closed[THEN spec, of n] _ zero_le_one]
+      by argo
+  qed
+  then obtain fn where hfn_cont: "\<forall>n. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (fn n)"
+    and hfn_A: "\<forall>n. \<forall>x\<in>A. fn n x = 0"
+    and hfn_XmU: "\<forall>n. \<forall>x\<in>X - U n. fn n x = 1"
+    by metis
+  text \<open>fn values in [0,1].\<close>
+  have hfn_range: "\<forall>n. \<forall>x\<in>X. 0 \<le> fn n x \<and> fn n x \<le> 1"
+    using hfn_cont unfolding top1_continuous_map_on_def top1_closed_interval_def
+    by blast
+  text \<open>Define f(x) = Σ fn(n,x) / 2^(n+1). Series converges absolutely.\<close>
+  define f where "f x = (\<Sum>n. fn n x / 2^(Suc n))" for x
+  text \<open>Summability: each |fn(n,x)/2^(n+1)| ≤ 1/2^(n+1), geometric series converges.\<close>
+  have hsummable: "\<forall>x\<in>X. summable (\<lambda>n. fn n x / 2^(Suc n))"
+    sorry (* Comparison test with 1/2^(n+1). Needs summable_comparison_test + summable_geometric. *)
+  text \<open>f = 0 on A.\<close>
+  have hf_A: "\<forall>x\<in>A. f x = 0"
+    sorry (* fn n x = 0 for all n when x ∈ A, so f x = Σ 0 = 0. *)
+  text \<open>f > 0 on X - A.\<close>
+  have hf_pos: "\<forall>x\<in>X - A. 0 < f x"
+    sorry (* x ∉ A = ∩U_n, so x ∉ U_k for some k. fn k x = 1.
+             f x ≥ fn k x / 2^(k+1) = 1/2^(k+1) > 0. *)
+  text \<open>f is continuous (uniform limit of partial sums).\<close>
+  have hf_cont: "top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) f"
+    sorry (* Uniform convergence of partial sums Σ_{n<N} fn(n,x)/2^(n+1) → f(x).
+             Each partial sum is continuous (finite sum of continuous).
+             Apply uniform_limit_continuous.
+             Also need f(x) ∈ [0,1]: f(x) ≤ Σ 1/2^(n+1) = 1, f(x) ≥ 0. *)
+  show ?thesis using hf_cont hf_A hf_pos
+    by blast
+qed
 
 (** from \S40 Theorem 40.3 (Nagata-Smirnov metrization theorem) [top1.tex:5727] **)
 theorem Theorem_40_3:
