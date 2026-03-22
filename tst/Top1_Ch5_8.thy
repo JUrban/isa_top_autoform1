@@ -7028,6 +7028,250 @@ definition top1_sup_topology_on ::
   "top1_sup_topology_on X Y d =
      top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_sup_metric_on X d)"
 
+text \<open>The uniform metric is a metric on \<open>Y^J\<close>.\<close>
+lemma top1_uniform_metric_is_metric:
+  assumes hIne: "I \<noteq> {}"
+  assumes hd: "top1_metric_on Y d"
+  shows "top1_metric_on (top1_PiE I (\<lambda>_. Y)) (top1_uniform_metric_on I d)"
+proof -
+  let ?X = "top1_PiE I (\<lambda>_. Y)"
+  let ?rho = "top1_uniform_metric_on I d"
+  let ?db = "top1_bounded_metric d"
+  have hdb: "top1_metric_on Y ?db"
+    using top1_bounded_metric_on[OF hd]
+    by presburger
+  text \<open>Bounded metric values lie in [0,1].\<close>
+  have hdb_le1: "\<forall>a\<in>Y. \<forall>b\<in>Y. ?db a b \<le> 1"
+    unfolding top1_bounded_metric_def
+    by fastforce
+  have hdb_nonneg: "\<forall>a\<in>Y. \<forall>b\<in>Y. 0 \<le> ?db a b"
+    using hdb unfolding top1_metric_on_def
+    by satx
+  text \<open>For f,g in PiE, the image set is bounded.\<close>
+  have himg_bdd: "\<forall>f\<in>?X. \<forall>g\<in>?X. bdd_above ((\<lambda>i. ?db (f i) (g i)) ` I)"
+  proof (intro ballI)
+    fix f g assume hf: "f \<in> ?X" and hg: "g \<in> ?X"
+    have "\<forall>i\<in>I. ?db (f i) (g i) \<le> 1"
+    proof (intro ballI)
+      fix i assume "i \<in> I"
+      have "f i \<in> Y" using hf \<open>i \<in> I\<close> unfolding top1_PiE_def
+        using top1_PiE_def top1_PiE_iff by fastforce
+      moreover have "g i \<in> Y" using hg \<open>i \<in> I\<close> unfolding top1_PiE_def
+        using top1_PiE_def top1_PiE_iff by fastforce
+      ultimately show "?db (f i) (g i) \<le> 1" using hdb_le1
+        by blast
+    qed
+    then show "bdd_above ((\<lambda>i. ?db (f i) (g i)) ` I)"
+      by fast
+  qed
+  have himg_nonempty: "I \<noteq> {} \<Longrightarrow> (\<lambda>i. ?db (f i) (g i)) ` I \<noteq> {}" for f g
+    by fast
+  text \<open>Sup of image lies in [0,1] for f,g in PiE.\<close>
+  have hSup_le1: "\<forall>f\<in>?X. \<forall>g\<in>?X. ?rho f g \<le> 1"
+  proof (intro ballI)
+    fix f g assume hf: "f \<in> ?X" and hg: "g \<in> ?X"
+    have "?rho f g = Sup ((\<lambda>i. ?db (f i) (g i)) ` I)"
+      using hIne unfolding top1_uniform_metric_on_def
+      by presburger
+    also have "... \<le> 1"
+    proof (rule cSup_least)
+      show "(\<lambda>i. ?db (f i) (g i)) ` I \<noteq> {}" using hIne
+        by blast
+    next
+      fix x assume "x \<in> (\<lambda>i. ?db (f i) (g i)) ` I"
+      then obtain i where "i \<in> I" and "x = ?db (f i) (g i)"
+        by blast
+      have "f i \<in> Y" using hf \<open>i \<in> I\<close> unfolding top1_PiE_def
+        using top1_PiE_def top1_PiE_iff by fastforce
+      moreover have "g i \<in> Y" using hg \<open>i \<in> I\<close> unfolding top1_PiE_def
+        using top1_PiE_def top1_PiE_iff by fastforce
+      ultimately show "x \<le> 1" using hdb_le1 \<open>x = ?db (f i) (g i)\<close>
+        by blast
+    qed
+    finally show "?rho f g \<le> 1"
+      by presburger
+  qed
+  have hSup_nonneg: "\<forall>f\<in>?X. \<forall>g\<in>?X. 0 \<le> ?rho f g"
+  proof (intro ballI)
+    fix f g assume hf: "f \<in> ?X" and hg: "g \<in> ?X"
+    obtain i0 where hi0: "i0 \<in> I" using hIne
+      by blast
+    have "f i0 \<in> Y" using hf hi0 unfolding top1_PiE_def
+      using top1_PiE_def top1_PiE_iff by fastforce
+    moreover have "g i0 \<in> Y" using hg hi0 unfolding top1_PiE_def
+      using top1_PiE_def top1_PiE_iff by fastforce
+    ultimately have "0 \<le> ?db (f i0) (g i0)" using hdb_nonneg
+      by blast
+    also have "... \<le> ?rho f g"
+    proof -
+      have "?rho f g = Sup ((\<lambda>i. ?db (f i) (g i)) ` I)"
+        using hIne unfolding top1_uniform_metric_on_def
+        by presburger
+      moreover have "?db (f i0) (g i0) \<in> (\<lambda>i. ?db (f i) (g i)) ` I" using hi0
+        by fast
+      moreover have "bdd_above ((\<lambda>i. ?db (f i) (g i)) ` I)"
+        using himg_bdd hf hg
+        by fast
+      ultimately show "?db (f i0) (g i0) \<le> ?rho f g"
+        using cSup_upper
+        by metis
+    qed
+    finally show "0 \<le> ?rho f g"
+      by presburger
+  qed
+  text \<open>PiE membership helper.\<close>
+  have hPiE_mem: "\<forall>f\<in>?X. \<forall>i\<in>I. f i \<in> Y"
+    unfolding top1_PiE_def top1_Pi_def
+    by blast
+  text \<open>Symmetry of rho.\<close>
+  have hSym: "\<forall>f\<in>?X. \<forall>g\<in>?X. ?rho f g = ?rho g f"
+  proof (intro ballI)
+    fix f g assume hf: "f \<in> ?X" and hg: "g \<in> ?X"
+    have "\<forall>i\<in>I. ?db (f i) (g i) = ?db (g i) (f i)"
+    proof (intro ballI)
+      fix i assume "i \<in> I"
+      have "f i \<in> Y" using hPiE_mem hf \<open>i \<in> I\<close> by blast
+      moreover have "g i \<in> Y" using hPiE_mem hg \<open>i \<in> I\<close> by blast
+      ultimately show "?db (f i) (g i) = ?db (g i) (f i)"
+        using hdb unfolding top1_metric_on_def
+        by blast
+    qed
+    then have "(\<lambda>i. ?db (f i) (g i)) ` I = (\<lambda>i. ?db (g i) (f i)) ` I"
+      by auto
+    then show "?rho f g = ?rho g f"
+      unfolding top1_uniform_metric_on_def
+      by presburger
+  qed
+  text \<open>Zero iff equal.\<close>
+  have hZero: "\<forall>f\<in>?X. \<forall>g\<in>?X. ?rho f g = 0 \<longleftrightarrow> f = g"
+  proof (intro ballI)
+    fix f g assume hf: "f \<in> ?X" and hg: "g \<in> ?X"
+    show "?rho f g = 0 \<longleftrightarrow> f = g"
+    proof
+      assume heq: "f = g"
+      have "\<forall>i\<in>I. ?db (f i) (g i) = 0"
+      proof (intro ballI)
+        fix i assume "i \<in> I"
+        then show "?db (f i) (g i) = 0" using heq hdb hPiE_mem hf
+          unfolding top1_metric_on_def
+          by metis
+      qed
+      then have "(\<lambda>i. ?db (f i) (g i)) ` I = {0}"
+        using hIne
+        by auto
+      then show "?rho f g = 0"
+        unfolding top1_uniform_metric_on_def using hIne
+        by simp
+    next
+      assume hzero: "?rho f g = 0"
+      have hrho_eq: "?rho f g = Sup ((\<lambda>i. ?db (f i) (g i)) ` I)"
+        using hIne unfolding top1_uniform_metric_on_def
+        by presburger
+      have hbdd: "bdd_above ((\<lambda>i. ?db (f i) (g i)) ` I)"
+        using himg_bdd hf hg
+        by fast
+      have "\<forall>i\<in>I. ?db (f i) (g i) = 0"
+      proof (intro ballI)
+        fix i assume hi: "i \<in> I"
+        have hmem: "?db (f i) (g i) \<in> (\<lambda>i. ?db (f i) (g i)) ` I" using hi
+          by blast
+        have "?db (f i) (g i) \<le> Sup ((\<lambda>i. ?db (f i) (g i)) ` I)"
+          using cSup_upper[OF hmem hbdd]
+          by presburger
+        then have "?db (f i) (g i) \<le> ?rho f g" using hrho_eq
+          by presburger
+        moreover have "0 \<le> ?db (f i) (g i)"
+          using hdb_nonneg hPiE_mem hf hg hi
+          by blast
+        ultimately show "?db (f i) (g i) = 0" using hzero
+          by linarith
+      qed
+      then have "\<forall>i\<in>I. f i = g i"
+      proof (intro ballI)
+        fix i assume "i \<in> I"
+        then have "?db (f i) (g i) = 0" using \<open>\<forall>i\<in>I. ?db (f i) (g i) = 0\<close>
+          by blast
+        moreover have "f i \<in> Y" using hPiE_mem hf \<open>i \<in> I\<close> by blast
+        moreover have "g i \<in> Y" using hPiE_mem hg \<open>i \<in> I\<close> by blast
+        ultimately show "f i = g i"
+          using hdb unfolding top1_metric_on_def top1_bounded_metric_def
+          by blast
+      qed
+      text \<open>f and g agree on I and are both extensional, so f = g.\<close>
+      have "f \<in> top1_extensional I" using hf unfolding top1_PiE_def
+        by blast
+      moreover have "g \<in> top1_extensional I" using hg unfolding top1_PiE_def
+        by blast
+      ultimately show "f = g"
+        using \<open>\<forall>i\<in>I. f i = g i\<close> unfolding top1_extensional_def
+        by fastforce
+    qed
+  qed
+  text \<open>Triangle inequality.\<close>
+  have hTri: "\<forall>f\<in>?X. \<forall>g\<in>?X. \<forall>h\<in>?X. ?rho f h \<le> ?rho f g + ?rho g h"
+  proof (intro ballI)
+    fix f g h assume hf: "f \<in> ?X" and hg: "g \<in> ?X" and hh: "h \<in> ?X"
+    have hrho_fh: "?rho f h = Sup ((\<lambda>i. ?db (f i) (h i)) ` I)"
+      using hIne unfolding top1_uniform_metric_on_def
+      by presburger
+    have hbdd_fg: "bdd_above ((\<lambda>i. ?db (f i) (g i)) ` I)"
+      using himg_bdd hf hg
+      by fast
+    have hbdd_gh: "bdd_above ((\<lambda>i. ?db (g i) (h i)) ` I)"
+      using himg_bdd hg hh
+      by fast
+    have "\<forall>i\<in>I. ?db (f i) (h i) \<le> ?rho f g + ?rho g h"
+    proof (intro ballI)
+      fix i assume hi: "i \<in> I"
+      have hfiY: "f i \<in> Y" using hPiE_mem hf hi by blast
+      have hgiY: "g i \<in> Y" using hPiE_mem hg hi by blast
+      have hhiY: "h i \<in> Y" using hPiE_mem hh hi by blast
+      have htri_i: "?db (f i) (h i) \<le> ?db (f i) (g i) + ?db (g i) (h i)"
+        using hdb hfiY hgiY hhiY unfolding top1_metric_on_def
+        by blast
+      have "?db (f i) (g i) \<le> ?rho f g"
+      proof -
+        have "?rho f g = Sup ((\<lambda>i. ?db (f i) (g i)) ` I)"
+          using hIne unfolding top1_uniform_metric_on_def
+          by argo
+        moreover have "?db (f i) (g i) \<in> (\<lambda>i. ?db (f i) (g i)) ` I" using hi
+          by blast
+        ultimately show ?thesis using cSup_upper hbdd_fg
+          by metis
+      qed
+      moreover have "?db (g i) (h i) \<le> ?rho g h"
+      proof -
+        have "?rho g h = Sup ((\<lambda>i. ?db (g i) (h i)) ` I)"
+          using hIne unfolding top1_uniform_metric_on_def
+          by presburger
+        moreover have "?db (g i) (h i) \<in> (\<lambda>i. ?db (g i) (h i)) ` I" using hi
+          by blast
+        ultimately show ?thesis using cSup_upper hbdd_gh
+          by metis
+      qed
+      ultimately show "?db (f i) (h i) \<le> ?rho f g + ?rho g h"
+        using htri_i
+        by auto
+    qed
+    then show "?rho f h \<le> ?rho f g + ?rho g h"
+    proof -
+      have hne: "(\<lambda>i. ?db (f i) (h i)) ` I \<noteq> {}" using hIne
+        by fast
+      have "\<forall>x\<in>(\<lambda>i. ?db (f i) (h i)) ` I. x \<le> ?rho f g + ?rho g h"
+        using \<open>\<forall>i\<in>I. ?db (f i) (h i) \<le> ?rho f g + ?rho g h\<close>
+        by blast
+      then have "Sup ((\<lambda>i. ?db (f i) (h i)) ` I) \<le> ?rho f g + ?rho g h"
+        using cSup_least[OF hne]
+        by fast
+      then show ?thesis using hrho_fh
+        by presburger
+    qed
+  qed
+  show ?thesis unfolding top1_metric_on_def
+    using hSup_nonneg hZero hSym hTri
+    by fastforce
+qed
+
 (** from \S43 Theorem 43.5 [top1.tex:6242]
     Proof: Cauchy in uniform metric \<Rightarrow> coordinatewise Cauchy in Y \<Rightarrow> coordinatewise convergent
     (by completeness of Y) \<Rightarrow> uniform convergence. **)
