@@ -10474,14 +10474,21 @@ definition top1_pointwise_bounded_family_on ::
 
 (** from \S45 Lemma 45.2 [top1.tex:6586] **)
 lemma Lemma_45_2:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  assumes hFsub: "\<F> \<subseteq> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
+  assumes hFpiE: "\<F> \<subseteq> top1_PiE X (\<lambda>_. Y)"
   assumes hTotB: "top1_totally_bounded_on \<F> (top1_uniform_metric_on X d)"
   shows "top1_equicontinuous_family_on X TX Y d \<F>"
   sorry
 
 (** from \S45 Lemma 45.3 [top1.tex:6618] **)
 lemma Lemma_45_3:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
   assumes hCompX: "top1_compact_on X TX"
-  assumes hCompY: "top1_compact_on Y TY"
+  assumes hCompY: "top1_compact_on Y (top1_metric_topology_on Y d)"
+  assumes hFsub: "\<F> \<subseteq> top1_PiE X (\<lambda>_. Y)"
   assumes hEqui: "top1_equicontinuous_family_on X TX Y d \<F>"
   shows "top1_totally_bounded_on \<F> (top1_uniform_metric_on X d)"
   sorry
