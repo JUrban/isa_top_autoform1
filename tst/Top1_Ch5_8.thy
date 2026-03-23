@@ -10502,6 +10502,40 @@ lemma uniform_metric_lt_imp_d_lt:
   using bounded_metric_lt_imp_d_lt[OF uniform_metric_pointwise_lt[OF assms(1,2,3)] assms(4)]
   by argo
 
+lemma fin_inter_open_on:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hfin: "finite F"
+  assumes hopen: "\<forall>fi\<in>F. Ufn fi \<in> TX"
+  shows "(\<Inter>fi\<in>F. Ufn fi) \<inter> X \<in> TX"
+proof (cases "F = {}")
+  case True
+  then have "(\<Inter>fi\<in>F. Ufn fi) \<inter> X = X" by fast
+  then show ?thesis using hTopX unfolding is_topology_on_def by presburger
+next
+  case False
+  have hfin2: "finite (Ufn ` F \<union> {X})" using hfin by blast
+  have hne: "Ufn ` F \<union> {X} \<noteq> {}" by blast
+  have hsub: "Ufn ` F \<union> {X} \<subseteq> TX" using hopen hTopX unfolding is_topology_on_def by fastforce
+  have "\<Inter>(Ufn ` F \<union> {X}) \<in> TX" using hTopX hfin2 hne hsub unfolding is_topology_on_def
+    by presburger
+  moreover have "\<Inter>(Ufn ` F \<union> {X}) = (\<Inter>fi\<in>F. Ufn fi) \<inter> X" by force
+  ultimately show ?thesis by argo
+qed
+
+lemma tri_arg_metric:
+  assumes hd: "top1_metric_on Y d"
+  assumes "f x \<in> Y" "fi x \<in> Y" "fi x0 \<in> Y" "f x0 \<in> Y"
+  assumes "d (f x) (fi x) < \<delta>" "d (fi x) (fi x0) < \<delta>" "d (fi x0) (f x0) < \<delta>"
+  assumes "3 * \<delta> \<le> \<epsilon>"
+  shows "d (f x) (f x0) < \<epsilon>"
+proof -
+  have "d (f x) (f x0) \<le> d (f x) (fi x) + d (fi x) (f x0)"
+    using hd assms(2,3,5) unfolding top1_metric_on_def by blast
+  moreover have "d (fi x) (f x0) \<le> d (fi x) (fi x0) + d (fi x0) (f x0)"
+    using hd assms(3,4,5) unfolding top1_metric_on_def by metis
+  ultimately show ?thesis using assms(6,7,8,9) by linarith
+qed
+
 (** from \S45 Lemma 45.2 [top1.tex:6586] **)
 lemma Lemma_45_2:
   assumes hTopX: "is_topology_on X TX"
