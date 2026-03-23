@@ -12476,14 +12476,14 @@ proof -
       show "top1_uniform_topology_on X Y d1 \<supseteq> top1_compact_convergence_topology_on X TX Y d1"
         using top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd1] by blast
       show "top1_compact_convergence_topology_on X TX Y d1 \<supseteq> top1_uniform_topology_on X Y d1"
-        sorry (* cc_supset_uniform_compact needs X ≠ {}; trivially true when X = {} *)
+        sorry
     qed
     have huni_eq_cc2: "top1_uniform_topology_on X Y d2 = top1_compact_convergence_topology_on X TX Y d2"
     proof (rule equalityI)
       show "top1_uniform_topology_on X Y d2 \<supseteq> top1_compact_convergence_topology_on X TX Y d2"
         using top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd2] by blast
       show "top1_compact_convergence_topology_on X TX Y d2 \<supseteq> top1_uniform_topology_on X Y d2"
-        sorry (* cc_supset_uniform_compact needs X ≠ {}; trivially true when X = {} *)
+        sorry
     qed
     show "subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d1)
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
