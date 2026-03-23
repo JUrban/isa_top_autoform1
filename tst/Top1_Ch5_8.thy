@@ -10009,6 +10009,11 @@ definition top1_totally_bounded_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a
   "top1_totally_bounded_on X d \<longleftrightarrow>
      (\<forall>e>0. \<exists>F. finite F \<and> F \<subseteq> X \<and> X \<subseteq> (\<Union>x\<in>F. top1_ball_on X d x e))"
 
+definition top1_continuous_funcs_on ::
+  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) set" where
+  "top1_continuous_funcs_on X TX Y TY =
+     {f \<in> top1_PiE X (\<lambda>_. Y). top1_continuous_map_on X TX Y TY f}"
+
 (** from \S45 Theorem 45.1 [top1.tex:6560] **)
 lemma compact_imp_totally_bounded:
   assumes hd: "top1_metric_on X d"
@@ -10641,8 +10646,15 @@ proof (intro conjI)
     then have "\<forall>i\<in>X. f i \<in> Y" using top1_PiE_iff[of f X "\<lambda>_. Y"] by simp
     then show "f x \<in> Y" using \<open>x \<in> X\<close> by blast
   qed
+  have hFcont: "\<forall>fi\<in>\<F>. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) fi"
+    using hFsub unfolding top1_continuous_funcs_on_def by blast
   show "\<forall>x0\<in>X. \<forall>\<epsilon>>0. \<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>\<F>. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
-    sorry
+  proof (intro ballI allI impI)
+    fix x0 :: 'a and \<epsilon> :: real assume hx0: "x0 \<in> X" and heps: "0 < \<epsilon>"
+    show "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>\<F>. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
+      by (rule equicont_from_tb_cover[OF hTopX hd hFcont hFpiE
+        hTotB[unfolded top1_totally_bounded_on_def] hx0 heps])
+  qed
 qed
 
 (** from \S45 Lemma 45.3 [top1.tex:6618] **)
@@ -10767,11 +10779,6 @@ definition top1_uniform_topology_on ::
   "'a set \<Rightarrow> 'b set \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> real) \<Rightarrow> ('a \<Rightarrow> 'b) set set" where
   "top1_uniform_topology_on X Y d =
      top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d)"
-
-definition top1_continuous_funcs_on ::
-  "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) set" where
-  "top1_continuous_funcs_on X TX Y TY =
-     {f \<in> top1_PiE X (\<lambda>_. Y). top1_continuous_map_on X TX Y TY f}"
 
 definition top1_compact_open_subbasis_on ::
   "'a set \<Rightarrow> 'a set set \<Rightarrow> 'b set \<Rightarrow> 'b set set \<Rightarrow> ('a \<Rightarrow> 'b) set set" where
