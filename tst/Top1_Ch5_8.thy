@@ -7665,8 +7665,32 @@ proof -
   have hxX: "x \<in> X" using hxU hTsub hU by blast
   define Cx where "Cx = {C \<in> \<C>. x \<in> C}"
   have hCx_ne: "Cx \<noteq> {}" using hC_cov hxX unfolding top1_open_covering_on_def Cx_def by auto
-  have hCx_fin: "finite Cx" sorry
-  have heps: "\<forall>C\<in>Cx. \<exists>\<epsilon>>0. top1_ball_on C (dC C) x \<epsilon> \<subseteq> U" sorry
+  have hCx_fin: "finite Cx"
+  proof -
+    obtain W where "W \<in> TX" "x \<in> W" "finite {C \<in> \<C>. intersects C W}"
+      using hC_lf hxX unfolding top1_locally_finite_family_on_def by blast
+    have "Cx \<subseteq> {C \<in> \<C>. intersects C W}"
+      unfolding Cx_def intersects_def using \<open>x \<in> W\<close> by blast
+    then show ?thesis using \<open>finite {C \<in> \<C>. intersects C W}\<close> using finite_subset by blast
+  qed
+  have heps: "\<forall>C\<in>Cx. \<exists>\<epsilon>>0. top1_ball_on C (dC C) x \<epsilon> \<subseteq> U"
+  proof (intro ballI)
+    fix C assume "C \<in> Cx"
+    then have "C \<in> \<C>" "x \<in> C" unfolding Cx_def by blast+
+    have "U \<inter> C \<in> subspace_topology X TX C" unfolding subspace_topology_def using hU by auto
+    text \<open>Need: subspace X TX C = metric_topology C (dC C). Then U ∩ C open in metric →
+      ∃ε with ball ⊆ U ∩ C.\<close>
+    have hsubC_eq: "subspace_topology X TX C = top1_metric_topology_on C (dC C)"
+      sorry
+    then have "U \<inter> C \<in> top1_metric_topology_on C (dC C)"
+      using \<open>U \<inter> C \<in> subspace_topology X TX C\<close> by simp
+    have hdCm: "top1_metric_on C (dC C)" using hdC \<open>C \<in> \<C>\<close> by blast
+    have "x \<in> U \<inter> C" using hxU \<open>x \<in> C\<close> by blast
+    then obtain \<epsilon> where "0 < \<epsilon>" "top1_ball_on C (dC C) x \<epsilon> \<subseteq> U \<inter> C"
+      using top1_metric_open_contains_ball[OF hdCm \<open>U \<inter> C \<in> top1_metric_topology_on C (dC C)\<close>]
+      by blast
+    then show "\<exists>\<epsilon>>0. top1_ball_on C (dC C) x \<epsilon> \<subseteq> U" by blast
+  qed
   then obtain eps where heps_pos: "\<forall>C\<in>Cx. eps C > 0"
     and heps_sub: "\<forall>C\<in>Cx. top1_ball_on C (dC C) x (eps C) \<subseteq> U" by metis
   define mineps where "mineps = Min (eps ` Cx)"
