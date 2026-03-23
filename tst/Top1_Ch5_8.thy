@@ -7105,25 +7105,85 @@ proof -
         using \<open>finite {C0 \<in> \<C>. intersects C0 G_elem}\<close>
         using rev_finite_subset by blast
     qed
-    define \<F>_closed where "\<F>_closed = closure_on X TX ` \<F>"
+    text \<open>Construct CLOSED star-finite auxiliary via (2)→(3) shrinking.
+      For each Fi: Fi ⊆ Gs_elem ⊆ G_elem (open, meets finitely many C-elements).
+      Shrink: V covering with cl(V) ⊆ G_elem. Apply hSLF_all + step12 + close.\<close>
+    define \<V> where "\<V> = {V \<in> TX. \<exists>G\<in>\<G>. closure_on X TX V \<subseteq> G}"
+    have hV_covers: "X \<subseteq> \<Union>\<V>"
+    proof (rule subsetI)
+      fix x assume "x \<in> X"
+      then obtain Fi where "Fi \<in> \<F>" "x \<in> Fi" using hF_covers by auto
+      then have "Fi \<in> \<F>0" unfolding \<F>_def by blast
+      obtain Gs_e where "Gs_e \<in> \<G>s" "Fi \<subseteq> Gs_e"
+        using hF0_ref \<open>Fi \<in> \<F>0\<close> unfolding top1_refines_def by blast
+      obtain G_e where "G_e \<in> \<G>" "Gs_e \<subseteq> G_e"
+        using hGs_ref \<open>Gs_e \<in> \<G>s\<close> unfolding top1_refines_def by blast
+      have "G_e \<in> TX" using \<open>G_e \<in> \<G>\<close> unfolding \<G>_def by blast
+      have "x \<in> G_e" using \<open>x \<in> Fi\<close> \<open>Fi \<subseteq> Gs_e\<close> \<open>Gs_e \<subseteq> G_e\<close> by blast
+      have "closedin_on X TX (X - G_e)"
+        using \<open>G_e \<in> TX\<close> hTsub unfolding closedin_on_def by (simp add: double_diff)
+      then obtain U0 W where "neighborhood_of x X TX U0" "W \<in> TX"
+        "X - G_e \<subseteq> W" "U0 \<inter> W = {}"
+        using hReg \<open>x \<in> X\<close> \<open>x \<in> G_e\<close> unfolding top1_regular_on_def by blast
+      then obtain V where "V \<in> TX" "x \<in> V" "V \<subseteq> U0"
+        unfolding neighborhood_of_def by blast
+      have "closedin_on X TX (X - W)"
+        using \<open>W \<in> TX\<close> hTsub unfolding closedin_on_def by (simp add: double_diff)
+      have "V \<subseteq> X - W" using \<open>V \<subseteq> U0\<close> \<open>U0 \<inter> W = {}\<close> hTsub \<open>V \<in> TX\<close> by fast
+      have "closure_on X TX V \<subseteq> X - W"
+        using closure_on_subset_of_closed[OF \<open>closedin_on X TX (X - W)\<close>] \<open>V \<subseteq> X - W\<close> by simp
+      have hclV: "closure_on X TX V \<subseteq> G_e"
+        using \<open>closure_on X TX V \<subseteq> X - W\<close> \<open>X - G_e \<subseteq> W\<close> by fast
+      have "V \<in> \<V>" unfolding \<V>_def using \<open>V \<in> TX\<close> \<open>G_e \<in> \<G>\<close> hclV by blast
+      then show "x \<in> \<Union>\<V>" using \<open>x \<in> V\<close> by blast
+    qed
+    have hV_open: "\<V> \<subseteq> TX" unfolding \<V>_def by blast
+    have hV_cov: "top1_open_covering_on X TX \<V>"
+      unfolding top1_open_covering_on_def using hV_open hV_covers by blast
+    obtain \<H>s where hHs_cov: "top1_open_covering_on X TX \<H>s"
+      and hHs_ref: "top1_refines \<H>s \<V>" and hHs_slf: "top1_sigma_locally_finite_family_on X TX \<H>s"
+      using hSLF_all hV_cov by blast
+    obtain \<H>0 where hH0_subX: "\<forall>H\<in>\<H>0. H \<subseteq> X" and hH0_covers: "X \<subseteq> \<Union>\<H>0"
+      and hH0_ref: "top1_refines \<H>0 \<H>s" and hH0_lf: "top1_locally_finite_family_on X TX \<H>0"
+      using sigma_lf_to_lf_covering[OF hReg hTsub hHs_cov hHs_slf] by blast
+    define \<F>_closed where "\<F>_closed = closure_on X TX ` \<H>0"
     have hFcl_lf: "top1_locally_finite_family_on X TX \<F>_closed"
-      unfolding \<F>_closed_def \<F>_def using Lemma_39_1(2)[OF hTop hF0_subX hF0_lf] by presburger
+      unfolding \<F>_closed_def using Lemma_39_1(2)[OF hTop hH0_subX hH0_lf] by presburger
     have hFcl_closed: "\<forall>Fc\<in>\<F>_closed. closedin_on X TX Fc"
     proof (intro ballI)
       fix Fc assume "Fc \<in> \<F>_closed"
-      then obtain F0 where "F0 \<in> \<F>" "Fc = closure_on X TX F0" unfolding \<F>_closed_def by blast
-      then show "closedin_on X TX Fc"
-        using hTop hF0_subX unfolding \<F>_def by (metis closure_on_closed)
+      then obtain H0 where "H0 \<in> \<H>0" "Fc = closure_on X TX H0" unfolding \<F>_closed_def by blast
+      then show "closedin_on X TX Fc" using hTop hH0_subX by (metis closure_on_closed)
     qed
     have hFcl_subX: "\<forall>Fc\<in>\<F>_closed. Fc \<subseteq> X"
       by (metis closedin_on_def hFcl_closed)
     have hFcl_covers: "X \<subseteq> \<Union>\<F>_closed"
     proof (rule subsetI)
       fix x assume "x \<in> X"
-      then obtain F0 where "F0 \<in> \<F>" "x \<in> F0" using hF_covers by auto
+      then obtain H0 where "H0 \<in> \<H>0" "x \<in> H0" using hH0_covers by auto
       then show "x \<in> \<Union>\<F>_closed" unfolding \<F>_closed_def using subset_closure_on by fast
     qed
-    have hFcl_star: "\<forall>Fc\<in>\<F>_closed. finite {C0 \<in> \<C>. intersects C0 Fc}" sorry
+    have hFcl_star: "\<forall>Fc\<in>\<F>_closed. finite {C0 \<in> \<C>. intersects C0 Fc}"
+    proof (intro ballI)
+      fix Fc assume "Fc \<in> \<F>_closed"
+      then obtain H0 where "H0 \<in> \<H>0" "Fc = closure_on X TX H0" unfolding \<F>_closed_def by blast
+      obtain Hs_e where "Hs_e \<in> \<H>s" "H0 \<subseteq> Hs_e"
+        using hH0_ref \<open>H0 \<in> \<H>0\<close> unfolding top1_refines_def by blast
+      obtain V_e where "V_e \<in> \<V>" "Hs_e \<subseteq> V_e"
+        using hHs_ref \<open>Hs_e \<in> \<H>s\<close> unfolding top1_refines_def by blast
+      obtain G_e where "G_e \<in> \<G>" "closure_on X TX V_e \<subseteq> G_e"
+        using \<open>V_e \<in> \<V>\<close> unfolding \<V>_def by blast
+      have "Fc \<subseteq> G_e"
+      proof -
+        have "H0 \<subseteq> V_e" using \<open>H0 \<subseteq> Hs_e\<close> \<open>Hs_e \<subseteq> V_e\<close> by blast
+        then have "closure_on X TX H0 \<subseteq> closure_on X TX V_e" using closure_on_mono by fast
+        then show ?thesis using \<open>Fc = closure_on X TX H0\<close> \<open>closure_on X TX V_e \<subseteq> G_e\<close> by blast
+      qed
+      have "{C0 \<in> \<C>. intersects C0 Fc} \<subseteq> {C0 \<in> \<C>. intersects C0 G_e}"
+        using \<open>Fc \<subseteq> G_e\<close> unfolding intersects_def by blast
+      then show "finite {C0 \<in> \<C>. intersects C0 Fc}"
+        using \<open>G_e \<in> \<G>\<close> unfolding \<G>_def using rev_finite_subset by blast
+    qed
     have hparent_ex: "\<forall>C0\<in>\<C>. \<exists>A0. A0 \<in> \<A> \<and> C0 \<subseteq> A0"
       using hC_ref unfolding top1_refines_def by fast
     obtain parent where hparent: "\<forall>C0\<in>\<C>. parent C0 \<in> \<A> \<and> C0 \<subseteq> parent C0"
