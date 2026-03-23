@@ -7702,8 +7702,35 @@ proof -
   have hD_slf: "top1_sigma_locally_finite_family_on X TX \<D>"
     unfolding top1_sigma_locally_finite_family_on_def
     by (metis \<D>_def hDm)
+  have hD_sub_TX: "\<D> \<subseteq> TX"
+    unfolding \<D>_def using hDm unfolding top1_open_covering_on_def by blast
   have hD_basis: "basis_for X \<D> TX"
-    sorry
+    unfolding basis_for_def
+  proof (intro conjI)
+    show "is_basis_on X \<D>" sorry
+    show "TX = topology_generated_by_basis X \<D>"
+    proof (rule equalityI)
+      show "topology_generated_by_basis X \<D> \<subseteq> TX"
+        unfolding topology_generated_by_basis_def
+      proof (rule subsetI)
+        fix U assume "U \<in> {U. U \<subseteq> X \<and> (\<forall>x\<in>U. \<exists>b\<in>\<D>. x \<in> b \<and> b \<subseteq> U)}"
+        then have "U \<subseteq> X" "\<forall>x\<in>U. \<exists>V\<in>TX. x \<in> V \<and> V \<subseteq> U"
+          using hD_sub_TX by blast+
+        then show "U \<in> TX"
+          using top1_open_set_from_local_opens[OF hTop] by blast
+      qed
+      show "TX \<subseteq> topology_generated_by_basis X \<D>"
+        unfolding topology_generated_by_basis_def
+      proof (rule subsetI)
+        fix U assume "U \<in> TX"
+        have "U \<subseteq> X" using \<open>U \<in> TX\<close> hTsub by blast
+        have "\<forall>x\<in>U. \<exists>D\<in>\<D>. x \<in> D \<and> D \<subseteq> U"
+          sorry
+        then show "U \<in> {U. U \<subseteq> X \<and> (\<forall>x\<in>U. \<exists>b\<in>\<D>. x \<in> b \<and> b \<subseteq> U)}"
+          using \<open>U \<subseteq> X\<close> by blast
+      qed
+    qed
+  qed
   show ?thesis using hD_slf hD_basis by blast
 qed
 
