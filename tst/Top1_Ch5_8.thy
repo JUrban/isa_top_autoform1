@@ -7678,7 +7678,22 @@ proof -
   text \<open>For each m: A_m covers X. Apply paracompactness to get D_m refining A_m.\<close>
   define Am where "Am m = (\<Union>C\<in>\<C>. (\<lambda>x. top1_ball_on C (dC C) x (1/real(Suc m))) ` C)" for m :: nat
   have hAm_cov: "\<forall>m. top1_open_covering_on X TX (Am m)"
-    sorry
+    unfolding top1_open_covering_on_def
+  proof (intro allI conjI)
+    fix m :: nat
+    show "Am m \<subseteq> TX" unfolding Am_def using hBall_in_TX by auto
+    show "X \<subseteq> \<Union>(Am m)" unfolding Am_def
+    proof (rule subsetI)
+      fix y assume "y \<in> X"
+      then obtain C where "C \<in> \<C>" "y \<in> C"
+        using hC_cov unfolding top1_open_covering_on_def by auto
+      have "y \<in> top1_ball_on C (dC C) y (1/real(Suc m))"
+        unfolding top1_ball_on_def using hdC \<open>C \<in> \<C>\<close> \<open>y \<in> C\<close> unfolding top1_metric_on_def
+        by fastforce
+      then show "y \<in> \<Union>(\<Union>C\<in>\<C>. (\<lambda>x. top1_ball_on C (dC C) x (1 / real (Suc m))) ` C)"
+        using \<open>C \<in> \<C>\<close> \<open>y \<in> C\<close> by blast
+    qed
+  qed
   have hDm_ex: "\<forall>m. \<exists>Dm. top1_open_covering_on X TX Dm \<and> top1_locally_finite_family_on X TX Dm \<and> top1_refines Dm (Am m)"
     using hPara hAm_cov unfolding top1_paracompact_on_def by blast
   then obtain Dm where hDm: "\<forall>m. top1_open_covering_on X TX (Dm m) \<and> top1_locally_finite_family_on X TX (Dm m) \<and> top1_refines (Dm m) (Am m)"
