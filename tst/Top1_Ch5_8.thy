@@ -10537,6 +10537,93 @@ proof -
   ultimately show ?thesis using assms(6,7,8,9) by linarith
 qed
 
+lemma cont_at_metric_nbhd:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  assumes hcont: "top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) fi"
+  assumes hx0: "x0 \<in> X" and hd_pos: "(0::real) < \<delta>"
+  shows "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>x\<in>U. x \<in> X \<longrightarrow> d (fi x) (fi x0) < \<delta>)"
+proof -
+  have hfix0Y: "fi x0 \<in> Y"
+    using hcont hx0 unfolding top1_continuous_map_on_def by blast
+  have hball_open: "top1_ball_on Y d (fi x0) \<delta> \<in> top1_metric_topology_on Y d"
+    using top1_ball_open_in_metric_topology[OF hd hfix0Y hd_pos] by presburger
+  have hfix0_in_ball: "fi x0 \<in> top1_ball_on Y d (fi x0) \<delta>"
+    unfolding top1_ball_on_def using hfix0Y hd hd_pos unfolding top1_metric_on_def by fastforce
+  have hpre_open: "{x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) \<delta>} \<in> TX"
+    using hcont hball_open unfolding top1_continuous_map_on_def by fast
+  have hx0_in_pre: "x0 \<in> {x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) \<delta>}"
+    using hx0 hfix0_in_ball by blast
+  have "\<forall>x\<in>{x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) \<delta>}. x \<in> X \<longrightarrow> d (fi x) (fi x0) < \<delta>"
+  proof (intro ballI impI)
+    fix x assume "x \<in> {x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) \<delta>}" "x \<in> X"
+    then have "fi x \<in> Y" and "d (fi x0) (fi x) < \<delta>" unfolding top1_ball_on_def by fast+
+    then show "d (fi x) (fi x0) < \<delta>" using hfix0Y hd[unfolded top1_metric_on_def] by metis
+  qed
+  then show ?thesis using hpre_open hx0_in_pre by meson
+qed
+
+text \<open>Equicontinuity core: given TB cover (pre-unfolded), prove equicontinuity at x0.\<close>
+lemma equicont_from_tb_cover:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  assumes hFcont: "\<forall>fi\<in>\<F>. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) fi"
+  assumes hFpiE: "\<F> \<subseteq> top1_PiE X (\<lambda>_. Y)"
+  assumes hTB: "\<forall>e>(0::real). \<exists>Fc. finite Fc \<and> Fc \<subseteq> \<F> \<and>
+    \<F> \<subseteq> (\<Union>fi\<in>Fc. top1_ball_on \<F> (top1_uniform_metric_on X d) fi e)"
+  assumes hx0: "x0 \<in> X" and heps: "(0::real) < \<epsilon>"
+  shows "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>\<F>. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
+proof -
+  define \<delta> where "\<delta> = min (\<epsilon> / 3) (1/2 :: real)"
+  have h\<delta>pos: "0 < \<delta>" unfolding \<delta>_def using heps by simp
+  have h\<delta>lt1: "\<delta> < 1" unfolding \<delta>_def by linarith
+  have h3\<delta>: "3 * \<delta> \<le> \<epsilon>" unfolding \<delta>_def using heps by linarith
+  obtain Fc where hFcfin: "finite Fc" and hFcsub: "Fc \<subseteq> \<F>"
+    and hFccov: "\<F> \<subseteq> (\<Union>fi\<in>Fc. top1_ball_on \<F> (top1_uniform_metric_on X d) fi \<delta>)"
+    using hTB[rule_format, OF h\<delta>pos] by blast
+  have hFc_cont: "\<forall>fi\<in>Fc. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) fi"
+    using hFcsub hFcont by blast
+  have hFc_nbhd: "\<forall>fi\<in>Fc. \<exists>Ui\<in>TX. x0 \<in> Ui \<and> (\<forall>x\<in>Ui. x \<in> X \<longrightarrow> d (fi x) (fi x0) < \<delta>)"
+    using hFc_cont cont_at_metric_nbhd[OF hTopX hd _ hx0 h\<delta>pos] by blast
+  then obtain Ufn where hUfn:
+    "\<forall>fi\<in>Fc. Ufn fi \<in> TX \<and> x0 \<in> Ufn fi \<and> (\<forall>x\<in>Ufn fi. x \<in> X \<longrightarrow> d (fi x) (fi x0) < \<delta>)"
+    by metis
+  define U where "U = (\<Inter>fi\<in>Fc. Ufn fi) \<inter> X"
+  have hU_open: "U \<in> TX"
+    unfolding U_def using fin_inter_open_on[OF hTopX hFcfin] hUfn by blast
+  have hx0U: "x0 \<in> U" unfolding U_def using hx0 hUfn by blast
+  have "\<forall>f\<in>\<F>. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>"
+  proof (intro ballI)
+    fix f x assume hf: "f \<in> \<F>" and hxU: "x \<in> U"
+    have hxX: "x \<in> X" using hxU unfolding U_def by blast
+    have hXne: "X \<noteq> {}" using hx0 by blast
+    obtain fi where hfi_Fc: "fi \<in> Fc"
+      and hf_ball: "f \<in> top1_ball_on \<F> (top1_uniform_metric_on X d) fi \<delta>"
+      using hf hFccov by blast
+    have hrho: "top1_uniform_metric_on X d fi f < \<delta>"
+      using hf_ball unfolding top1_ball_on_def by blast
+    have hfPiE: "f \<in> top1_PiE X (\<lambda>_. Y)" using hFpiE hf by blast
+    have hfxY: "f x \<in> Y" using hfPiE hxX top1_PiE_iff[of f X "\<lambda>_. Y"] by simp
+    have hfx0Y: "f x0 \<in> Y" using hfPiE hx0 top1_PiE_iff[of f X "\<lambda>_. Y"] by simp
+    have hfiPiE: "fi \<in> top1_PiE X (\<lambda>_. Y)" using hFpiE hFcsub hfi_Fc by blast
+    have hfixY: "fi x \<in> Y" using hfiPiE hxX top1_PiE_iff[of fi X "\<lambda>_. Y"] by simp
+    have hfix0Y: "fi x0 \<in> Y" using hfiPiE hx0 top1_PiE_iff[of fi X "\<lambda>_. Y"] by simp
+    have "d (fi x) (f x) < \<delta>"
+      using uniform_metric_lt_imp_d_lt[OF hXne hxX hrho h\<delta>lt1] by presburger
+    have "d (f x) (fi x) < \<delta>"
+      using \<open>d (fi x) (f x) < \<delta>\<close> hfxY hfixY hd[unfolded top1_metric_on_def] by metis
+    have "d (fi x0) (f x0) < \<delta>"
+      using uniform_metric_lt_imp_d_lt[OF hXne hx0 hrho h\<delta>lt1] by satx
+    have "d (fi x) (fi x0) < \<delta>"
+      using hUfn hfi_Fc hxU hxX unfolding U_def by blast
+    show "d (f x) (f x0) < \<epsilon>"
+      using tri_arg_metric[OF hd hfxY hfixY hfix0Y hfx0Y
+        \<open>d (f x) (fi x) < \<delta>\<close> \<open>d (fi x) (fi x0) < \<delta>\<close> \<open>d (fi x0) (f x0) < \<delta>\<close> h3\<delta>]
+      by blast
+  qed
+  then show ?thesis using hU_open hx0U by blast
+qed
+
 (** from \S45 Lemma 45.2 [top1.tex:6586] **)
 lemma Lemma_45_2:
   assumes hTopX: "is_topology_on X TX"
