@@ -7619,7 +7619,30 @@ lemma locally_metrizable_paracompact_imp_sigma_lf_basis:
   assumes hLM: "top1_locally_metrizable_on X TX"
   assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   shows "\<exists>\<B>. basis_for X \<B> TX \<and> top1_sigma_locally_finite_family_on X TX \<B>"
-  sorry
+proof -
+  have hU_cov: "top1_open_covering_on X TX {U \<in> TX. \<exists>d. top1_metric_on U d \<and> subspace_topology X TX U = top1_metric_topology_on U d}"
+    using hLM unfolding top1_locally_metrizable_on_def top1_open_covering_on_def by blast
+  obtain \<C> where hC_cov: "top1_open_covering_on X TX \<C>"
+    and hC_lf: "top1_locally_finite_family_on X TX \<C>"
+    and hC_ref: "top1_refines \<C> {U \<in> TX. \<exists>d. top1_metric_on U d \<and> subspace_topology X TX U = top1_metric_topology_on U d}"
+    using hPara hU_cov unfolding top1_paracompact_on_def by blast
+  have hC_met: "\<forall>C\<in>\<C>. \<exists>d. top1_metric_on C d \<and> (\<forall>x\<in>C. \<forall>r>0. top1_ball_on C d x r \<in> subspace_topology X TX C)"
+    sorry
+  have hDm_ex: "\<forall>m::nat. \<exists>Dm. top1_open_covering_on X TX Dm \<and> top1_locally_finite_family_on X TX Dm"
+    using hPara unfolding top1_paracompact_on_def using hC_cov by blast
+  then obtain Dm :: "nat \<Rightarrow> 'a set set" where
+    hDm: "\<forall>m. top1_open_covering_on X TX (Dm m) \<and> top1_locally_finite_family_on X TX (Dm m)"
+    by fast
+  define \<D> where "\<D> = (\<Union>m. Dm m)"
+  have hD_sub_TX: "\<D> \<subseteq> TX"
+    unfolding \<D>_def using hDm unfolding top1_open_covering_on_def by blast
+  have hD_slf: "top1_sigma_locally_finite_family_on X TX \<D>"
+    unfolding top1_sigma_locally_finite_family_on_def
+    by (metis \<D>_def hDm)
+  have hD_basis: "basis_for X \<D> TX"
+    sorry
+  show ?thesis using hD_slf hD_basis by blast
+qed
 
 (** from \S42 Theorem 42.1 (Smirnov metrization theorem) [top1.tex:6072] **)
 theorem Theorem_42_1:
