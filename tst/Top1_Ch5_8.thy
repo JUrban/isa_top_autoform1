@@ -17274,6 +17274,25 @@ lemma top1_rho49_self:
   shows "top1_rho49 f f = 0"
   unfolding top1_rho49_def using top1_I01_nonempty by simp
 
+text \<open>Note: rho49 f g = 0 iff f and g agree on [0,1]. For the full metric property
+  (d x y = 0 ↔ x = y), we would need extensional functions. For now we state
+  the weaker pointwise version and leave the full metric property as sorry.\<close>
+
+lemma top1_rho49_zero_imp_eq_on:
+  assumes "f \<in> top1_C01" "g \<in> top1_C01" "top1_rho49 f g = 0"
+  shows "\<forall>x\<in>top1_I01. f x = g x"
+proof (intro ballI)
+  fix x assume hx: "x \<in> top1_I01"
+  have himg: "\<bar>f x - g x\<bar> \<in> (\<lambda>x. \<bar>f x - g x\<bar>) ` top1_I01" using hx by blast
+  have hbdd: "bdd_above ((\<lambda>x. \<bar>f x - g x\<bar>) ` top1_I01)"
+    using top1_rho49_bdd_above[OF assms(1) assms(2)] by argo
+  have "\<bar>f x - g x\<bar> \<le> Sup ((\<lambda>x. \<bar>f x - g x\<bar>) ` top1_I01)"
+    using cSup_upper[OF himg hbdd] by blast
+  also have "... = 0" using assms(3) unfolding top1_rho49_def by argo
+  finally have "\<bar>f x - g x\<bar> \<le> 0" by argo
+  then show "f x = g x" by simp
+qed
+
 lemma top1_rho49_zero_iff:
   assumes "f \<in> top1_C01" "g \<in> top1_C01"
   shows "(top1_rho49 f g = 0) = (f = g)"
