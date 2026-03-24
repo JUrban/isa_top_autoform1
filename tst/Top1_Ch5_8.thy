@@ -17183,7 +17183,7 @@ definition top1_Delta_h49 :: "(real \<Rightarrow> real) \<Rightarrow> real \<Rig
   "top1_Delta_h49 f h = Inf ((\<lambda>x. top1_Delta49 f x h) ` top1_I01)"
 
 definition top1_C01 :: "(real \<Rightarrow> real) set" where
-  "top1_C01 = {f. continuous_on top1_I01 f}"
+  "top1_C01 = {f. continuous_on top1_I01 f \<and> (\<forall>x. x \<notin> top1_I01 \<longrightarrow> f x = 0)}"
 
 lemma top1_C01_nonempty: "top1_C01 \<noteq> {}"
 proof -
@@ -17296,7 +17296,26 @@ qed
 lemma top1_rho49_zero_iff:
   assumes "f \<in> top1_C01" "g \<in> top1_C01"
   shows "(top1_rho49 f g = 0) = (f = g)"
-  sorry
+proof
+  assume "top1_rho49 f g = 0"
+  have heq_on: "\<forall>x\<in>top1_I01. f x = g x"
+    using top1_rho49_zero_imp_eq_on[OF assms \<open>top1_rho49 f g = 0\<close>] by argo
+  have hf_ext: "\<forall>x. x \<notin> top1_I01 \<longrightarrow> f x = 0" using assms(1) unfolding top1_C01_def by blast
+  have hg_ext: "\<forall>x. x \<notin> top1_I01 \<longrightarrow> g x = 0" using assms(2) unfolding top1_C01_def by blast
+  have "\<forall>x. f x = g x"
+  proof
+    fix x show "f x = g x"
+    proof (cases "x \<in> top1_I01")
+      case True then show ?thesis using heq_on by simp
+    next
+      case False then show ?thesis using hf_ext hg_ext by auto
+    qed
+  qed
+  then show "f = g" by fast
+next
+  assume "f = g"
+  then show "top1_rho49 f g = 0" using top1_rho49_self[OF assms(1)] by blast
+qed
 
 lemma top1_rho49_sym:
   assumes "f \<in> top1_C01" "g \<in> top1_C01"
