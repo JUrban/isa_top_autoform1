@@ -10922,7 +10922,9 @@ next
   assume "\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X \<longrightarrow>
     (\<forall>\<epsilon>>0. \<exists>N. \<forall>n\<ge>N. \<forall>x\<in>C. d (fseq n x) (f x) < \<epsilon>)"
   then show "seq_converges_to_on fseq f (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d)"
-    sorry
+    sorry (* ← direction: uniform on compacts → cc convergence. Needs:
+       for each cc neighborhood U of f, U contains cc basis element B(f,C,δ),
+       then use uniform convergence on C to get fseq n ∈ B ⊆ U. *)
 qed
 
 (** from \S46 Lemma 46.3 [top1.tex:6793] **)
