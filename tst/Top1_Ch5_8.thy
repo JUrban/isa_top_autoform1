@@ -11343,7 +11343,7 @@ lemma closure_cc_cont_on_compact:
   assumes hgPiE: "g \<in> top1_PiE X (\<lambda>_. Y)"
   assumes hC: "top1_compact_on C (subspace_topology X TX C)" and hCX: "C \<subseteq> X"
   assumes hcl: "g \<in> closure_on (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d)
-    {f. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) f}"
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
   shows "top1_continuous_map_on C (subspace_topology X TX C) Y (top1_metric_topology_on Y d) g"
   sorry
 
@@ -11352,14 +11352,14 @@ theorem Theorem_46_5:
   assumes hd: "top1_metric_on Y d"
   shows "closedin_on (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d)
-    {f. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) f}"
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
 proof -
   let ?P = "top1_PiE X (\<lambda>_. Y)"
   let ?Tcc = "top1_compact_convergence_topology_on X TX Y d"
   let ?TY = "top1_metric_topology_on Y d"
-  let ?A = "{f. top1_continuous_map_on X TX Y ?TY f}"
+  let ?A = "top1_continuous_funcs_on X TX Y ?TY"
   have hTopX: "is_topology_on X TX" using hCG unfolding top1_compactly_generated_on_def by simp
-  have hAsub: "?A \<subseteq> ?P" sorry
+  have hAsub: "?A \<subseteq> ?P" unfolding top1_continuous_funcs_on_def by fast
   have hTcc_top: "is_topology_on ?P ?Tcc" sorry
   have hcl_sub: "closure_on ?P ?Tcc ?A \<subseteq> ?A"
   proof (rule subsetI)
@@ -11378,7 +11378,7 @@ proof -
     qed
     then have "top1_continuous_map_on X TX Y ?TY g"
       using Lemma_46_4[OF hCG, rule_format] by meson
-    then show "g \<in> ?A" by simp
+    then show "g \<in> ?A" using hgPiE unfolding top1_continuous_funcs_on_def by simp
   qed
   show ?thesis by (rule closedin_if_closure_subset[OF hTcc_top hAsub hcl_sub])
 qed
@@ -11388,13 +11388,14 @@ corollary Corollary_46_6:
   assumes hCG: "top1_compactly_generated_on X TX"
   assumes hd: "top1_metric_on Y d"
   assumes hcont: "\<forall>n. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) (fseq n)"
+  assumes hfseqPiE: "\<forall>n. fseq n \<in> top1_PiE X (\<lambda>_. Y)"
   assumes hconv:
     "seq_converges_to_on fseq f (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d)"
   shows "top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) f"
 proof -
   let ?X' = "top1_PiE X (\<lambda>_. Y)"
   let ?T' = "top1_compact_convergence_topology_on X TX Y d"
-  let ?S = "{g. top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) g}"
+  let ?S = "top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
 
   have hS_closed: "closedin_on ?X' ?T' ?S"
     by (rule Theorem_46_5[OF hCG hd])
@@ -11403,13 +11404,13 @@ proof -
     using hconv unfolding seq_converges_to_on_def by (rule conjunct1)
 
   have hseqS: "\<forall>n. fseq n \<in> ?S"
-    using hcont by blast
+    using hcont hfseqPiE unfolding top1_continuous_funcs_on_def by simp
 
   show ?thesis
   proof (rule ccontr)
     assume hNot: "\<not> top1_continuous_map_on X TX Y (top1_metric_topology_on Y d) f"
     have hfNotS: "f \<notin> ?S"
-      using hNot by simp
+      using hNot unfolding top1_continuous_funcs_on_def by simp
 
     have hSsubX': "?S \<subseteq> ?X'"
       using hS_closed unfolding closedin_on_def by (rule conjunct1)
