@@ -10874,7 +10874,42 @@ qed
 lemma cc_basis_is_basis:
   assumes hTopX: "is_topology_on X TX" and hd: "top1_metric_on Y d"
   shows "is_basis_on (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_basis_on X TX Y d)"
-  sorry
+proof -
+  let ?P = "top1_PiE X (\<lambda>_. Y)"
+  let ?Bcc = "top1_compact_convergence_basis_on X TX Y d"
+  have h1: "\<forall>b\<in>?Bcc. b \<subseteq> ?P"
+    unfolding top1_compact_convergence_basis_on_def by fast
+  have h2: "\<forall>x\<in>?P. \<exists>b\<in>?Bcc. x \<in> b"
+  proof (intro ballI)
+    fix f assume hf: "f \<in> ?P"
+    have hempty_compact: "top1_compact_on {} (subspace_topology X TX {})"
+      unfolding top1_compact_on_def
+      apply (intro conjI)
+      apply (rule subspace_topology_is_topology_on[OF hTopX]) apply simp
+      apply (intro allI impI)
+      apply (rule_tac x="{}" in exI)
+      apply simp
+      done
+    define Bf where "Bf = {g \<in> ?P. (if ({} :: 'a set) = {} then (0::real) else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` {})) < 1}"
+    have hB: "Bf \<in> ?Bcc" unfolding Bf_def top1_compact_convergence_basis_on_def
+      apply (rule CollectI)
+      apply (rule exI[where x=f], rule exI[where x="{}::'a set"], rule exI[where x="1::real"])
+      apply (intro conjI)
+      apply (rule refl)
+      apply (rule hf)
+      apply (rule hempty_compact)
+      apply (rule empty_subsetI)
+      apply linarith
+      done
+    moreover have "f \<in> Bf" unfolding Bf_def using hf by simp
+    ultimately show "\<exists>b\<in>?Bcc. f \<in> b" by blast
+  qed
+  have h3: "\<forall>b1\<in>?Bcc. \<forall>b2\<in>?Bcc. \<forall>x\<in>b1 \<inter> b2. \<exists>b3\<in>?Bcc. x \<in> b3 \<and> b3 \<subseteq> b1 \<inter> b2"
+    sorry
+  show ?thesis unfolding is_basis_on_def
+    apply (intro conjI)
+    apply (rule h1) apply (rule h2) apply (rule h3) done
+qed
 
 lemma cc_topology_is_topology:
   assumes hTopX: "is_topology_on X TX" and hd: "top1_metric_on Y d"
