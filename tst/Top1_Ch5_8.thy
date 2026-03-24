@@ -11390,8 +11390,22 @@ proof -
   text \<open>hseq n → g uniformly on C. Apply uniform_limit_continuous on subspace C.\<close>
   have hTopC: "is_topology_on C (subspace_topology X TX C)"
     using hC unfolding top1_compact_on_def by (elim conjE) assumption
+  have hTopY: "is_topology_on Y ?TY"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
   have hseq_cont_C: "\<forall>n. top1_continuous_map_on C (subspace_topology X TX C) Y ?TY (hseq n)"
-    sorry
+  proof (intro allI)
+    fix n
+    have "hseq n \<in> ?A" using hhseq by simp
+    then have "top1_continuous_map_on X TX Y ?TY (hseq n)"
+      unfolding top1_continuous_funcs_on_def by simp
+    then show "top1_continuous_map_on C (subspace_topology X TX C) Y ?TY (hseq n)"
+    proof -
+      have "top1_continuous_map_on X TX Y ?TY (hseq n) \<and> C \<subseteq> X \<longrightarrow>
+        top1_continuous_map_on C (subspace_topology X TX C) Y ?TY (hseq n)"
+        using Theorem_18_2[OF hTopX hTopY hTopY] by meson
+      then show ?thesis using \<open>top1_continuous_map_on X TX Y ?TY (hseq n)\<close> hCX by meson
+    qed
+  qed
   have hseq_unif: "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>C. d (hseq n x) (g x) < \<epsilon>"
   proof (intro allI impI)
     fix \<epsilon> :: real assume h\<epsilon>: "0 < \<epsilon>"
