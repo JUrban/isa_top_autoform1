@@ -10800,6 +10800,17 @@ definition top1_compact_open_topology_on ::
   "top1_compact_open_topology_on X TX Y TY =
      topology_generated_by_subbasis (top1_continuous_funcs_on X TX Y TY) (top1_compact_open_subbasis_on X TX Y TY)"
 
+lemma cc_basis_is_basis:
+  assumes hTopX: "is_topology_on X TX" and hd: "top1_metric_on Y d"
+  shows "is_basis_on (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_basis_on X TX Y d)"
+  sorry
+
+lemma cc_topology_is_topology:
+  assumes hTopX: "is_topology_on X TX" and hd: "top1_metric_on Y d"
+  shows "is_topology_on (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d)"
+  unfolding top1_compact_convergence_topology_on_def
+  by (rule topology_generated_by_basis_is_topology_on[OF cc_basis_is_basis[OF hTopX hd]])
+
 lemma cc_basis_self_member:
   assumes hd: "top1_metric_on Y d" and hfPiE: "f \<in> top1_PiE X (\<lambda>_. Y)"
   assumes hCX: "C \<subseteq> X" and h\<delta>pos: "(0::real) < \<delta>"
@@ -11377,7 +11388,7 @@ proof -
       apply (rule basis_elem_in_generated_topology[OF hBn_basis hBn_sub]) done
     have hgBn: "g \<in> Bn"
       unfolding Bn_def using cc_basis_self_member[OF hd hgPiE hCX h\<epsilon>n] by simp
-    have hTcc_top: "is_topology_on ?P ?Tcc" sorry
+    have hTcc_top: "is_topology_on ?P ?Tcc" by (rule cc_topology_is_topology[OF hTopX hd])
     have "Bn \<inter> ?A \<noteq> {}"
       by (rule closure_meets_open[OF hTcc_top hAsub hcl hBn_open hgBn])
     then show "\<exists>h\<in>?A. h \<in> {f \<in> ?P. (if C = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (g x) (f x)) ` C)) < 1 / real (Suc n)}"
@@ -11456,7 +11467,7 @@ proof -
   let ?A = "top1_continuous_funcs_on X TX Y ?TY"
   have hTopX: "is_topology_on X TX" using hCG unfolding top1_compactly_generated_on_def by simp
   have hAsub: "?A \<subseteq> ?P" unfolding top1_continuous_funcs_on_def by fast
-  have hTcc_top: "is_topology_on ?P ?Tcc" sorry
+  have hTcc_top: "is_topology_on ?P ?Tcc" by (rule cc_topology_is_topology[OF hTopX hd])
   have hcl_sub: "closure_on ?P ?Tcc ?A \<subseteq> ?A"
   proof (rule subsetI)
     fix g assume hg_cl: "g \<in> closure_on ?P ?Tcc ?A"
