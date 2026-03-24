@@ -10933,6 +10933,17 @@ proof -
     done
 qed
 
+lemma bm_triangle:
+  assumes hd: "top1_metric_on Y d"
+  assumes "a \<in> Y" "b \<in> Y" "c \<in> Y"
+  shows "top1_bounded_metric d a c \<le> top1_bounded_metric d a b + top1_bounded_metric d b c"
+  using top1_bounded_metric_on[OF hd] assms(2-4)
+  unfolding top1_metric_on_def
+  apply (elim conjE)
+  apply (erule_tac x=a in ballE, erule_tac x=b in ballE, erule_tac x=c in ballE)
+  apply simp apply fast apply fast apply fast
+  done
+
 lemma pointwise_d_imp_bm_le:
   assumes hd: "top1_metric_on Y d" and hCX: "C \<subseteq> X"
   assumes hfPiE: "f \<in> top1_PiE X (\<lambda>_. Y)" and hgPiE: "g \<in> top1_PiE X (\<lambda>_. Y)"
@@ -11000,7 +11011,48 @@ proof (intro conjI hfPiE allI impI)
     case False
     text \<open>f ∈ B(f0, C, δ) gives Sup_C d̄(f0, f) < δ.
       Use uniform convergence with (δ - Sup_C d̄(f0,f))/2 to get N.\<close>
-    show ?thesis sorry
+    define S0 where "S0 = Sup ((\<lambda>x. top1_bounded_metric d (f0 x) (f x)) ` C)"
+    have hS0_lt: "S0 < \<delta>" using hfB0 False unfolding S0_def by simp
+    define \<epsilon>' where "\<epsilon>' = min ((\<delta> - S0) / 2) (1/2 :: real)"
+    have h\<epsilon>'pos: "0 < \<epsilon>'" unfolding \<epsilon>'_def using hS0_lt by simp
+    have h\<epsilon>'lt1: "\<epsilon>' < 1" unfolding \<epsilon>'_def by simp
+    have h\<epsilon>'le: "\<epsilon>' \<le> (\<delta> - S0) / 2" unfolding \<epsilon>'_def
+      apply (rule min.cobounded1) done
+    have hS0_eps_lt: "S0 + \<epsilon>' < \<delta>" using h\<epsilon>'le hS0_lt by argo
+    obtain N where hN: "\<forall>n\<ge>N. \<forall>x\<in>C. d (fseq n x) (f x) < \<epsilon>'"
+      using hUnif[rule_format, OF conjI[OF hCcomp hCX], rule_format, OF h\<epsilon>'pos] by blast
+    show ?thesis
+    proof (rule exI[where x=N], intro allI impI)
+      fix n assume "N \<le> n"
+      have hfn_bm: "\<forall>x\<in>C. top1_bounded_metric d (f0 x) (fseq n x) \<le> S0 + \<epsilon>'"
+      proof (intro ballI)
+        fix x assume "x \<in> C"
+        have hxX: "x \<in> X" using \<open>x \<in> C\<close> hCX by fast
+        have hf0xY: "f0 x \<in> Y" using hf0PiE hxX by (simp add: top1_PiE_iff)
+        have hfxY: "f x \<in> Y" using hfPiE hxX by (simp add: top1_PiE_iff)
+        have hfnxY: "fseq n x \<in> Y" using hfseqPiE[rule_format] hxX by (simp add: top1_PiE_iff)
+        have htri: "top1_bounded_metric d (f0 x) (fseq n x) \<le>
+          top1_bounded_metric d (f0 x) (f x) + top1_bounded_metric d (f x) (fseq n x)"
+          by (rule bm_triangle[OF hd hf0xY hfxY hfnxY])
+        have "top1_bounded_metric d (f0 x) (f x) \<le> S0" unfolding S0_def
+          apply (rule cSup_upper) using \<open>x \<in> C\<close> apply (rule imageI)
+          apply (intro bdd_aboveI[where M=1]) apply (clarsimp simp: top1_bounded_metric_def) done
+        have "top1_bounded_metric d (f x) (fseq n x) \<le> \<epsilon>'"
+          using pointwise_d_imp_bm_le[OF hd hCX hfPiE hfseqPiE[rule_format] h\<epsilon>'lt1 \<open>x \<in> C\<close>]
+            hN[rule_format, OF \<open>N \<le> n\<close> \<open>x \<in> C\<close>] by (simp add: less_imp_le)
+        show "top1_bounded_metric d (f0 x) (fseq n x) \<le> S0 + \<epsilon>'"
+          using htri \<open>top1_bounded_metric d (f0 x) (f x) \<le> S0\<close>
+            \<open>top1_bounded_metric d (f x) (fseq n x) \<le> \<epsilon>'\<close> by linarith
+      qed
+      then have "Sup ((\<lambda>x. top1_bounded_metric d (f0 x) (fseq n x)) ` C) \<le> S0 + \<epsilon>'"
+        apply (intro cSUP_least) using False apply simp apply (erule bspec) apply assumption done
+      then have "Sup ((\<lambda>x. top1_bounded_metric d (f0 x) (fseq n x)) ` C) < \<delta>"
+        using hS0_eps_lt by simp
+      have "fseq n \<in> {g \<in> top1_PiE X (\<lambda>_. Y). (if C = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f0 x) (g x)) ` C)) < \<delta>}"
+        apply (rule CollectI) apply (intro conjI hfseqPiE[rule_format])
+        using False \<open>Sup ((\<lambda>x. top1_bounded_metric d (f0 x) (fseq n x)) ` C) < \<delta>\<close> apply simp done
+      then show "fseq n \<in> U" using hB0sub by fast
+    qed
   qed
 qed
 
