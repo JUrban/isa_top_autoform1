@@ -13137,6 +13137,16 @@ qed
 text \<open>Theorem 46.8: On C(X,Y), the compact-convergence and compact-open topologies coincide.
   Proof splits into two inclusions, each proved as a separate helper.\<close>
 
+text \<open>Key fact: compact set inside open set has an ε-gap (Lebesgue number argument).\<close>
+lemma compact_in_open_eps_gap:
+  assumes hd: "top1_metric_on Y d"
+  assumes hK: "top1_compact_on K (top1_metric_topology_on Y d)"
+  assumes hU: "U \<in> top1_metric_topology_on Y d"
+  assumes hKU: "K \<subseteq> U"
+  assumes hKne: "K \<noteq> {}"
+  shows "\<exists>\<epsilon>>0. \<forall>y\<in>Y. (\<exists>k\<in>K. d k y < \<epsilon>) \<longrightarrow> y \<in> U"
+  sorry
+
 lemma co_subbasis_in_cc_subspace:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
