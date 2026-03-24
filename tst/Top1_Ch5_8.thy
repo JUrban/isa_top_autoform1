@@ -12418,6 +12418,18 @@ proof (rule subsetI)
   qed
 qed
 
+lemma cc_supset_uniform_compact_full:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  assumes hCompX: "top1_compact_on X TX"
+  shows "top1_compact_convergence_topology_on X TX Y d \<supseteq> top1_uniform_topology_on X Y d"
+proof (cases "X = {}")
+  case True then show ?thesis sorry
+next
+  case False then show ?thesis
+    by (rule cc_supset_uniform_compact[OF hTopX hd hCompX])
+qed
+
 (** from \S46 Corollary 46.9 [top1.tex:6859] **)
 corollary Corollary_46_9:
   assumes hTopX: "is_topology_on X TX"
@@ -12476,14 +12488,14 @@ proof -
       show "top1_uniform_topology_on X Y d1 \<supseteq> top1_compact_convergence_topology_on X TX Y d1"
         using top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd1] by blast
       show "top1_compact_convergence_topology_on X TX Y d1 \<supseteq> top1_uniform_topology_on X Y d1"
-        sorry
+        by (rule cc_supset_uniform_compact_full[OF hTopX hd1 hCompX])
     qed
     have huni_eq_cc2: "top1_uniform_topology_on X Y d2 = top1_compact_convergence_topology_on X TX Y d2"
     proof (rule equalityI)
       show "top1_uniform_topology_on X Y d2 \<supseteq> top1_compact_convergence_topology_on X TX Y d2"
         using top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd2] by blast
       show "top1_compact_convergence_topology_on X TX Y d2 \<supseteq> top1_uniform_topology_on X Y d2"
-        sorry
+        by (rule cc_supset_uniform_compact_full[OF hTopX hd2 hCompX])
     qed
     show "subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d1)
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
