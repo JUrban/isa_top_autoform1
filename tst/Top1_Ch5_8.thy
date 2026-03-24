@@ -11386,7 +11386,35 @@ proof -
   have hseq_cont_C: "\<forall>n. top1_continuous_map_on C (subspace_topology X TX C) Y ?TY (hseq n)"
     sorry
   have hseq_unif: "\<forall>\<epsilon>>0. \<exists>N::nat. \<forall>n\<ge>N. \<forall>x\<in>C. d (hseq n x) (g x) < \<epsilon>"
-    sorry
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume h\<epsilon>: "0 < \<epsilon>"
+    define \<delta> where "\<delta> = min \<epsilon> (1/2 :: real)"
+    have h\<delta>pos: "0 < \<delta>" unfolding \<delta>_def using h\<epsilon> by simp
+    have h\<delta>le: "\<delta> \<le> \<epsilon>" unfolding \<delta>_def by simp
+    have h\<delta>lt1: "\<delta> < 1" unfolding \<delta>_def by simp
+    obtain M :: nat where "real M > 1/\<delta>" using reals_Archimedean2 by blast
+    then have "real (Suc M) > 1/\<delta>" by linarith
+    then have "1 / real (Suc M) < \<delta>" using h\<delta>pos by (simp add: field_simps)
+    define N where "N = M"
+    have hN: "1 / real (Suc N) \<le> 1 / real (Suc M)" unfolding N_def by simp
+    then have hN_lt: "1 / real (Suc N) < \<delta>" using \<open>1 / real (Suc M) < \<delta>\<close> by linarith
+    show "\<exists>N. \<forall>n\<ge>N. \<forall>x\<in>C. d (hseq n x) (g x) < \<epsilon>"
+    proof (rule exI[where x=N], intro allI impI ballI)
+      fix n x assume "N \<le> n" "x \<in> C"
+      have "1 / real (Suc n) \<le> 1 / real (Suc N)" using \<open>N \<le> n\<close> by (simp add: frac_le)
+      then have h1n: "1 / real (Suc n) < \<delta>" using hN_lt by linarith
+      have "C \<noteq> {}" using \<open>x \<in> C\<close> by fast
+      have "d (g x) (hseq n x) < 1 / real (Suc n)"
+        apply (rule cc_basis_member_pointwise[OF hd hCX \<open>C \<noteq> {}\<close> _ hgPiE _ \<open>x \<in> C\<close>])
+        using h1n h\<delta>lt1 apply linarith
+        using hhseq by simp
+      have "d (hseq n x) (g x) = d (g x) (hseq n x)"
+        using hd hgPiE hhseq \<open>x \<in> C\<close> hCX
+        unfolding top1_metric_on_def top1_PiE_iff top1_continuous_funcs_on_def
+        sorry
+      then show "d (hseq n x) (g x) < \<epsilon>" using \<open>d (g x) (hseq n x) < 1 / real (Suc n)\<close> h1n h\<delta>le by linarith
+    qed
+  qed
   have hgCY: "\<forall>x\<in>C. g x \<in> Y"
     using hgPiE hCX by (simp add: top1_PiE_iff subset_iff)
   show ?thesis
