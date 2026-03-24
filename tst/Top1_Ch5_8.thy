@@ -1,5 +1,5 @@
 theory Top1_Ch5_8
-  imports Top1_Ch4
+  imports "Top0.Top1_Ch4"
 begin
 
 section \<open>\<S>37 The Tychonoff Theorem\<close>
@@ -11268,13 +11268,13 @@ qed
 (** from \S46 Lemma 46.4 [top1.tex:6807] **)
 lemma Lemma_46_4:
   assumes hCG: "top1_compactly_generated_on X TX"
-  shows "\<forall>f. (\<forall>C. top1_compact_on C (subspace_topology X TX C)
+  shows "\<forall>f. (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
               \<longrightarrow> top1_continuous_map_on C (subspace_topology X TX C) Y TY f)
           \<longrightarrow> top1_continuous_map_on X TX Y TY f"
 proof (intro allI impI)
   fix f
   assume hC:
-    "(\<forall>C. top1_compact_on C (subspace_topology X TX C)
+    "(\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
           \<longrightarrow> top1_continuous_map_on C (subspace_topology X TX C) Y TY f)"
 
   have hTopX: "is_topology_on X TX"
@@ -11311,17 +11311,13 @@ proof (intro allI impI)
   proof (intro ballI)
     fix x
     assume hxX: "x \<in> X"
+    have hsub: "{x} \<subseteq> X" by (simp add: hxX)
     have hcomp: "top1_compact_on {x} (subspace_topology X TX {x})"
-    proof -
-      have hsub: "{x} \<subseteq> X"
-        by (simp add: hxX)
-      have hfin: "finite {x}"
-        by simp
-      show ?thesis
-        by (rule top1_compact_on_finite_subspace[OF hTopX hsub hfin])
-    qed
-    have hcont: "top1_continuous_map_on {x} (subspace_topology X TX {x}) Y TY f"
-      using hC hcomp by blast
+      by (rule top1_compact_on_finite_subspace[OF hTopX hsub]) simp
+    have "top1_compact_on {x} (subspace_topology X TX {x}) \<and> {x} \<subseteq> X"
+      using hcomp hsub by fast
+    then have hcont: "top1_continuous_map_on {x} (subspace_topology X TX {x}) Y TY f"
+      using hC by meson
     have hMapS: "\<forall>z\<in>{x}. f z \<in> Y"
       using hcont unfolding top1_continuous_map_on_def by (rule conjunct1)
     show "f x \<in> Y"
@@ -11348,7 +11344,7 @@ proof (intro allI impI)
         using hC' by simp
 
       have hcontC: "top1_continuous_map_on C (subspace_topology X TX C) Y TY f"
-        using hC hcompC by blast
+        using hC hcompC hCX by blast
 
       have hpreC: "{x\<in>C. f x \<in> V} \<in> subspace_topology X TX C"
         using hcontC hV unfolding top1_continuous_map_on_def by blast
@@ -11535,14 +11531,9 @@ proof -
     have hgPiE: "g \<in> ?P" using hg_cl
       apply (rule subsetD[OF closure_on_subset_carrier[OF hTcc_top hAsub]])
       done
-    have "\<forall>C. top1_compact_on C (subspace_topology X TX C)
+    have "\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X
       \<longrightarrow> top1_continuous_map_on C (subspace_topology X TX C) Y ?TY g"
-    proof (intro allI impI)
-      fix C assume hC: "top1_compact_on C (subspace_topology X TX C)"
-      have "C \<subseteq> X" sorry
-      show "top1_continuous_map_on C (subspace_topology X TX C) Y ?TY g"
-        by (rule closure_cc_cont_on_compact[OF hTopX hd hgPiE hC \<open>C \<subseteq> X\<close> hg_cl])
-    qed
+      using closure_cc_cont_on_compact[OF hTopX hd hgPiE _ _ hg_cl] by meson
     then have "top1_continuous_map_on X TX Y ?TY g"
       using Lemma_46_4[OF hCG, rule_format] by meson
     then show "g \<in> ?A" using hgPiE unfolding top1_continuous_funcs_on_def by simp
