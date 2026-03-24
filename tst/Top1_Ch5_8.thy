@@ -13137,6 +13137,15 @@ qed
 text \<open>Theorem 46.8: On C(X,Y), the compact-convergence and compact-open topologies coincide.
   Proof splits into two inclusions, each proved as a separate helper.\<close>
 
+lemma co_subbasis_in_cc_subspace:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  assumes hS: "S \<in> top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d)"
+  shows "S \<in> subspace_topology (top1_PiE X (\<lambda>_. Y))
+           (top1_compact_convergence_topology_on X TX Y d)
+           (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
+  sorry
+
 lemma Theorem_46_8_cc_finer_co:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
@@ -13144,7 +13153,44 @@ lemma Theorem_46_8_cc_finer_co:
        \<subseteq> subspace_topology (top1_PiE X (\<lambda>_. Y))
            (top1_compact_convergence_topology_on X TX Y d)
            (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
-  sorry
+proof -
+  let ?C = "top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
+  let ?Tsub = "subspace_topology (top1_PiE X (\<lambda>_. Y))
+    (top1_compact_convergence_topology_on X TX Y d) ?C"
+  have hC_sub: "?C \<subseteq> top1_PiE X (\<lambda>_. Y)" unfolding top1_continuous_funcs_on_def by blast
+  have hTsub_top: "is_topology_on ?C ?Tsub"
+    using subspace_topology_is_topology_on[OF cc_topology_is_topology[OF hTopX hd] hC_sub] by satx
+  have hSub_in: "\<forall>S\<in>top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d). S \<in> ?Tsub"
+    using co_subbasis_in_cc_subspace[OF hTopX hd] by blast
+  have hFI_in: "\<forall>A \<in> finite_intersections (top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d)).
+    A \<in> ?Tsub"
+  proof (intro ballI)
+    fix A assume "A \<in> finite_intersections (top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d))"
+    then obtain F where hF: "finite F"
+      "F \<subseteq> top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d)"
+      "A = \<Inter>F" unfolding finite_intersections_def by blast
+    have hFT: "\<forall>s\<in>F. s \<in> ?Tsub" using hF(2) hSub_in by blast
+    show "A \<in> ?Tsub"
+    proof (cases "F = {}")
+      case True
+      text \<open>F={} gives A = UNIV. This requires UNIV ⊆ C, i.e., C = UNIV.
+        Edge case: assume subbasis covers C.\<close>
+      then show ?thesis using hF(3) hTsub_top sorry
+    next
+      case False
+      have "F \<subseteq> ?Tsub" using hFT by blast
+      then show ?thesis using hF(1) hF(3) False hTsub_top unfolding is_topology_on_def by simp
+    qed
+  qed
+  show ?thesis unfolding top1_compact_open_topology_on_def topology_generated_by_subbasis_def
+  proof (rule subsetI)
+    fix U assume "U \<in> {\<Union>V |V. V \<subseteq> finite_intersections (top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d))}"
+    then obtain V where "U = \<Union>V" "V \<subseteq> finite_intersections (top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d))"
+      by blast
+    have "\<forall>v\<in>V. v \<in> ?Tsub" using hFI_in \<open>V \<subseteq> _\<close> by fast
+    then show "U \<in> ?Tsub" using \<open>U = \<Union>V\<close> hTsub_top unfolding is_topology_on_def by fast
+  qed
+qed
 
 lemma Theorem_46_8_co_finer_cc:
   assumes hTopX: "is_topology_on X TX"
