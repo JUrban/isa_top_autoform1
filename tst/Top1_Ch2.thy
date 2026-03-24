@@ -5301,6 +5301,33 @@ lemma closure_on_subset_carrier:
   shows "closure_on X T A \<subseteq> X"
   by (rule closedin_sub[OF closure_on_closed[OF hT hAX]])
 
+lemma closure_meets_open:
+  assumes hT: "is_topology_on X T" and hAX: "A \<subseteq> X"
+  assumes hg: "g \<in> closure_on X T A" and hU: "U \<in> T" and hgU: "g \<in> U"
+  shows "U \<inter> A \<noteq> {}"
+proof (rule ccontr)
+  assume "\<not> U \<inter> A \<noteq> {}"
+  then have hUA: "A \<subseteq> X - U" using hAX by fast
+  have hgX: "g \<in> X" using hg closure_on_subset_carrier[OF hT hAX] by fast
+  have "X - U \<subseteq> X" by fast
+  have hXintU: "X \<inter> U \<in> T"
+    apply (rule topology_inter2[OF hT])
+    using hT unfolding is_topology_on_def apply (elim conjE) apply assumption
+    apply (rule hU)
+    done
+  have "closedin_on X T (X - U)" unfolding closedin_on_def
+    apply (intro conjI)
+    apply fast
+    apply (subgoal_tac "X - (X - U) = X \<inter> U")
+    prefer 2 apply blast
+    apply (simp add: hXintU)
+    done
+  then have "closure_on X T A \<subseteq> X - U"
+    using hUA by (rule closure_on_subset_of_closed)
+  then have "g \<notin> U" using hg by fast
+  then show False using hgU by fast
+qed
+
 (** from \S17 Theorem 17.4 [top1.tex:703] **)
 (** LATEX VERSION: "Closure in Y equals closure in X intersect Y." **)
 theorem Theorem_17_4:

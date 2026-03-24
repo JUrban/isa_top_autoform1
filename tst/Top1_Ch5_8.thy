@@ -11338,12 +11338,6 @@ proof -
 qed
 
 text \<open>Helper: closure point of C(X,Y) in cc is continuous on each compact C.\<close>
-lemma closure_meets_open:
-  assumes hT: "is_topology_on X T" and hAX: "A \<subseteq> X"
-  assumes hg: "g \<in> closure_on X T A" and hU: "U \<in> T" and hgU: "g \<in> U"
-  shows "U \<inter> A \<noteq> {}"
-  sorry
-
 lemma closure_cc_cont_on_compact:
   assumes hTopX: "is_topology_on X TX" and hd: "top1_metric_on Y d"
   assumes hgPiE: "g \<in> top1_PiE X (\<lambda>_. Y)"
