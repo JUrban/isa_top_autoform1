@@ -13176,9 +13176,15 @@ proof -
   text \<open>Extract representative centers from the finite subcover.\<close>
   obtain c where hc: "\<forall>V\<in>F. c V \<in> K \<and> V = halfcover (c V)" sorry
   define \<epsilon> where "\<epsilon> = Min ((\<lambda>V. rk (c V) / 2) ` F)"
-  have h\<epsilon>: "0 < \<epsilon>" sorry
-  have h\<epsilon>_le: "\<forall>V\<in>F. \<epsilon> \<le> rk (c V) / 2" sorry
-  show ?thesis sorry
+  have hpos: "\<forall>V\<in>F. 0 < rk (c V) / 2" using hrk hc hF(2) by auto
+  have h\<epsilon>_le: "\<forall>V\<in>F. \<epsilon> \<le> rk (c V) / 2" unfolding \<epsilon>_def
+    by (meson Min_le finite_imageI hF(1) image_eqI)
+  have h\<epsilon>: "0 < \<epsilon>"
+  proof -
+    show "0 < \<epsilon>" sorry
+  qed
+  have hbody: "\<forall>y\<in>Y. (\<exists>k\<in>K. d k y < \<epsilon>) \<longrightarrow> y \<in> U" sorry
+  show ?thesis using h\<epsilon> hbody by fast
 qed
 
 lemma co_subbasis_in_cc_subspace:
