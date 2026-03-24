@@ -10798,6 +10798,16 @@ lemma basis_elem_in_generated_topology:
   shows "B \<in> topology_generated_by_basis X Basis"
   unfolding topology_generated_by_basis_def using assms by blast
 
+text \<open>→ direction of Theorem 46.2: cc convergence implies uniform convergence on compacts.
+  Uses apply-style to avoid kernel blowup in function-space context.\<close>
+lemma cc_conv_imp_unif_compact:
+  assumes hTopX: "is_topology_on X TX" and hd: "top1_metric_on Y d"
+  assumes hconv: "seq_converges_to_on fseq f (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d)"
+  assumes hC: "top1_compact_on C (subspace_topology X TX C)" and hCX: "C \<subseteq> X"
+  assumes heps: "(0::real) < \<epsilon>"
+  shows "\<exists>N. \<forall>n\<ge>N. \<forall>x\<in>C. d (fseq n x) (f x) < \<epsilon>"
+  sorry
+
 (** from \S46 Theorem 46.2 [top1.tex:6787] **)
 theorem Theorem_46_2:
   assumes hTopX: "is_topology_on X TX"
@@ -10806,7 +10816,17 @@ theorem Theorem_46_2:
     \<longleftrightarrow>
       (\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X \<longrightarrow>
         (\<forall>\<epsilon>>0. \<exists>N. \<forall>n\<ge>N. \<forall>x\<in>C. d (fseq n x) (f x) < \<epsilon>))"
-  sorry
+proof (intro iffI)
+  assume hcc: "seq_converges_to_on fseq f (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d)"
+  show "\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X \<longrightarrow>
+    (\<forall>\<epsilon>>0. \<exists>N. \<forall>n\<ge>N. \<forall>x\<in>C. d (fseq n x) (f x) < \<epsilon>)"
+    using cc_conv_imp_unif_compact[OF hTopX hd hcc] by meson
+next
+  assume "\<forall>C. top1_compact_on C (subspace_topology X TX C) \<and> C \<subseteq> X \<longrightarrow>
+    (\<forall>\<epsilon>>0. \<exists>N. \<forall>n\<ge>N. \<forall>x\<in>C. d (fseq n x) (f x) < \<epsilon>)"
+  then show "seq_converges_to_on fseq f (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d)"
+    sorry
+qed
 
 (** from \S46 Lemma 46.3 [top1.tex:6793] **)
 lemma Lemma_46_3:
