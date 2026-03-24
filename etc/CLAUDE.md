@@ -1,6 +1,23 @@
 # Rules for Working on the Isabelle/HOL Formalization (Top1) - autoformalization of general tpology in top1.tex
 
-These rules describe how to work in **this Isabelle project**, whose main theory is:
+## ABSOLUTE RULE: New proof code workflow
+
+When writing ANY new proof code (skeleton, step, or edit):
+1. The ONLY tactic allowed in new code is `sorry`
+2. NO EXCEPTIONS — not `by fast`, not `by linarith`, not `by simp`,
+   not `by (rule ...)`, not even `done`
+3. After writing sorry-only code: compile, verify timing unchanged
+4. Then replace sorry's via sledgehammer in batches of 3-5. If sledgehammer fails, you can very cautiosly experiment (e.g. by trying a subproof or the restricted apply (rule ...), apply (erule ...), apply (drule ...) ).
+5. If you catch yourself typing anything other than `sorry`
+     for a new step — STOP and replace with sorry
+
+Note: The apply (rule ...), apply (erule ...), apply (drule ...) style
+  restricts the search to specific rules, avoiding the exponential
+  blowup that blast/auto cause in large contexts. Use this approach
+  instead of by blast on complex goals -- use explicit apply chains.
+
+
+## These rules describe how to work in **this Isabelle project**, whose main theory is:
 
 - **Theory:** `Top1`
 - **Imports:** `Complex_Main` (full import; do **not** add a separate “background” section inside `Top1.thy`)
@@ -35,6 +52,7 @@ in sections 18-50.
 Backups (bckXXXX) accompanied by descriptions of changes (CHNGESXXXX) must be done frequently (they are like commits).
 
 Proofs have to be as structured as possible, introduce as many smaller helper lemmas as possible. Avoid complex long proofs as much as possible.
+
 
 ---
 
