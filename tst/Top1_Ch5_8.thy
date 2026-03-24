@@ -10793,6 +10793,31 @@ definition top1_compact_open_topology_on ::
   "top1_compact_open_topology_on X TX Y TY =
      topology_generated_by_subbasis (top1_continuous_funcs_on X TX Y TY) (top1_compact_open_subbasis_on X TX Y TY)"
 
+lemma cc_basis_self_member:
+  assumes hd: "top1_metric_on Y d" and hfPiE: "f \<in> top1_PiE X (\<lambda>_. Y)"
+  assumes hCX: "C \<subseteq> X" and h\<delta>pos: "(0::real) < \<delta>"
+  shows "f \<in> {g \<in> top1_PiE X (\<lambda>_. Y).
+    (if C = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C)) < \<delta>}"
+  apply (rule CollectI)
+  apply (intro conjI assms(2))
+  apply (cases "C = {}")
+  apply (simp add: h\<delta>pos)
+  apply (subgoal_tac "\<forall>x\<in>C. d (f x) (f x) = 0")
+  apply (subgoal_tac "\<forall>x\<in>C. top1_bounded_metric d (f x) (f x) = 0")
+  apply (subgoal_tac "Sup ((\<lambda>x. top1_bounded_metric d (f x) (f x)) ` C) \<le> 0")
+  apply (simp add: h\<delta>pos)
+  apply (rule cSup_least, simp, simp)
+  (* goal 1: x in image of const 0 ⟹ x ≤ 0 *)
+  apply fastforce
+  (* goal 2: bounded_metric = 0 from d = 0 *)
+  apply (simp add: top1_bounded_metric_def)
+  (* goal 3: d(f x, f x) = 0 from metric *)
+  apply (intro ballI)
+  apply (insert hd hCX hfPiE)
+  apply (simp add: top1_metric_on_def top1_PiE_iff)
+  apply (metis subsetD)
+  done
+
 lemma basis_elem_in_generated_topology:
   assumes "B \<in> Basis" "B \<subseteq> X"
   shows "B \<in> topology_generated_by_basis X Basis"
@@ -10826,7 +10851,8 @@ proof -
   have hB_open: "B \<in> top1_compact_convergence_topology_on X TX Y d"
     unfolding top1_compact_convergence_topology_on_def
     apply (rule basis_elem_in_generated_topology[OF hB_basis hB_sub]) done
-  have hfB: "f \<in> B" sorry
+  have hfB: "f \<in> B" unfolding B_def
+    apply (rule cc_basis_self_member[OF hd hfPiE hCX h\<delta>pos]) done
   have hBnbhd: "neighborhood_of f (top1_PiE X (\<lambda>_. Y)) (top1_compact_convergence_topology_on X TX Y d) B"
     unfolding neighborhood_of_def
     apply (intro conjI hB_open hfB) done
