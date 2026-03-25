@@ -13251,8 +13251,17 @@ proof -
     show "f \<in> V \<inter> ?C"
     proof (cases "C0 = {}")
       case True
-      text \<open>C0 = {}: B({}, f, 1) covers everything in cc-basis, and B ∩ C = C = S.\<close>
-      then show ?thesis sorry
+      text \<open>C0 = {}: S = C. Use B({}, f, 1) = PiE as cc-basis element.\<close>
+      have hS_eq_C: "S = ?C" unfolding hCU(1) using True by blast
+      define B0 where "B0 = {g \<in> ?P. (if ({} :: 'a set) = {} then (0::real) else 0) < 1}"
+      have hB0_basis: "B0 \<in> top1_compact_convergence_basis_on X TX Y d"
+        unfolding B0_def top1_compact_convergence_basis_on_def using hfPiE hCU(2) True sorry
+      have hB0_eq_P: "B0 = ?P" unfolding B0_def by simp
+      have hB0C: "B0 \<inter> ?C \<subseteq> S" using hB0_eq_P hS_eq_C by blast
+      have "B0 \<in> {Bx \<in> top1_compact_convergence_basis_on X TX Y d. \<exists>fx\<in>S. fx \<in> Bx \<and> Bx \<inter> ?C \<subseteq> S}"
+        using hB0_basis hf hfPiE hB0_eq_P hB0C by blast
+      then have "f \<in> V" unfolding V_def using hfPiE hB0_eq_P by blast
+      then show ?thesis using hfC by blast
     next
       case False
       have hfC0ne: "f ` C0 \<noteq> {}" using False by blast
