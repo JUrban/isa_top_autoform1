@@ -13408,6 +13408,15 @@ text \<open>Direction 2: compact-open is finer than compact-convergence on C(X,Y
   Proof: for each f and cc-basis B_C(f,\<epsilon>), find co-open set containing f inside B_C(f,\<epsilon>).
   Use continuity of f to cover C by neighborhoods with small diameter images,
   take finite subcover, intersect compact-open subbasis elements.\<close>
+text \<open>When every element of T is \<subseteq> X, subspace_topology X T X = T.\<close>
+lemma subspace_topology_self_carrier:
+  assumes hsub: "\<forall>U \<in> T. U \<subseteq> X"
+  shows "subspace_topology X T X = T"
+proof -
+  have hint: "\<forall>U\<in>T. X \<inter> U = U" using hsub by blast
+  show ?thesis unfolding subspace_topology_def using hint by fastforce
+qed
+
 lemma Theorem_46_8_co_finer_cc:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
