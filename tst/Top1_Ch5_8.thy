@@ -17950,8 +17950,13 @@ proof -
         then have hxlt: "x < 1" using hx by simp
         have hkdef: "k = nat \<lfloor>real M * x\<rfloor>" unfolding k_def using False by presburger
         have h_fl: "\<lfloor>real M * x\<rfloor> \<le> real M * x" "real M * x < \<lfloor>real M * x\<rfloor> + 1" by auto
-        show ?thesis unfolding II_def hkdef using h_fl hMpos hx(1)
-          sorry
+        have hfl_nn: "0 \<le> \<lfloor>real M * x\<rfloor>" using hx(1) hMpos by auto
+        have hlb: "real (nat \<lfloor>real M * x\<rfloor>) / real M \<le> x" using h_fl(1) hMpos hfl_nn
+          by (simp add: field_simps of_nat_nat)
+        have hub: "x \<le> real (Suc (nat \<lfloor>real M * x\<rfloor>)) / real M" using h_fl(2) hMpos hfl_nn
+          by (simp add: field_simps of_nat_nat)
+        show ?thesis unfolding II_def hkdef using hlb hub
+          by simp
       qed
       ultimately show "x \<in> (\<Union>k \<in> {0..<M}. II k)" by auto
     qed
