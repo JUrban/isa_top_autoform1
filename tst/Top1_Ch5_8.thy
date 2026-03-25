@@ -17965,10 +17965,24 @@ proof -
   proof (intro ballI)
     fix k assume hk: "k \<in> {0..<M}"
     text \<open>On [k/M, (k+1)/M], Mx \<in> [k, k+1), so frac(Mx) = Mx - k.\<close>
-    have hfrac_eq: "\<forall>x \<in> II k. frac (real M * x) = real M * x - real k"
-      sorry
     have htri_eq: "\<forall>x \<in> II k. tri (real M * x) = 1 - 2 * \<bar>real M * x - real k - 1/2\<bar>"
-      by (metis hfrac_eq tri_def)
+    proof (intro ballI)
+      fix x assume hxk: "x \<in> II k"
+      then have hMx_lb: "real k \<le> real M * x" unfolding II_def using hMpos
+        by (simp add: mult.commute pos_divide_le_eq)
+      have hMx_ub: "real M * x \<le> real (Suc k)" using hxk unfolding II_def using hMpos
+        by (simp add: mult.commute pos_le_divide_eq)
+      show "tri (real M * x) = 1 - 2 * \<bar>real M * x - real k - 1/2\<bar>"
+      proof (cases "real M * x = real (Suc k)")
+        case True then show ?thesis unfolding tri_def frac_def by auto
+      next
+        case False
+        then have "real M * x < real (Suc k)" using hMx_ub by simp
+        then have "\<lfloor>real M * x\<rfloor> = int k" using hMx_lb by linarith
+        then have "frac (real M * x) = real M * x - real k" unfolding frac_def by simp
+        then show ?thesis unfolding tri_def by simp
+      qed
+    qed
     have "continuous_on (II k) (\<lambda>x. 1 - 2 * \<bar>real M * x - real k - 1/2\<bar>)"
       by (intro continuous_intros)
     then show "continuous_on (II k) (\<lambda>x. tri (real M * x))" using htri_eq by simp
