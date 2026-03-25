@@ -13486,7 +13486,19 @@ proof -
       text \<open>K nonempty: Munkres covering argument. For g ∈ C ∩ B, sup_K bm(f0,g) < ε.
         Use continuity of g, compactness of K, to construct finite intersection of S(Ki,Ui).\<close>
       show ?thesis
-        sorry
+      proof (intro ballI)
+        fix g assume hg: "g \<in> ?C \<inter> B"
+        then have hgC: "g \<in> ?C" and hgB: "g \<in> B" by auto
+        have hgPiE: "g \<in> top1_PiE X (\<lambda>_. Y)" using hgC hC_sub by blast
+        have hgB_val: "Sup ((\<lambda>x. top1_bounded_metric d (f0 x) (g x)) ` K) < \<epsilon>"
+          using hgB hBdef False hgPiE by simp
+        define \<delta> where "\<delta> = \<epsilon> - Sup ((\<lambda>x. top1_bounded_metric d (f0 x) (g x)) ` K)"
+        have h\<delta>: "0 < \<delta>" using hgB_val heps unfolding \<delta>_def by linarith
+        text \<open>Core: find co-open V containing g inside B.\<close>
+        obtain V where "V \<in> ?Tco" "g \<in> V" "\<forall>h \<in> ?C \<inter> V. h \<in> B"
+          sorry
+        then show "\<exists>V \<in> ?Tco. g \<in> V \<and> (\<forall>h \<in> ?C \<inter> V. h \<in> B)" by metis
+      qed
     qed
     text \<open>Union of co-open V_g's gives C \<inter> B.\<close>
     have "?C \<inter> B \<in> ?sub_co"
