@@ -119,7 +119,6 @@ Specify the logic session with `-l` and the directory with `-d .` to leverage th
 
 *   **process_theories**: `/project/bin/isabelle process_theories -d . -l Top1 -o quick_and_dirty -f Top1_Ch5_8.thy`
 *   **eval_at**: `/project/bin/isabelle eval_at -d . -l Top1 Top1_Ch5_8.thy 100 'thm conjI'`
-*   **desorry**: `/project/bin/isabelle desorry -d . -l Top1 Top1_Ch5_8.thy`
 
 ---
 
