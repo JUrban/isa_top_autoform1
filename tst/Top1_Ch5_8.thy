@@ -13283,15 +13283,19 @@ proof -
     next
       case False
       have hfC0ne: "f ` C0 \<noteq> {}" using False by blast
-      obtain \<epsilon> where h\<epsilon>: "\<epsilon> > 0" and heps_nbhd: "\<forall>y\<in>Y. (\<exists>k\<in>f`C0. d k y < \<epsilon>) \<longrightarrow> y \<in> U0"
+      obtain \<epsilon>0 where h\<epsilon>0: "\<epsilon>0 > 0" and heps_nbhd: "\<forall>y\<in>Y. (\<exists>k\<in>f`C0. d k y < \<epsilon>0) \<longrightarrow> y \<in> U0"
         using compact_in_open_eps_gap[OF hd hfC0_compact hCU(4) hfC0U0 hfC0ne] by blast
-      text \<open>B_{C0}(f, ε) is a cc-basis element.\<close>
+      define \<epsilon> where "\<epsilon> = min \<epsilon>0 1"
+      have h\<epsilon>: "\<epsilon> > 0" unfolding \<epsilon>_def using h\<epsilon>0 by linarith
+      have h\<epsilon>1: "\<epsilon> \<le> 1" unfolding \<epsilon>_def by simp
+      have heps_nbhd': "\<forall>y\<in>Y. (\<exists>k\<in>f`C0. d k y < \<epsilon>) \<longrightarrow> y \<in> U0"
+        using heps_nbhd \<epsilon>_def by auto
       define B where "B = {g \<in> ?P. (if C0 = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C0)) < \<epsilon>}"
       have hB_basis: "B \<in> top1_compact_convergence_basis_on X TX Y d"
         unfolding B_def top1_compact_convergence_basis_on_def
         using hfPiE hCU(2) hCU(3) h\<epsilon> by blast
       have hfB: "f \<in> B"
-        unfolding B_def using cc_basis_self_member[OF hd hfPiE hCU(3) h\<epsilon>] by argo
+        unfolding B_def using cc_basis_self_member[OF hd hfPiE hCU(3) h\<epsilon>] by presburger
       have hB_in_S: "B \<inter> ?C \<subseteq> S"
       proof (rule subsetI)
         fix g assume hg: "g \<in> B \<inter> ?C"
@@ -13306,8 +13310,19 @@ proof -
           then obtain c where hc: "c \<in> C0" "y = g c" by blast
           have "f c \<in> f ` C0" using hc(1) by blast
           have hgcY: "g c \<in> Y" using hgPiE hc(1) hCU(3) unfolding top1_PiE_iff by blast
-          have "d (f c) (g c) < \<epsilon>" sorry
-          then show "y \<in> U0" using heps_nbhd \<open>f c \<in> f ` C0\<close> hc(2) hgcY by force
+          have hbm_img: "top1_bounded_metric d (f c) (g c) \<in> (\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C0"
+            using hc(1) by blast
+          have hbm_bdd: "bdd_above ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C0)"
+            apply (intro bdd_aboveI[where M=1])
+            apply (clarsimp simp: top1_bounded_metric_def)
+            done
+          have hle: "top1_bounded_metric d (f c) (g c) \<le> Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C0)"
+            using cSup_upper[OF hbm_img hbm_bdd] by argo
+          have hbm: "top1_bounded_metric d (f c) (g c) < \<epsilon>"
+            using hle hg_close False by auto
+          have "d (f c) (g c) < \<epsilon>" using hbm h\<epsilon>1 unfolding top1_bounded_metric_def
+            by linarith
+          then show "y \<in> U0" using heps_nbhd' \<open>f c \<in> f ` C0\<close> hc(2) hgcY by blast
         qed
         then show "g \<in> S" unfolding hCU(1) using hgC by force
       qed
