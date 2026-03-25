@@ -13441,6 +13441,14 @@ proof -
   text \<open>Key: every cc-basis element intersected with C is in the co subspace topology.\<close>
   have hbasis_step: "\<forall>B \<in> ?Bcc. ?C \<inter> B \<in> ?sub_co"
     sorry
+    text \<open>TODO: Core Munkres covering argument. For each B \<in> Bcc (parameterized by f0, K, \<epsilon>):
+      For each g \<in> C \<inter> B, g is continuous and sup_K bm(f0,g) < \<epsilon>.
+      Let \<delta> = \<epsilon> - sup_K bm(f0,g) > 0.
+      For each x \<in> K, by continuity of g, find open V_x with g(V_x) \<subseteq> B_d(g(x), \<delta>/3).
+      Cover K by finitely many V_{x1},...,V_{xn}.
+      Let K_i = cl(V_{xi}) \<inter> K (compact), U_i = B_d(g(x_i), \<delta>/3) (open).
+      Then \<Inter>{S(K_i, U_i)} is co-open, contains g, and C \<inter> \<Inter>{S(K_i, U_i)} \<subseteq> C \<inter> B.
+      Union over all g gives C \<inter> B = C \<inter> V for some co-open V.\<close>
   text \<open>sub_co is a topology on C.\<close>
   have hTco_top: "is_topology_on ?C ?Tco"
     unfolding top1_compact_open_topology_on_def
