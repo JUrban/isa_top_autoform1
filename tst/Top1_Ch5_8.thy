@@ -18029,8 +18029,45 @@ proof -
   have hM_ge_nn: "real M \<ge> real (Suc (Suc n))" unfolding M_def by simp
   have hh49_le: "h49 \<le> 1 / real (Suc (Suc n))" unfolding h49_def using hM_ge_nn hMpos
     by (simp add: field_simps)
+  have hh49_half: "h49 \<le> 1/2" using h49_def hM by force
   have hDelta_pw: "\<forall>x\<in>top1_I01. top1_Delta49 g x h49 \<ge> \<epsilon> * real M / 2"
-    sorry
+  proof (intro ballI)
+    fix x assume hx: "x \<in> top1_I01"
+    then have hx01: "0 \<le> x" "x \<le> 1" unfolding top1_I01_eq_Icc by auto
+    have havail: "x + h49 \<in> top1_I01 \<or> x - h49 \<in> top1_I01"
+      using hh49_half hh49_pos hx01 top1_closed_interval_def by force
+    have hf_osc: "\<forall>y\<in>top1_I01. dist y x < \<delta> \<longrightarrow> \<bar>f y - f x\<bar> < A"
+      by (metis dist_real_def h\<delta>_osc hx)
+    have htri_quot: "\<exists>s \<in> {h49, -h49}. x + s \<in> top1_I01 \<and> \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2"
+      sorry
+    then obtain s where hs_set: "s \<in> {h49, -h49}" and hs_in: "x + s \<in> top1_I01"
+      and hs_tri: "\<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2" by meson
+    have habs_s: "\<bar>s\<bar> = h49" using hs_set hh49_pos by auto
+    have hdist_xs: "dist (x + s) x < \<delta>" using habs_s hM_small unfolding h49_def dist_real_def
+      by simp
+    have hf_xs: "\<bar>f (x + s) - f x\<bar> < A" using hf_osc hs_in hdist_xs by blast
+    have hg_on: "g x = f x + (\<epsilon>/2) * tri (real M * x)" using hx unfolding g_def by presburger
+    have hg_on_s: "g (x + s) = f (x + s) + (\<epsilon>/2) * tri (real M * (x + s))" using hs_in unfolding g_def
+      by presburger
+    have hg_diff: "g (x + s) - g x = (f (x + s) - f x) + (\<epsilon>/2) * (tri (real M * (x + s)) - tri (real M * x))"
+      using hg_on hg_on_s by argo
+    have htri_abs: "(\<epsilon>/2) * \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = \<epsilon>/4"
+      using hs_tri heps by algebra
+    have "\<bar>g (x + s) - g x\<bar> \<ge> (\<epsilon>/2) * \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> - \<bar>f (x + s) - f x\<bar>"
+      using hg_diff by linarith
+    then have "\<bar>g (x + s) - g x\<bar> \<ge> \<epsilon>/4 - A" using htri_abs hf_xs by argo
+    then have hge: "\<bar>g (x + s) - g x\<bar> \<ge> \<epsilon>/8" unfolding A_def by simp
+    have hge_div: "\<bar>g (x + s) - g x\<bar> / h49 \<ge> (\<epsilon>/8) / h49"
+      apply (rule divide_right_mono)
+      apply (rule hge)
+      using hh49_pos apply simp
+      done
+    have "(\<epsilon>/8) / h49 = \<epsilon> * real M / 2" unfolding h49_def using hMpos by (simp add: field_simps)
+    then have hg_quot2: "\<bar>g (x + s) - g x\<bar> / h49 \<ge> \<epsilon> * real M / 2" using hge_div by argo
+    show "top1_Delta49 g x h49 \<ge> \<epsilon> * real M / 2" unfolding top1_Delta49_def
+      using hg_quot2 hs_set hs_in habs_s hh49_pos hh49_half
+      sorry
+  qed
   have hMslope2: "\<epsilon> * real M / 2 > real (Suc (Suc n))" using hM_slope unfolding A_def
     by (simp add: field_simps)
   have hDelta_large: "top1_Delta_h49 g h49 > real (Suc (Suc n))"
