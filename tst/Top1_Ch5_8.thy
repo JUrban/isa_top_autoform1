@@ -13476,7 +13476,18 @@ proof -
       unfolding top1_compact_convergence_basis_on_def by blast
     text \<open>For each g \<in> C \<inter> B, find co-open V_g with g \<in> V_g and C \<inter> V_g \<subseteq> C \<inter> B.\<close>
     have hlocal: "\<forall>g \<in> ?C \<inter> B. \<exists>V \<in> ?Tco. g \<in> V \<and> (\<forall>h \<in> ?C \<inter> V. h \<in> B)"
-      sorry
+    proof (cases "K = {}")
+      case True
+      text \<open>K empty: B = PiE (condition is 0 < ε), so C ∩ B = C. Take V = UNIV.\<close>
+      show ?thesis using True hBdef heps hC_sub
+        using Collect_mono_iff hTco_top is_topology_on_def by fastforce
+    next
+      case False
+      text \<open>K nonempty: Munkres covering argument. For g ∈ C ∩ B, sup_K bm(f0,g) < ε.
+        Use continuity of g, compactness of K, to construct finite intersection of S(Ki,Ui).\<close>
+      show ?thesis
+        sorry
+    qed
     text \<open>Union of co-open V_g's gives C \<inter> B.\<close>
     have "?C \<inter> B \<in> ?sub_co"
     proof -
