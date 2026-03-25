@@ -17907,13 +17907,27 @@ proof -
     using top1_Inter_U49_dense[OF hBaire] by argo
   text \<open>Extend h to 0 outside [0,1] to get h' ∈ C01.\<close>
   define h' where "h' x = (if x \<in> top1_I01 then h x else 0)" for x
-  have hh'C: "h' \<in> top1_C01" sorry
+  have hh'_cont: "continuous_on top1_I01 h'" unfolding h'_def using hcont by simp
+  have hh'_ext: "\<forall>x. x \<notin> top1_I01 \<longrightarrow> h' x = 0" unfolding h'_def by auto
+  have hh'C: "h' \<in> top1_C01" unfolding top1_C01_def using hh'_cont hh'_ext by blast
   text \<open>⋂U_n is dense and B(h', ε) is open → their intersection is nonempty.\<close>
-  have "\<exists>g\<in>(\<Inter>n. top1_U49 n). top1_rho49 h' g < \<epsilon>" sorry
+  have "\<exists>g\<in>(\<Inter>n. top1_U49 n). top1_rho49 h' g < \<epsilon>"
+    using hDense hh'C heps top1_rho49_is_metric sorry
   then obtain g where hgU: "g \<in> (\<Inter>n. top1_U49 n)" and hgclose: "top1_rho49 h' g < \<epsilon>" by blast
   have hgC: "g \<in> top1_C01" using hgU top1_Inter_U49_subset_C01 by blast
   have hg_cont: "continuous_on top1_I01 g" using hgC unfolding top1_C01_def by blast
-  have hg_pw: "\<forall>x\<in>top1_I01. \<bar>h x - g x\<bar> < \<epsilon>" sorry
+  have hg_pw: "\<forall>x\<in>top1_I01. \<bar>h x - g x\<bar> < \<epsilon>"
+  proof (intro ballI)
+    fix x assume "x \<in> top1_I01"
+    have hh'eq: "h' x = h x" unfolding h'_def using \<open>x \<in> top1_I01\<close> by presburger
+    have himg: "\<bar>h' x - g x\<bar> \<in> (\<lambda>x. \<bar>h' x - g x\<bar>) ` top1_I01" using \<open>x \<in> top1_I01\<close> by blast
+    have hbdd: "bdd_above ((\<lambda>x. \<bar>h' x - g x\<bar>) ` top1_I01)"
+      using top1_rho49_bdd_above[OF hh'C hgC] by argo
+    have "\<bar>h' x - g x\<bar> \<le> top1_rho49 h' g" unfolding top1_rho49_def
+      using cSup_upper[OF himg hbdd] by presburger
+    then have "\<bar>h' x - g x\<bar> < \<epsilon>" using hgclose by argo
+    then show "\<bar>h x - g x\<bar> < \<epsilon>" using hh'eq by argo
+  qed
   have hg_ndiff: "\<forall>x\<in>{0<..<1}. \<not> (g differentiable (at x))"
     using top1_Inter_U49_nowhere_differentiable[OF hgU] by presburger
   show ?thesis using hg_cont hg_pw hg_ndiff by fast
