@@ -17859,7 +17859,7 @@ proof -
     using hf unfolding top1_C01_def by simp
   have hf_ucont: "uniformly_continuous_on top1_I01 f"
     using top1_compact_uniformly_continuous[OF top1_I01_compact hf_cont] by argo
-  define A where "A = \<epsilon> / 4"
+  define A where "A = \<epsilon> / 8"
   have hA: "0 < A" using heps unfolding A_def by simp
   text \<open>Uniform continuity: |f(x)-f(y)| < A when |x-y| < \<delta>.\<close>
   have huc_A: "\<exists>d>0. \<forall>x\<in>top1_I01. \<forall>y\<in>top1_I01. dist y x < d \<longrightarrow> dist (f y) (f x) < A"
@@ -17872,7 +17872,7 @@ proof -
     using reals_Archimedean2 by meson
   obtain M1 :: nat where hM1: "1 / (4 * \<delta>) < real M1"
     using reals_Archimedean2 by meson
-  define M where "M = max (max (Suc M0) (Suc M1)) 1"
+  define M where "M = max (max (max (Suc M0) (Suc M1)) (Suc (Suc n))) 1"
   have hM: "0 < M" unfolding M_def by simp
   have hM0_le: "real M0 < real M" unfolding M_def by auto
   have hM1_le: "real M1 < real M" unfolding M_def by simp
@@ -17960,8 +17960,9 @@ proof -
     (bounded by A*4M = \<epsilon>M by uniform continuity), giving net \<ge> \<epsilon>M/2 > n+2.\<close>
   define h49 where "h49 = 1 / (4 * real M)"
   have hh49_pos: "0 < h49" unfolding h49_def using hM by simp
-  have hh49_le: "h49 \<le> 1 / real (Suc (Suc n))" unfolding h49_def using hM_slope hA hM
-    sorry
+  have hM_ge_nn: "real M \<ge> real (Suc (Suc n))" unfolding M_def by simp
+  have hh49_le: "h49 \<le> 1 / real (Suc (Suc n))" unfolding h49_def using hM_ge_nn hMpos
+    by (simp add: field_simps)
   have hDelta_large: "top1_Delta_h49 g h49 > real (Suc (Suc n))"
     sorry
   have hgUn: "g \<in> top1_U49 n"
