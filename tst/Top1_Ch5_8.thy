@@ -17665,7 +17665,14 @@ proof -
         have "\<forall>x\<in>top1_I01. top1_Delta49 g x h0 \<ge> c"
         proof (intro ballI)
           fix x assume "x \<in> top1_I01"
-          have hbdd_f: "bdd_below ((\<lambda>x. top1_Delta49 f x h0) ` top1_I01)" sorry
+          have hDelta_nonneg: "\<forall>y \<in> (\<lambda>x. top1_Delta49 f x h0) ` top1_I01. y \<ge> 0"
+          proof (intro ballI)
+            fix y assume "y \<in> (\<lambda>x. top1_Delta49 f x h0) ` top1_I01"
+            then obtain x where "x \<in> top1_I01" "y = top1_Delta49 f x h0" by blast
+            then show "y \<ge> 0" unfolding top1_Delta49_def by argo
+          qed
+          have hbdd_f: "bdd_below ((\<lambda>x. top1_Delta49 f x h0) ` top1_I01)"
+            using hDelta_nonneg by fast
           have himg_f: "top1_Delta49 f x h0 \<in> (\<lambda>x. top1_Delta49 f x h0) ` top1_I01"
             using \<open>x \<in> top1_I01\<close> by blast
           have "top1_Delta49 f x h0 \<ge> Inf ((\<lambda>x. top1_Delta49 f x h0) ` top1_I01)"
