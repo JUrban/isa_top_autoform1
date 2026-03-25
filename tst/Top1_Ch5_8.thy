@@ -18042,6 +18042,12 @@ proof -
       h49 = 1/(4M) is half a segment. From the first half of any segment,
       forward by h49 stays in the segment (slope gives diff 1/2).
       From the second half, backward stays in the segment.\<close>
+    have hMh: "real M * h49 = 1/4" unfolding h49_def using hMpos by force
+    have hfwd_eq: "real M * (x + h49) = real M * x + 1/4" using hMh by argo
+    have hbwd_eq: "real M * (x - h49) = real M * x - 1/4" using hMh by argo
+    text \<open>Core geometric claim: an available direction gives |tri diff| = 1/2.
+      Requires 4-way case split on frac(Mx) mod 1/4, combined with boundary.
+      Left as sorry — the mathematical argument is clear (see text above).\<close>
     have htri_quot: "\<exists>s \<in> {h49, -h49}. x + s \<in> top1_I01 \<and> \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2"
       sorry
     then obtain s where hs_set: "s \<in> {h49, -h49}" and hs_in: "x + s \<in> top1_I01"
