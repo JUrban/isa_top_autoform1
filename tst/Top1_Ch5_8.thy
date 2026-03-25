@@ -17696,9 +17696,15 @@ proof -
         qed
         show "top1_Delta49 g x h0 \<ge> top1_Delta49 f x h0 - 2 * \<epsilon> / h0"
         proof -
-          have hh0_half: "h0 \<le> 1/2" using hh0(2) sorry
+          have "real (Suc (Suc n)) \<ge> 2" by simp
+          have "1 / real (Suc (Suc n)) \<le> 1/2" using \<open>real (Suc (Suc n)) \<ge> 2\<close> by simp
+          have hh0_half: "h0 \<le> 1/2" using hh0(2) \<open>1 / real (Suc (Suc n)) \<le> 1/2\<close> by linarith
           have hcond: "0 < h0 \<and> h0 \<le> 1/2" using hh0(1) hh0_half by presburger
-          show ?thesis unfolding top1_Delta49_def using hcond hfwd_close hbwd_close sorry
+          text \<open>max(a,b) ≥ max(c,d) - e when a ≥ c - e and b ≥ d - e.\<close>
+          have hmax_mono: "\<And>a b c d e::real. a \<ge> c - e \<Longrightarrow> b \<ge> d - e \<Longrightarrow> max a b \<ge> max c d - e"
+            by linarith
+          show ?thesis unfolding top1_Delta49_def using hcond hfwd_close hbwd_close hmax_mono
+            using h\<epsilon> by force
         qed
       qed
       text \<open>Step 3: Inf bound: Δ_h(g) ≥ Δ_h(f) - 2ε/h0.\<close>
