@@ -17915,9 +17915,29 @@ proof -
   have hunion: "top1_I01 = (\<Union>k \<in> {0..<M}. II k)"
   proof (rule antisym)
     show "(\<Union>k \<in> {0..<M}. II k) \<subseteq> top1_I01"
-      sorry
+    proof
+      fix x assume "x \<in> (\<Union>k \<in> {0..<M}. II k)"
+      then obtain k where hk: "k < M" "x \<in> II k" by fastforce
+      then have hxbd: "real k / real M \<le> x" "x \<le> real (Suc k) / real M" unfolding II_def by auto
+      have "0 \<le> real k / real M" using hMpos by simp
+      then have "0 \<le> x" using hxbd(1) by linarith
+      have hSkM: "real (Suc k) \<le> real M" using hk(1) by simp
+      have "real (Suc k) / real M \<le> 1" using hSkM hMpos
+        by (simp add: frac_le)
+      then have "x \<le> 1" using hxbd(2) by linarith
+      show "x \<in> top1_I01" unfolding top1_I01_eq_Icc using \<open>0 \<le> x\<close> \<open>x \<le> 1\<close> by simp
+    qed
     show "top1_I01 \<subseteq> (\<Union>k \<in> {0..<M}. II k)"
-      sorry
+    proof
+      fix x assume "x \<in> top1_I01"
+      then have hx: "0 \<le> x" "x \<le> 1" unfolding top1_I01_eq_Icc by auto
+      define k where "k = (if x = 1 then M - 1 else nat \<lfloor>real M * x\<rfloor>)"
+      have "k < M" using hx hM unfolding k_def
+        sorry
+      moreover have "x \<in> II k" unfolding II_def k_def using hx hM hMpos
+        sorry
+      ultimately show "x \<in> (\<Union>k \<in> {0..<M}. II k)" by auto
+    qed
   qed
   have hcont_each: "\<forall>k \<in> {0..<M}. continuous_on (II k) (\<lambda>x. tri (real M * x))"
     sorry
