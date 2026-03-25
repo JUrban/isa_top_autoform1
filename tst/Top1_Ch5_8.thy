@@ -17932,10 +17932,27 @@ proof -
       fix x assume "x \<in> top1_I01"
       then have hx: "0 \<le> x" "x \<le> 1" unfolding top1_I01_eq_Icc by auto
       define k where "k = (if x = 1 then M - 1 else nat \<lfloor>real M * x\<rfloor>)"
-      have "k < M" using hx hM unfolding k_def
-        sorry
-      moreover have "x \<in> II k" unfolding II_def k_def using hx hM hMpos
-        sorry
+      have "k < M"
+      proof (cases "x = 1")
+        case True then show ?thesis unfolding k_def using hM by simp
+      next
+        case False
+        then have "x < 1" using hx by simp
+        then have "real M * x < real M" using hMpos by simp
+        then have "\<lfloor>real M * x\<rfloor> < int M" by linarith
+        then show ?thesis unfolding k_def using False hx(1) by (simp add: nat_less_iff)
+      qed
+      moreover have "x \<in> II k"
+      proof (cases "x = 1")
+        case True then show ?thesis unfolding II_def k_def using hM hMpos by auto
+      next
+        case False
+        then have hxlt: "x < 1" using hx by simp
+        have hkdef: "k = nat \<lfloor>real M * x\<rfloor>" unfolding k_def using False by presburger
+        have h_fl: "\<lfloor>real M * x\<rfloor> \<le> real M * x" "real M * x < \<lfloor>real M * x\<rfloor> + 1" by auto
+        show ?thesis unfolding II_def hkdef using h_fl hMpos hx(1)
+          sorry
+      qed
       ultimately show "x \<in> (\<Union>k \<in> {0..<M}. II k)" by auto
     qed
   qed
