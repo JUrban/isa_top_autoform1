@@ -17955,8 +17955,22 @@ proof -
     qed
     then show ?thesis using heps by simp
   qed
-  have hgUn: "g \<in> top1_U49 n"
+  text \<open>g \<in> U_n: use h = 1/(4M). On each linear segment of tri, the tri contribution
+    to the difference quotient is \<plusminus>2M \<cdot> (\<epsilon>/2) = \<epsilon>M, which dominates the f contribution
+    (bounded by A*4M = \<epsilon>M by uniform continuity), giving net \<ge> \<epsilon>M/2 > n+2.\<close>
+  define h49 where "h49 = 1 / (4 * real M)"
+  have hh49_pos: "0 < h49" unfolding h49_def using hM by simp
+  have hh49_le: "h49 \<le> 1 / real (Suc (Suc n))" unfolding h49_def using hM_slope hA hM
     sorry
+  have hDelta_large: "top1_Delta_h49 g h49 > real (Suc (Suc n))"
+    sorry
+  have hgUn: "g \<in> top1_U49 n"
+  proof -
+    have "g \<in> top1_C01" by (rule hgC)
+    moreover have "0 < h49 \<and> h49 \<le> 1 / real (Suc (Suc n)) \<and> top1_Delta_h49 g h49 > real (Suc (Suc n))"
+      using hh49_pos hh49_le hDelta_large by presburger
+    ultimately show ?thesis unfolding top1_U49_def by fast
+  qed
   show ?thesis using hgC hg_close hgUn by meson
 qed
 
