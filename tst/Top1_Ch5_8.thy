@@ -17854,7 +17854,65 @@ text \<open>Key helper for U_n density: given f \<in> C01, \<epsilon> > 0, and n
 lemma top1_U49_dense_approx:
   assumes hf: "f \<in> top1_C01" and heps: "0 < \<epsilon>"
   shows "\<exists>g. g \<in> top1_C01 \<and> top1_rho49 f g < \<epsilon> \<and> g \<in> top1_U49 n"
-  sorry
+proof -
+  have hf_cont: "continuous_on top1_I01 f"
+    using hf unfolding top1_C01_def by simp
+  have hf_ucont: "uniformly_continuous_on top1_I01 f"
+    using top1_compact_uniformly_continuous[OF top1_I01_compact hf_cont] by argo
+  define A where "A = \<epsilon> / 4"
+  have hA: "0 < A" using heps unfolding A_def by simp
+  text \<open>Uniform continuity: |f(x)-f(y)| < A when |x-y| < \<delta>.\<close>
+  have huc_A: "\<exists>d>0. \<forall>x\<in>top1_I01. \<forall>y\<in>top1_I01. dist y x < d \<longrightarrow> dist (f y) (f x) < A"
+    using hf_ucont hA unfolding uniformly_continuous_on_def by presburger
+  obtain \<delta> where h\<delta>: "0 < \<delta>" and h\<delta>_osc: "\<forall>x\<in>top1_I01. \<forall>y\<in>top1_I01. dist y x < \<delta> \<longrightarrow> dist (f y) (f x) < A"
+    using huc_A by meson
+  text \<open>Choose M: 1/(4M) < \<delta>, A*2M > n+2, M > 0.\<close>
+  text \<open>Archimedean: choose M large enough.\<close>
+  obtain M0 :: nat where hM0: "real (Suc (Suc n)) / (2 * A) < real M0"
+    using reals_Archimedean2 by meson
+  obtain M1 :: nat where hM1: "1 / (4 * \<delta>) < real M1"
+    using reals_Archimedean2 by meson
+  define M where "M = max (max (Suc M0) (Suc M1)) 1"
+  have hM: "0 < M" unfolding M_def by simp
+  have hM0_le: "real M0 < real M" unfolding M_def by auto
+  have hM1_le: "real M1 < real M" unfolding M_def by simp
+  have hMpos: "0 < real M" using hM by simp
+  have "1 / (4 * \<delta>) < real M1" using hM1 by simp
+  also have "\<dots> < real M" using hM1_le by simp
+  finally have h14d: "1 / (4 * \<delta>) < real M" .
+  have hM_small: "1/(4 * real M) < \<delta>"
+  proof -
+    have h4dM: "1 / (4 * \<delta>) < real M" using h14d by simp
+    have h4pos: "0 < 4 * \<delta>" using h\<delta> by simp
+    have "1 / (4 * \<delta>) < real M" using h4dM by simp
+    then have "1 < 4 * \<delta> * real M" using h4pos
+      by (simp add: field_simps)
+    then show ?thesis using hMpos
+      by (simp add: field_simps)
+  qed
+  have "real (Suc (Suc n)) / (2 * A) < real M0" using hM0 by simp
+  also have "\<dots> < real M" using hM0_le by simp
+  finally have hnn2A: "real (Suc (Suc n)) / (2 * A) < real M" .
+  have hM_slope: "A * (2 * real M) > real (Suc (Suc n))"
+  proof -
+    have "real (Suc (Suc n)) / (2 * A) < real M" using hnn2A by simp
+    then have "real (Suc (Suc n)) < 2 * A * real M" using hA
+      by (simp add: field_simps)
+    then show ?thesis by (simp add: field_simps)
+  qed
+  text \<open>g = f + (\<epsilon>/2) \<cdot> tri(Mx) on I01, 0 outside.\<close>
+  define tri where "tri x = 1 - 2 * \<bar>frac x - 1/2\<bar>" for x :: real
+  have htri_bound: "\<forall>t::real. \<bar>tri t\<bar> \<le> 1"
+    sorry
+  define g where "g x = (if x \<in> top1_I01 then f x + (\<epsilon>/2) * tri (real M * x) else 0)" for x
+  have hgC: "g \<in> top1_C01"
+    sorry
+  have hg_close: "top1_rho49 f g < \<epsilon>"
+    sorry
+  have hgUn: "g \<in> top1_U49 n"
+    sorry
+  show ?thesis using hgC hg_close hgUn by meson
+qed
 
 text \<open>U_n is dense in C[0,1]: given f \<in> C01 and \<epsilon>>0, construct piecewise-linear g
   with all slopes \<ge> n+2 in absolute value, within \<epsilon> of f.
