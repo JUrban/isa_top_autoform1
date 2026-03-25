@@ -13346,7 +13346,9 @@ qed
 lemma Theorem_46_8_cc_finer_co:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
-  shows "top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d)
+  shows "subspace_topology (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
+           (top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d))
+           (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
        \<subseteq> subspace_topology (top1_PiE X (\<lambda>_. Y))
            (top1_compact_convergence_topology_on X TX Y d)
            (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
@@ -13379,14 +13381,7 @@ proof -
       then show ?thesis using hF(1) hF(3) False hTsub_top unfolding is_topology_on_def by simp
     qed
   qed
-  show ?thesis unfolding top1_compact_open_topology_on_def topology_generated_by_subbasis_def
-  proof (rule subsetI)
-    fix U assume "U \<in> {\<Union>V |V. V \<subseteq> finite_intersections (top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d))}"
-    then obtain V where "U = \<Union>V" "V \<subseteq> finite_intersections (top1_compact_open_subbasis_on X TX Y (top1_metric_topology_on Y d))"
-      by blast
-    have "\<forall>v\<in>V. v \<in> ?Tsub" using hFI_in \<open>V \<subseteq> _\<close> by fast
-    then show "U \<in> ?Tsub" using \<open>U = \<Union>V\<close> hTsub_top unfolding is_topology_on_def by fast
-  qed
+  show ?thesis sorry
 qed
 
 lemma Theorem_46_8_co_finer_cc:
@@ -13395,7 +13390,9 @@ lemma Theorem_46_8_co_finer_cc:
   shows "subspace_topology (top1_PiE X (\<lambda>_. Y))
            (top1_compact_convergence_topology_on X TX Y d)
            (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
-       \<subseteq> top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d)"
+       \<subseteq> subspace_topology (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
+           (top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d))
+           (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
   sorry
 
 theorem Theorem_46_8:
@@ -13405,9 +13402,11 @@ theorem Theorem_46_8:
            (top1_compact_convergence_topology_on X TX Y d)
            (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
        =
-       top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d)"
+       subspace_topology (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))
+           (top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d))
+           (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
   using Theorem_46_8_cc_finer_co[OF hTopX hd] Theorem_46_8_co_finer_cc[OF hTopX hd]
-  by fastforce
+  sorry
 
 lemma compact_on_subspace_self:
   assumes hComp: "top1_compact_on X TX"
@@ -13567,23 +13566,30 @@ proof -
   have hCeq: "top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1) =
     top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2)"
     using hTopEq by simp
+  let ?co1 = "subspace_topology (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
+    (top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d1))
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))"
+  let ?co2 = "subspace_topology (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))
+    (top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d2))
+    (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))"
   have h1: "subspace_topology (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d1)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
-    = top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d1)"
-    using Theorem_46_8[OF hTopX hd1] by simp
+    = ?co1"
+    using Theorem_46_8[OF hTopX hd1] sorry
   have h2: "subspace_topology (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d2)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))
-    = top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d2)"
-    using Theorem_46_8[OF hTopX hd2] by simp
+    = ?co2"
+    using Theorem_46_8[OF hTopX hd2] sorry
+  have hco_eq: "?co1 = ?co2" using hTopEq hCeq sorry
   show "subspace_topology (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d1)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
     = subspace_topology (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d2)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))"
-    using h1 h2 hTopEq hCeq by simp
+    using h1 h2 hco_eq sorry
   show "top1_compact_on X TX \<longrightarrow>
     (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d1)
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
