@@ -18029,8 +18029,21 @@ proof -
   have hM_ge_nn: "real M \<ge> real (Suc (Suc n))" unfolding M_def by simp
   have hh49_le: "h49 \<le> 1 / real (Suc (Suc n))" unfolding h49_def using hM_ge_nn hMpos
     by (simp add: field_simps)
-  have hDelta_large: "top1_Delta_h49 g h49 > real (Suc (Suc n))"
+  have hDelta_pw: "\<forall>x\<in>top1_I01. top1_Delta49 g x h49 \<ge> \<epsilon> * real M / 2"
     sorry
+  have hMslope2: "\<epsilon> * real M / 2 > real (Suc (Suc n))" using hM_slope unfolding A_def
+    by (simp add: field_simps)
+  have hDelta_large: "top1_Delta_h49 g h49 > real (Suc (Suc n))"
+    unfolding top1_Delta_h49_def
+  proof -
+    have hne: "((\<lambda>x. top1_Delta49 g x h49) ` top1_I01) \<noteq> {}" using top1_I01_nonempty by simp
+    have "\<forall>y \<in> ((\<lambda>x. top1_Delta49 g x h49) ` top1_I01). y \<ge> \<epsilon> * real M / 2"
+      using hDelta_pw by fast
+    then have "Inf ((\<lambda>x. top1_Delta49 g x h49) ` top1_I01) \<ge> \<epsilon> * real M / 2"
+      using cInf_greatest[OF hne] by fast
+    then show "Inf ((\<lambda>x. top1_Delta49 g x h49) ` top1_I01) > real (Suc (Suc n))"
+      using hMslope2 by argo
+  qed
   have hgUn: "g \<in> top1_U49 n"
   proof -
     have "g \<in> top1_C01" by (rule hgC)
