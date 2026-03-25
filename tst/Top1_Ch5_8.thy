@@ -17421,15 +17421,7 @@ qed
 
 section \<open>*\<S>49 A Nowhere-Differentiable Function\<close>
 
-(** from \S49 Theorem 49.1 [top1.tex:7345] **)
-theorem Theorem_49_1:
-  fixes h :: "real \<Rightarrow> real"
-  assumes hcont: "continuous_on (top1_closed_interval 0 1) h"
-  assumes heps: "0 < \<epsilon>"
-  shows "\<exists>g. continuous_on (top1_closed_interval 0 1) g
-        \<and> (\<forall>x\<in>top1_closed_interval 0 1. \<bar>h x - g x\<bar> < \<epsilon>)
-        \<and> (\<forall>x\<in>{0<..<1}. \<not> (g differentiable (at x)))"
-  sorry
+text \<open>Theorem 49.1 is stated after the U49 infrastructure (below).\<close>
 
 text \<open>
   Proof skeleton for \S49 (Baire category argument in \<open>\<C>([0,1],\<real>)\<close> with the sup metric).
@@ -17890,6 +17882,35 @@ proof (intro ballI notI)
   then have "top1_Delta_h49 f h < \<bar>L\<bar> + 1" using \<open>top1_Delta49 f x h < \<bar>L\<bar> + 1\<close> by linarith
   then show False using \<open>top1_Delta_h49 f h > real (Suc (Suc n))\<close> \<open>real (Suc (Suc n)) > \<bar>L\<bar> + 1\<close>
     by linarith
+qed
+
+(** from \S49 Theorem 49.1 [top1.tex:7345] **)
+theorem Theorem_49_1:
+  fixes h :: "real \<Rightarrow> real"
+  assumes hcont: "continuous_on (top1_closed_interval 0 1) h"
+  assumes heps: "0 < \<epsilon>"
+  shows "\<exists>g. continuous_on (top1_closed_interval 0 1) g
+        \<and> (\<forall>x\<in>top1_closed_interval 0 1. \<bar>h x - g x\<bar> < \<epsilon>)
+        \<and> (\<forall>x\<in>{0<..<1}. \<not> (g differentiable (at x)))"
+proof -
+  let ?T = "top1_metric_topology_on top1_C01 top1_rho49"
+  text \<open>C[0,1] is a complete metric space, hence Baire.\<close>
+  have hBaire: "top1_baire_on top1_C01 ?T" sorry
+  text \<open>⋂U_n is dense.\<close>
+  have hDense: "top1_densein_on top1_C01 ?T (\<Inter>n. top1_U49 n)"
+    using top1_Inter_U49_dense[OF hBaire] by argo
+  text \<open>Extend h to 0 outside [0,1] to get h' ∈ C01.\<close>
+  define h' where "h' x = (if x \<in> top1_I01 then h x else 0)" for x
+  have hh'C: "h' \<in> top1_C01" sorry
+  text \<open>⋂U_n is dense and B(h', ε) is open → their intersection is nonempty.\<close>
+  have "\<exists>g\<in>(\<Inter>n. top1_U49 n). top1_rho49 h' g < \<epsilon>" sorry
+  then obtain g where hgU: "g \<in> (\<Inter>n. top1_U49 n)" and hgclose: "top1_rho49 h' g < \<epsilon>" by blast
+  have hgC: "g \<in> top1_C01" using hgU top1_Inter_U49_subset_C01 by blast
+  have hg_cont: "continuous_on top1_I01 g" using hgC unfolding top1_C01_def by blast
+  have hg_pw: "\<forall>x\<in>top1_I01. \<bar>h x - g x\<bar> < \<epsilon>" sorry
+  have hg_ndiff: "\<forall>x\<in>{0<..<1}. \<not> (g differentiable (at x))"
+    using top1_Inter_U49_nowhere_differentiable[OF hgU] by presburger
+  show ?thesis using hg_cont hg_pw hg_ndiff by fast
 qed
 
 section \<open>\<S>50 Introduction to Dimension Theory\<close>
