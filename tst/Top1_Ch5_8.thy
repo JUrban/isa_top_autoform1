@@ -17884,6 +17884,14 @@ proof (intro ballI notI)
     by linarith
 qed
 
+lemma top1_C01_complete: "top1_complete_metric_on top1_C01 top1_rho49"
+  sorry
+
+lemma top1_C01_baire: "top1_baire_on top1_C01 (top1_metric_topology_on top1_C01 top1_rho49)"
+  sorry
+text \<open>Note: top1_C01_baire follows from top1_C01_complete via the complete→Baire theorem
+  at line ~16100. Currently left as sorry until top1_C01_complete is proved.\<close>
+
 (** from \S49 Theorem 49.1 [top1.tex:7345] **)
 theorem Theorem_49_1:
   fixes h :: "real \<Rightarrow> real"
@@ -17895,7 +17903,7 @@ theorem Theorem_49_1:
 proof -
   let ?T = "top1_metric_topology_on top1_C01 top1_rho49"
   text \<open>C[0,1] is a complete metric space, hence Baire.\<close>
-  have hBaire: "top1_baire_on top1_C01 ?T" sorry
+  have hBaire: "top1_baire_on top1_C01 ?T" using top1_C01_baire by blast
   text \<open>⋂U_n is dense.\<close>
   have hDense: "top1_densein_on top1_C01 ?T (\<Inter>n. top1_U49 n)"
     using top1_Inter_U49_dense[OF hBaire] by argo
