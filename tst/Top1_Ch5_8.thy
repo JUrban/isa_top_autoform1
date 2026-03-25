@@ -17656,7 +17656,29 @@ proof -
       qed
       text \<open>Step 2: difference quotient change ≤ 2ε/h0.\<close>
       have hDq_diff: "\<forall>x\<in>top1_I01. top1_Delta49 g x h0 \<ge> top1_Delta49 f x h0 - 2 * \<epsilon> / h0"
-        sorry
+      proof (intro ballI)
+        fix x assume hx: "x \<in> top1_I01"
+        text \<open>Key: |(g(x+h)-g(x))/h - (f(x+h)-f(x))/h| ≤ 2ε/h, since |f(t)-g(t)| < ε.
+          So |fwd_g| ≥ |fwd_f| - 2ε/h. Similarly backward. max decreases by ≤ 2ε/h.\<close>
+        have hfwd_close: "x + h0 \<in> top1_I01 \<longrightarrow>
+          \<bar>(g(x+h0) - g x) / h0\<bar> \<ge> \<bar>(f(x+h0) - f x) / h0\<bar> - 2 * \<epsilon> / h0"
+        proof (intro impI)
+          assume "x + h0 \<in> top1_I01"
+          have h1: "\<bar>f(x+h0) - g(x+h0)\<bar> < \<epsilon>" using hpw \<open>x + h0 \<in> top1_I01\<close> by blast
+          have h2: "\<bar>f x - g x\<bar> < \<epsilon>" using hpw hx by blast
+          have hdiff: "\<bar>(f(x+h0) - f x) / h0 - (g(x+h0) - g x) / h0\<bar> \<le> (\<bar>f(x+h0) - g(x+h0)\<bar> + \<bar>f x - g x\<bar>) / h0"
+            using hh0(1) sorry
+          have hlt: "(\<bar>f(x+h0) - g(x+h0)\<bar> + \<bar>f x - g x\<bar>) / h0 < 2 * \<epsilon> / h0" using h1 h2 hh0(1) sorry
+          have habs: "\<bar>(f(x+h0) - f x) / h0 - (g(x+h0) - g x) / h0\<bar> < 2 * \<epsilon> / h0" using hdiff hlt
+            by argo
+          then show "\<bar>(g(x+h0) - g x) / h0\<bar> \<ge> \<bar>(f(x+h0) - f x) / h0\<bar> - 2 * \<epsilon> / h0" sorry
+        qed
+        have hbwd_close: "x - h0 \<in> top1_I01 \<longrightarrow>
+          \<bar>(g(x-h0) - g x) / h0\<bar> \<ge> \<bar>(f(x-h0) - f x) / h0\<bar> - 2 * \<epsilon> / h0"
+          sorry
+        show "top1_Delta49 g x h0 \<ge> top1_Delta49 f x h0 - 2 * \<epsilon> / h0"
+          unfolding top1_Delta49_def using hfwd_close hbwd_close hh0(1) sorry
+      qed
       text \<open>Step 3: Inf bound: Δ_h(g) ≥ Δ_h(f) - 2ε/h0.\<close>
       have hInf: "top1_Delta_h49 g h0 \<ge> top1_Delta_h49 f h0 - 2 * \<epsilon> / h0"
         unfolding top1_Delta_h49_def
