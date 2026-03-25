@@ -17613,6 +17613,19 @@ lemma top1_rho49_is_metric: "top1_metric_on top1_C01 top1_rho49"
     top1_rho49_sym top1_rho49_triangle
   by fastforce
 
+text \<open>Pointwise values are bounded by the sup metric.\<close>
+lemma top1_rho49_pointwise_bound:
+  assumes "f \<in> top1_C01" "g \<in> top1_C01" "x \<in> top1_I01"
+  shows "\<bar>f x - g x\<bar> \<le> top1_rho49 f g"
+proof -
+  have himg: "\<bar>f x - g x\<bar> \<in> (\<lambda>x. \<bar>f x - g x\<bar>) ` top1_I01"
+    using assms(3) by blast
+  have hbdd: "bdd_above ((\<lambda>x. \<bar>f x - g x\<bar>) ` top1_I01)"
+    using assms(1,2) top1_rho49_bdd_above by presburger
+  show ?thesis unfolding top1_rho49_def
+    using cSup_upper[OF himg hbdd] by presburger
+qed
+
 lemma top1_U49_open:
   shows "top1_U49 n \<in> top1_metric_topology_on top1_C01 top1_rho49"
 proof -
@@ -17757,9 +17770,133 @@ proof -
   show ?thesis using top1_open_of_local_subsets[OF hTY hU_sub hLoc] by argo
 qed
 
+text \<open>Heine-Cantor: continuous on compact \<Rightarrow> uniformly continuous.
+  Not available in Complex_Main; needed for the U_n density construction.\<close>
+text \<open>Heine-Cantor for [0,1]: continuous on compact [0,1] implies uniformly continuous.
+  We prove this using the Bolzano bisection principle.\<close>
+lemma top1_compact_uniformly_continuous:
+  assumes hcomp: "compact S" and hcont: "continuous_on S (f :: 'a :: metric_space \<Rightarrow> 'b :: metric_space)"
+  shows "uniformly_continuous_on S f"
+proof -
+  have huc: "\<forall>e>0. \<exists>d>0. \<forall>x\<in>S. \<forall>x'\<in>S. dist x' x < d \<longrightarrow> dist (f x') (f x) < e"
+  proof (intro allI impI)
+    fix e :: real assume he: "0 < e"
+    have he2: "0 < e/2" using he by simp
+    have hlocal: "\<forall>x\<in>S. \<exists>\<delta>>0. \<forall>y\<in>S. dist y x < \<delta> \<longrightarrow> dist (f y) (f x) < e/2"
+    proof (intro ballI)
+      fix x assume hx: "x \<in> S"
+      have "(f \<longlongrightarrow> f x) (at x within S)" using hcont hx unfolding continuous_on_def
+        by metis
+      then have "\<forall>\<^sub>F y in at x within S. dist (f y) (f x) < e/2"
+        using he2 unfolding tendsto_iff
+        by metis
+      then obtain \<delta> where "0 < \<delta>" "\<forall>y\<in>S. y \<noteq> x \<and> dist y x < \<delta> \<longrightarrow> dist (f y) (f x) < e/2"
+        unfolding eventually_at
+        by metis
+      then show "\<exists>\<delta>>0. \<forall>y\<in>S. dist y x < \<delta> \<longrightarrow> dist (f y) (f x) < e/2"
+        using he2 dist_self[of "f x"] by metis
+    qed
+    obtain \<delta>f where h\<delta>f: "\<forall>x\<in>S. \<delta>f x > 0 \<and> (\<forall>y\<in>S. dist y x < \<delta>f x \<longrightarrow> dist (f y) (f x) < e/2)"
+      by (metis hlocal)
+    define B where "B x = {y. dist y x < \<delta>f x / 2}" for x
+    have hcover: "S \<subseteq> (\<Union>x\<in>S. B x)" unfolding B_def using h\<delta>f by auto
+    have hBopen: "\<forall>x\<in>S. open (B x)"
+    proof (intro ballI)
+      fix x assume "x \<in> S"
+      have "B x = {y. dist x y < \<delta>f x / 2}" unfolding B_def by (metis dist_commute)
+      then show "open (B x)" using open_ball by metis
+    qed
+    obtain F where hFfin: "finite F" and hFS: "F \<subseteq> S" and hFcov: "S \<subseteq> (\<Union>x\<in>F. B x)"
+      using hcomp hBopen hcover by (metis compactE_image)
+    show "\<exists>d>0. \<forall>x\<in>S. \<forall>x'\<in>S. dist x' x < d \<longrightarrow> dist (f x') (f x) < e"
+    proof (cases "S = {}")
+      case True then show ?thesis using he by fast
+    next
+      case False
+      then have hSne: "S \<noteq> {}" by simp
+      have hFne: "F \<noteq> {}" using hFcov hSne by blast
+      define d where "d = Min (\<delta>f ` F) / 2"
+      have hd: "d > 0" unfolding d_def using hFfin hFne h\<delta>f hFS by auto
+      show ?thesis
+      proof (rule exI[of _ d], intro conjI ballI impI)
+        show "0 < d" by (simp add: hd)
+      next
+        fix x x' assume hx: "x \<in> S" and hx': "x' \<in> S" and hdist: "dist x' x < d"
+        obtain xi where hxi_F: "xi \<in> F" and hxi_ball: "dist x xi < \<delta>f xi / 2"
+          using hFcov hx unfolding B_def by blast
+        have hxi_S: "xi \<in> S" using hxi_F hFS by fastforce
+        have hd_le: "d \<le> \<delta>f xi / 2" unfolding d_def
+          using hxi_F hFfin hFne
+          by simp
+        have "dist x' xi \<le> dist x' x + dist x xi" by (metis dist_triangle)
+        also have "\<dots> < d + \<delta>f xi / 2" using hdist hxi_ball by argo
+        also have "\<dots> \<le> \<delta>f xi" using hd_le by simp
+        finally have hx'xi: "dist x' xi < \<delta>f xi" .
+        have hfx: "dist (f x) (f xi) < e/2"
+          by (metis h\<delta>f hxi_S hx hxi_ball dist_triangle_half_l dist_self zero_le_dist order_le_less_trans)
+        have hfx': "dist (f x') (f xi) < e/2"
+          using hx' h\<delta>f hxi_S hx'xi by simp
+        have "dist (f x') (f x) \<le> dist (f x') (f xi) + dist (f xi) (f x)"
+          by (metis dist_triangle)
+        also have "\<dots> < e/2 + e/2" using hfx hfx' by (simp add: dist_commute)
+        also have "\<dots> = e" by simp
+        finally show "dist (f x') (f x) < e" .
+      qed
+    qed
+  qed
+  show ?thesis unfolding uniformly_continuous_on_def using huc by simp
+qed
+
+text \<open>Key helper for U_n density: given f \<in> C01, \<epsilon> > 0, and n, there exists g \<in> U_n with \<rho>(f,g) < \<epsilon>.
+  The proof perturbs f by a triangle wave: g(x) = f(x) + (\<epsilon>/2) \<cdot> tri(M\<cdot>x) for large M.
+  The triangle wave has constant |slope| = 2M, which dominates f's difference quotient
+  for M large enough (by uniform continuity).\<close>
+lemma top1_U49_dense_approx:
+  assumes hf: "f \<in> top1_C01" and heps: "0 < \<epsilon>"
+  shows "\<exists>g. g \<in> top1_C01 \<and> top1_rho49 f g < \<epsilon> \<and> g \<in> top1_U49 n"
+  sorry
+
+text \<open>U_n is dense in C[0,1]: given f \<in> C01 and \<epsilon>>0, construct piecewise-linear g
+  with all slopes \<ge> n+2 in absolute value, within \<epsilon> of f.
+  The proof follows Munkres Theorem 49.1 step (3).\<close>
 lemma top1_U49_dense:
   shows "top1_densein_on top1_C01 (top1_metric_topology_on top1_C01 top1_rho49) (top1_U49 n)"
-  sorry
+  unfolding top1_densein_on_def
+proof -
+  let ?T = "top1_metric_topology_on top1_C01 top1_rho49"
+  have hTY: "is_topology_on top1_C01 ?T"
+    using top1_metric_topology_on_is_topology_on[OF top1_rho49_is_metric] by simp
+  have hU_sub: "top1_U49 n \<subseteq> top1_C01" using top1_U49_subset_C01 by simp
+  text \<open>Show closure of U_n = C01 by showing every f \<in> C01 is in the closure.\<close>
+  show "closure_on top1_C01 ?T (top1_U49 n) = top1_C01"
+  proof (rule antisym)
+    show "closure_on top1_C01 ?T (top1_U49 n) \<subseteq> top1_C01"
+      by (simp add: closure_on_subset_carrier hTY hU_sub)
+    show "top1_C01 \<subseteq> closure_on top1_C01 ?T (top1_U49 n)"
+    proof (intro subsetI)
+      fix f assume hf: "f \<in> top1_C01"
+      text \<open>f is in the closure of U_n iff every neighborhood of f meets U_n.\<close>
+      have hf_cl: "f \<in> closure_on top1_C01 ?T (top1_U49 n)"
+      proof (rule iffD2[OF Theorem_17_5a[OF hTY hf hU_sub]], intro allI impI)
+        fix V assume hV: "neighborhood_of f top1_C01 ?T V"
+        text \<open>V contains a ball B(f, \<epsilon>). Construct g \<in> U_n \<inter> V.\<close>
+        obtain \<epsilon> where heps: "0 < \<epsilon>" and hball_V: "top1_ball_on top1_C01 top1_rho49 f \<epsilon> \<subseteq> V"
+          using top1_metric_open_contains_ball[OF top1_rho49_is_metric _ _]
+            hV[unfolded neighborhood_of_def] by meson
+        text \<open>Construct piecewise-linear g within \<epsilon> of f, with steep slopes.\<close>
+        obtain g where hgC: "g \<in> top1_C01" and hg_close: "top1_rho49 f g < \<epsilon>"
+          and hgUn: "g \<in> top1_U49 n"
+          using top1_U49_dense_approx[OF hf heps] by meson
+        have hg_ball: "g \<in> top1_ball_on top1_C01 top1_rho49 f \<epsilon>"
+          unfolding top1_ball_on_def using hgC hg_close by simp
+        have "g \<in> V" using hg_ball hball_V by (metis subsetD)
+        then show "intersects V (top1_U49 n)"
+          unfolding intersects_def using hgUn by (metis IntI empty_iff)
+      qed
+      show "f \<in> closure_on top1_C01 ?T (top1_U49 n)" by (rule hf_cl)
+    qed
+  qed
+qed
 
 lemma top1_Inter_U49_dense:
   assumes hB: "top1_baire_on top1_C01 (top1_metric_topology_on top1_C01 top1_rho49)"
@@ -17891,7 +18028,243 @@ proof (intro conjI)
 next
   show "\<forall>s. top1_cauchy_seq_on top1_C01 top1_rho49 s \<longrightarrow>
     (\<exists>x\<in>top1_C01. seq_converges_to_on s x top1_C01 (top1_metric_topology_on top1_C01 top1_rho49))"
-    sorry
+  proof (intro allI impI)
+    fix s assume hCauchy: "top1_cauchy_seq_on top1_C01 top1_rho49 s"
+    obtain N0 where hsC: "\<forall>n\<ge>N0. s n \<in> top1_C01"
+    proof -
+      have h2: "\<forall>e>0. \<exists>N. \<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> top1_C01 \<and> s n \<in> top1_C01 \<and> top1_rho49 (s m) (s n) < e"
+        using hCauchy unfolding top1_cauchy_seq_on_def by argo
+      have h1: "\<exists>N. \<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> top1_C01 \<and> s n \<in> top1_C01 \<and> top1_rho49 (s m) (s n) < 1"
+        using h2 zero_less_one by simp
+      obtain N where hN: "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> top1_C01 \<and> s n \<in> top1_C01 \<and> top1_rho49 (s m) (s n) < 1"
+        using h1 by presburger
+      have "\<forall>n\<ge>N. s n \<in> top1_C01" by (metis hN)
+      then show ?thesis by (rule that)
+    qed
+    text \<open>Step 1: Each coordinate sequence is Cauchy hence convergent.\<close>
+    have hpw_cauchy: "\<forall>x. Cauchy (\<lambda>n. s n x)"
+    proof (intro allI)
+      fix x
+      show "Cauchy (\<lambda>n. s n x)"
+        unfolding Cauchy_def
+      proof (intro allI impI)
+        fix e :: real assume he: "0 < e"
+        obtain N where hN: "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> top1_C01 \<and> s n \<in> top1_C01 \<and> top1_rho49 (s m) (s n) < e"
+          using hCauchy he unfolding top1_cauchy_seq_on_def by presburger
+        define N1 where "N1 = max N N0"
+        have hball: "\<forall>m\<ge>N1. \<forall>n\<ge>N1. dist (s m x) (s n x) < e"
+        proof (intro allI impI)
+          fix m n :: nat assume hm: "N1 \<le> m" and hn: "N1 \<le> n"
+          have hmN: "N \<le> m" using hm unfolding N1_def by simp
+          have hnN: "N \<le> n" using hn unfolding N1_def by simp
+          have hmN0: "N0 \<le> m" using hm unfolding N1_def by simp
+          have hnN0: "N0 \<le> n" using hn unfolding N1_def by simp
+          have hmC: "s m \<in> top1_C01" using hsC hmN0 by presburger
+          have hnC: "s n \<in> top1_C01" using hsC hnN0 by presburger
+          show "dist (s m x) (s n x) < e"
+          proof (cases "x \<in> top1_I01")
+            case True
+            have "dist (s m x) (s n x) = \<bar>s m x - s n x\<bar>"
+              by (metis dist_real_def)
+            also have "\<dots> \<le> top1_rho49 (s m) (s n)"
+              using hmC hnC True top1_rho49_pointwise_bound by presburger
+            also have "\<dots> < e" by (metis hN hmN hnN)
+            finally show ?thesis .
+          next
+            case False
+            have hsm0: "s m x = 0"
+              using hmC False unfolding top1_C01_def by simp
+            have hsn0: "s n x = 0"
+              using hnC False unfolding top1_C01_def by simp
+            show ?thesis using hsm0 hsn0 he by (simp add: dist_real_def)
+          qed
+        qed
+        then show "\<exists>M. \<forall>m\<ge>M. \<forall>n\<ge>M. dist (s m x) (s n x) < e"
+          by (rule exI[of _ N1])
+      qed
+    qed
+    have hconv_pw: "\<forall>x. convergent (\<lambda>n. s n x)"
+      by (metis Cauchy_convergent hpw_cauchy)
+    have hexists: "\<forall>x. \<exists>L. (\<lambda>n. s n x) \<longlonglongrightarrow> L"
+      by (metis convergent_def hconv_pw)
+    then obtain f where hf_lim: "\<forall>x. (\<lambda>n. s n x) \<longlonglongrightarrow> f x"
+      by metis
+    text \<open>Step 2: Convergence is uniform on [0,1].\<close>
+    have hunif: "\<forall>\<epsilon>>0. \<exists>N. \<forall>n\<ge>N. \<forall>x\<in>top1_I01. \<bar>s n x - f x\<bar> < \<epsilon>"
+    proof (intro allI impI)
+      fix \<epsilon> :: real assume heps: "0 < \<epsilon>"
+      have heps2: "0 < \<epsilon>/2" using heps by simp
+      obtain N where hNCauchy: "\<forall>m\<ge>N. \<forall>n\<ge>N. s m \<in> top1_C01 \<and> s n \<in> top1_C01 \<and> top1_rho49 (s m) (s n) < \<epsilon>/2"
+        using hCauchy heps2 unfolding top1_cauchy_seq_on_def by presburger
+      define N1 where "N1 = max N N0"
+      show "\<exists>N. \<forall>n\<ge>N. \<forall>x\<in>top1_I01. \<bar>s n x - f x\<bar> < \<epsilon>"
+      proof (rule exI[of _ N1], intro allI impI ballI)
+        fix n x assume hn: "N1 \<le> n" and hx: "x \<in> top1_I01"
+        have hnN: "N \<le> n" using hn unfolding N1_def by simp
+        have hnN0: "N0 \<le> n" using hn unfolding N1_def by simp
+        text \<open>For any m \<ge> N: |s n x - s m x| \<le> \<rho>(s n, s m) < \<epsilon>/2.\<close>
+        have hbnd: "\<forall>m\<ge>N1. \<bar>s n x - s m x\<bar> \<le> \<epsilon>/2"
+        proof (intro allI impI)
+          fix m assume hm: "N1 \<le> m"
+          have hmN: "N \<le> m" using hm unfolding N1_def by simp
+          have hmN0: "N0 \<le> m" using hm unfolding N1_def by simp
+          have hnC: "s n \<in> top1_C01" using hsC hnN0 by presburger
+          have hmC: "s m \<in> top1_C01" using hsC hmN0 by presburger
+          have "\<bar>s n x - s m x\<bar> \<le> top1_rho49 (s n) (s m)"
+            using hnC hmC hx top1_rho49_pointwise_bound by presburger
+          also have "\<dots> < \<epsilon>/2" by (metis hNCauchy hnN hmN)
+          finally show "\<bar>s n x - s m x\<bar> \<le> \<epsilon>/2" by simp
+        qed
+        text \<open>Pass to limit in m: |s n x - f x| \<le> \<epsilon>/2 < \<epsilon>.
+          Key: (λm. s m x) → f x, so (λm. |s n x - s m x|) → |s n x - f x|.
+          All terms ≤ ε/2, so limit ≤ ε/2.\<close>
+        have hlim_x: "(\<lambda>m. s m x) \<longlonglongrightarrow> f x" using hf_lim by presburger
+        have hlim_diff: "(\<lambda>m. s n x - s m x) \<longlonglongrightarrow> s n x - f x"
+          using tendsto_diff[OF tendsto_const hlim_x] by presburger
+        have hlimabs: "(\<lambda>m. \<bar>s n x - s m x\<bar>) \<longlonglongrightarrow> \<bar>s n x - f x\<bar>"
+          using tendsto_rabs[OF hlim_diff] by argo
+        have hevent_le: "eventually (\<lambda>m. \<bar>s n x - s m x\<bar> \<le> \<epsilon>/2) sequentially"
+          using hbnd unfolding eventually_sequentially by meson
+        have hle: "\<bar>s n x - f x\<bar> \<le> \<epsilon>/2"
+          using tendsto_le[OF sequentially_bot tendsto_const hlimabs hevent_le] by presburger
+        show "\<bar>s n x - f x\<bar> < \<epsilon>" using hle heps by simp
+      qed
+    qed
+    text \<open>Step 3: f is continuous on [0,1] (uniform limit of continuous).\<close>
+    text \<open>Step 3: f is continuous on [0,1] via ε/3 argument.\<close>
+    have hf_cont: "continuous_on top1_I01 f"
+      unfolding continuous_on_def
+    proof (intro ballI)
+      fix x0 assume hx0: "x0 \<in> top1_I01"
+      show "(f \<longlongrightarrow> f x0) (at x0 within top1_I01)"
+        unfolding tendsto_iff
+      proof (intro allI impI)
+        fix e :: real assume he: "0 < e"
+        have he3: "0 < e/3" using he by simp
+        obtain N where hNunif: "\<forall>n\<ge>N. \<forall>y\<in>top1_I01. \<bar>s n y - f y\<bar> < e/3"
+          using hunif he3 by presburger
+        define N1 where "N1 = max N N0"
+        have hN1N: "N \<le> N1" and hN1N0: "N0 \<le> N1" unfolding N1_def by simp_all
+        have hN1C: "s N1 \<in> top1_C01" using hsC hN1N0 by presburger
+        have hN1cont: "continuous_on top1_I01 (s N1)"
+          using hN1C unfolding top1_C01_def by simp
+        have hN1_tendsto: "(s N1 \<longlongrightarrow> s N1 x0) (at x0 within top1_I01)"
+          using hN1cont hx0 unfolding continuous_on_def by simp
+        have hevent_sN: "\<forall>\<^sub>F y in at x0 within top1_I01. dist (s N1 y) (s N1 x0) < e/3"
+          using hN1_tendsto he3 unfolding tendsto_iff by presburger
+        text \<open>Triangle inequality: dist(f y)(f x0) \<le> dist(f y)(sN y) + dist(sN y)(sN x0) + dist(sN x0)(f x0)\<close>
+        have hfsN_x0: "dist (s N1 x0) (f x0) < e/3"
+          using hNunif hN1N hx0 unfolding dist_real_def by simp
+        have hevent_in: "\<forall>\<^sub>F y in at x0 within top1_I01. y \<in> top1_I01"
+          using eventually_at_topological by (metis UNIV_I open_UNIV)
+        have hevent_both: "\<forall>\<^sub>F y in at x0 within top1_I01.
+          y \<in> top1_I01 \<and> dist (s N1 y) (s N1 x0) < e/3"
+          using eventually_conj[OF hevent_in hevent_sN] by argo
+        show "\<forall>\<^sub>F y in at x0 within top1_I01. dist (f y) (f x0) < e"
+        proof (rule eventually_mono[OF hevent_both])
+          fix y assume hy_both: "y \<in> top1_I01 \<and> dist (s N1 y) (s N1 x0) < e/3"
+          have hy_in: "y \<in> top1_I01" using hy_both by simp
+          have hy_sN: "dist (s N1 y) (s N1 x0) < e/3" using hy_both by simp
+          have hfsN_y: "dist (f y) (s N1 y) < e/3"
+            using hNunif hN1N hy_in unfolding dist_real_def
+            by (metis abs_minus_commute)
+          have htr1: "dist (f y) (s N1 x0) \<le> dist (f y) (s N1 y) + dist (s N1 y) (s N1 x0)"
+            by (rule dist_triangle)
+          have "dist (f y) (f x0) \<le> dist (f y) (s N1 x0) + dist (s N1 x0) (f x0)"
+            by (rule dist_triangle)
+          also have "\<dots> \<le> dist (f y) (s N1 y) + dist (s N1 y) (s N1 x0) + dist (s N1 x0) (f x0)"
+            using htr1 by simp
+          also have "\<dots> < e/3 + e/3 + e/3" using hfsN_y hy_sN hfsN_x0 by simp
+          also have "\<dots> = e" by simp
+          finally show "dist (f y) (f x0) < e" .
+        qed
+      qed
+    qed
+    text \<open>Step 4: f is zero outside [0,1].\<close>
+    have hf_ext: "\<forall>x. x \<notin> top1_I01 \<longrightarrow> f x = 0"
+    proof (intro allI impI)
+      fix x assume hx: "x \<notin> top1_I01"
+      have hevent: "\<forall>n\<ge>N0. s n x = 0"
+      proof (intro allI impI)
+        fix n assume "N0 \<le> n"
+        then have "s n \<in> top1_C01" using hsC by presburger
+        then show "s n x = 0" using hx unfolding top1_C01_def by simp
+      qed
+      have hlimf: "(\<lambda>n. s n x) \<longlonglongrightarrow> f x" using hf_lim by presburger
+      have heventually: "eventually (\<lambda>n. s n x = 0) sequentially"
+        using hevent unfolding eventually_sequentially by meson
+      have hlim0: "(\<lambda>n. s n x) \<longlonglongrightarrow> 0"
+        using tendsto_eventually[of "\<lambda>n. s n x" 0 sequentially] heventually by argo
+      show "f x = 0" using LIMSEQ_unique[OF hlimf hlim0] by presburger
+    qed
+    text \<open>Step 5: f ∈ C01.\<close>
+    have hfC: "f \<in> top1_C01" unfolding top1_C01_def using hf_cont hf_ext by blast
+    text \<open>Step 6: s → f in rho49.\<close>
+    text \<open>Step 6a: rho49(s n, f) \<rightarrow> 0, i.e., uniform convergence implies sup metric convergence.\<close>
+    have hrho_to_zero: "\<forall>\<epsilon>>0. \<exists>N. \<forall>n\<ge>N. top1_rho49 (s n) f < \<epsilon>"
+    proof (intro allI impI)
+      fix \<epsilon> :: real assume heps: "0 < \<epsilon>"
+      have heps2: "0 < \<epsilon>/2" using heps by simp
+      obtain N where hNu: "\<forall>n\<ge>N. \<forall>x\<in>top1_I01. \<bar>s n x - f x\<bar> < \<epsilon>/2"
+        using hunif heps2 by presburger
+      define N1 where "N1 = max N N0"
+      show "\<exists>N. \<forall>n\<ge>N. top1_rho49 (s n) f < \<epsilon>"
+      proof (rule exI[of _ N1], intro allI impI)
+        fix n assume hn: "N1 \<le> n"
+        have hnN: "N \<le> n" using hn unfolding N1_def by simp
+        have hnN0: "N0 \<le> n" using hn unfolding N1_def by simp
+        have hnC: "s n \<in> top1_C01" using hsC hnN0 by presburger
+        have hbnd: "\<forall>x\<in>top1_I01. \<bar>s n x - f x\<bar> < \<epsilon>/2" using hNu hnN by presburger
+        have hbnd_le: "\<forall>x\<in>top1_I01. \<bar>s n x - f x\<bar> \<le> \<epsilon>/2" using hbnd by (simp add: order_less_imp_le)
+        have "top1_rho49 (s n) f \<le> \<epsilon>/2"
+          unfolding top1_rho49_def
+        proof (rule cSup_least)
+          show "(\<lambda>x. \<bar>s n x - f x\<bar>) ` top1_I01 \<noteq> {}"
+            using top1_I01_nonempty by (metis empty_is_image)
+        next
+          fix y assume "y \<in> (\<lambda>x. \<bar>s n x - f x\<bar>) ` top1_I01"
+          then obtain x where hx: "x \<in> top1_I01" "y = \<bar>s n x - f x\<bar>" by fast
+          show "y \<le> \<epsilon>/2" using hx hbnd_le by simp
+        qed
+        also have "\<dots> < \<epsilon>" using heps by simp
+        finally show "top1_rho49 (s n) f < \<epsilon>" .
+      qed
+    qed
+    have hconv: "seq_converges_to_on s f top1_C01 (top1_metric_topology_on top1_C01 top1_rho49)"
+      unfolding seq_converges_to_on_def
+    proof (intro conjI)
+      show "f \<in> top1_C01" by (rule hfC)
+    next
+      show "\<forall>U. neighborhood_of f top1_C01 (top1_metric_topology_on top1_C01 top1_rho49) U \<longrightarrow>
+        (\<exists>N. \<forall>n\<ge>N. s n \<in> U)"
+      proof (intro allI impI)
+        fix U assume hU: "neighborhood_of f top1_C01 (top1_metric_topology_on top1_C01 top1_rho49) U"
+        have hUopen: "U \<in> top1_metric_topology_on top1_C01 top1_rho49"
+          using hU unfolding neighborhood_of_def by simp
+        have hfU: "f \<in> U" using hU unfolding neighborhood_of_def by simp
+        obtain e where he: "0 < e" and hball: "top1_ball_on top1_C01 top1_rho49 f e \<subseteq> U"
+          using top1_metric_open_contains_ball[OF top1_rho49_is_metric hUopen hfU] by meson
+        obtain N where hN: "\<forall>n\<ge>N. top1_rho49 (s n) f < e"
+          using hrho_to_zero he by presburger
+        define N1 where "N1 = max N N0"
+        show "\<exists>N. \<forall>n\<ge>N. s n \<in> U"
+        proof (rule exI[of _ N1], intro allI impI)
+          fix n assume hn: "N1 \<le> n"
+          have hnN: "N \<le> n" using hn unfolding N1_def by simp
+          have hnN0: "N0 \<le> n" using hn unfolding N1_def by simp
+          have hnC: "s n \<in> top1_C01" using hsC hnN0 by presburger
+          have hrho: "top1_rho49 (s n) f < e" using hN hnN by presburger
+          have hrho_sym: "top1_rho49 f (s n) < e"
+            using top1_rho49_sym[OF hfC hnC] hrho by presburger
+          have "s n \<in> top1_ball_on top1_C01 top1_rho49 f e"
+            unfolding top1_ball_on_def using hnC hrho_sym by simp
+          then show "s n \<in> U" using hball by (metis subsetD)
+        qed
+      qed
+    qed
+    show "\<exists>x\<in>top1_C01. seq_converges_to_on s x top1_C01 (top1_metric_topology_on top1_C01 top1_rho49)"
+      using hfC hconv by blast
+  qed
 qed
 
 lemma top1_C01_baire: "top1_baire_on top1_C01 (top1_metric_topology_on top1_C01 top1_rho49)"
