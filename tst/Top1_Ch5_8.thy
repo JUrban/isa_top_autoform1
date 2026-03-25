@@ -17658,7 +17658,29 @@ proof -
       have hDq_diff: "\<forall>x\<in>top1_I01. top1_Delta49 g x h0 \<ge> top1_Delta49 f x h0 - 2 * \<epsilon> / h0"
         sorry
       text \<open>Step 3: Inf bound: Δ_h(g) ≥ Δ_h(f) - 2ε/h0.\<close>
-      have hInf: "top1_Delta_h49 g h0 \<ge> top1_Delta_h49 f h0 - 2 * \<epsilon> / h0" sorry
+      have hInf: "top1_Delta_h49 g h0 \<ge> top1_Delta_h49 f h0 - 2 * \<epsilon> / h0"
+        unfolding top1_Delta_h49_def
+      proof -
+        define c where "c = Inf ((\<lambda>x. top1_Delta49 f x h0) ` top1_I01) - 2 * \<epsilon> / h0"
+        have "\<forall>x\<in>top1_I01. top1_Delta49 g x h0 \<ge> c"
+        proof (intro ballI)
+          fix x assume "x \<in> top1_I01"
+          have hbdd_f: "bdd_below ((\<lambda>x. top1_Delta49 f x h0) ` top1_I01)" sorry
+          have himg_f: "top1_Delta49 f x h0 \<in> (\<lambda>x. top1_Delta49 f x h0) ` top1_I01"
+            using \<open>x \<in> top1_I01\<close> by blast
+          have "top1_Delta49 f x h0 \<ge> Inf ((\<lambda>x. top1_Delta49 f x h0) ` top1_I01)"
+            using cInf_lower[OF himg_f hbdd_f] by linarith
+          then show "top1_Delta49 g x h0 \<ge> c" using hDq_diff \<open>x \<in> top1_I01\<close> unfolding c_def
+            by fastforce
+        qed
+        then have h_all_ge: "\<forall>y \<in> (\<lambda>x. top1_Delta49 g x h0) ` top1_I01. y \<ge> c" by fast
+        have hne: "(\<lambda>x. top1_Delta49 g x h0) ` top1_I01 \<noteq> {}" using top1_I01_nonempty by blast
+        have "Inf ((\<lambda>x. top1_Delta49 g x h0) ` top1_I01) \<ge> c"
+          using cInf_greatest[OF hne] h_all_ge by blast
+        then show "Inf ((\<lambda>x. top1_Delta49 g x h0) ` top1_I01) \<ge>
+          Inf ((\<lambda>x. top1_Delta49 f x h0) ` top1_I01) - 2 * \<epsilon> / h0" unfolding c_def
+          by presburger
+      qed
       text \<open>Step 4: 2ε/h0 = gap/2, so Δ_h(g) > n+2.\<close>
       have h2eps: "2 * \<epsilon> / h0 = gap / 2" unfolding \<epsilon>_def using hh0(1) by force
       have hDelta_close: "top1_Delta_h49 g h0 > real (Suc (Suc n))"
