@@ -17913,7 +17913,12 @@ proof -
   text \<open>tri(Mx) is continuous on [0,1]: partition into M closed subintervals.\<close>
   define II where "II k = {real k / real M .. real (Suc k) / real M}" for k :: nat
   have hunion: "top1_I01 = (\<Union>k \<in> {0..<M}. II k)"
-    sorry
+  proof (rule antisym)
+    show "(\<Union>k \<in> {0..<M}. II k) \<subseteq> top1_I01"
+      sorry
+    show "top1_I01 \<subseteq> (\<Union>k \<in> {0..<M}. II k)"
+      sorry
+  qed
   have hcont_each: "\<forall>k \<in> {0..<M}. continuous_on (II k) (\<lambda>x. tri (real M * x))"
     sorry
   have htri_cont: "continuous_on top1_I01 (\<lambda>x. tri (real M * x))"
