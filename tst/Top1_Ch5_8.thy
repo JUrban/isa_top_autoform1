@@ -18048,8 +18048,25 @@ proof -
     text \<open>Core geometric claim: an available direction gives |tri diff| = 1/2.
       Requires 4-way case split on frac(Mx) mod 1/4, combined with boundary.
       Left as sorry — the mathematical argument is clear (see text above).\<close>
-    have htri_quot: "\<exists>s \<in> {h49, -h49}. x + s \<in> top1_I01 \<and> \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2"
+    text \<open>Standalone tri property: one of forward/backward by 1/4 gives diff 1/2.\<close>
+    have htri_either: "\<And>t::real. \<bar>tri (t + 1/4) - tri t\<bar> = 1/2 \<or> \<bar>tri (t - 1/4) - tri t\<bar> = 1/2"
       sorry
+    have htri_quot: "\<exists>s \<in> {h49, -h49}. x + s \<in> top1_I01 \<and> \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2"
+    proof (cases "x + h49 \<in> top1_I01 \<and> x - h49 \<in> top1_I01")
+      case True
+      text \<open>Both directions available. htri_either picks one.\<close>
+      have "\<bar>tri (real M * x + 1/4) - tri (real M * x)\<bar> = 1/2 \<or>
+            \<bar>tri (real M * x - 1/4) - tri (real M * x)\<bar> = 1/2"
+        using htri_either[of "real M * x"] by fast
+      then show ?thesis using True hfwd_eq hbwd_eq by simp
+    next
+      case False
+      text \<open>Only one direction available. The available one gives diff 1/2
+        because boundary forces frac into the right quarter.\<close>
+      show ?thesis using False havail hfwd_eq hbwd_eq hx01 hMpos hh49_pos
+        unfolding top1_closed_interval_def tri_def h49_def frac_def
+        sorry
+    qed
     then obtain s where hs_set: "s \<in> {h49, -h49}" and hs_in: "x + s \<in> top1_I01"
       and hs_tri: "\<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2" by meson
     have habs_s: "\<bar>s\<bar> = h49" using hs_set hh49_pos by auto
