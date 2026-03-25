@@ -13596,20 +13596,20 @@ proof -
     (top1_compact_convergence_topology_on X TX Y d1)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
     = ?co1"
-    using Theorem_46_8[OF hTopX hd1] sorry
+    using Theorem_46_8[OF hTopX hd1] by blast
   have h2: "subspace_topology (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d2)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))
     = ?co2"
-    using Theorem_46_8[OF hTopX hd2] sorry
-  have hco_eq: "?co1 = ?co2" using hTopEq hCeq sorry
+    using Theorem_46_8[OF hTopX hd2] by argo
+  have hco_eq: "?co1 = ?co2" using hTopEq hCeq by simp
   show "subspace_topology (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d1)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
     = subspace_topology (top1_PiE X (\<lambda>_. Y))
     (top1_compact_convergence_topology_on X TX Y d2)
     (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d2))"
-    using h1 h2 hco_eq sorry
+    using h1 h2 hco_eq by presburger
   show "top1_compact_on X TX \<longrightarrow>
     (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d1)
        (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d1))
