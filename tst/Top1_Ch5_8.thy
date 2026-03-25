@@ -18100,24 +18100,77 @@ proof -
       text \<open>Only one direction available. The available one gives diff 1/2
         because boundary forces frac into the right quarter.\<close>
       have hdir_fwd: "frac (real M * x) < 1/4 \<Longrightarrow> \<bar>tri (real M * x + 1/4) - tri (real M * x)\<bar> = 1/2"
-        sorry
+      proof -
+        assume hlt: "frac (real M * x) < 1/4"
+        have "frac (real M * x + 1/4) = frac (real M * x) + 1/4" using hfrac_add_lt hlt
+          by simp
+        then have h1: "tri (real M * x + 1/4) = 1 - 2 * \<bar>(frac (real M * x) + 1/4) - 1/2\<bar>"
+          unfolding tri_def by metis
+        have h2: "tri (real M * x) = 1 - 2 * \<bar>frac (real M * x) - 1/2\<bar>" unfolding tri_def by metis
+        show ?thesis using h1 h2 hlt frac_ge_0[of "real M * x"] by argo
+      qed
       have hdir_bwd: "(frac (real M * x) = 0 \<or> frac (real M * x) \<ge> 3/4) \<Longrightarrow>
         \<bar>tri (real M * x - 1/4) - tri (real M * x)\<bar> = 1/2"
-        sorry
+      proof -
+        assume hge: "frac (real M * x) = 0 \<or> frac (real M * x) \<ge> 3/4"
+        show "\<bar>tri (real M * x - 1/4) - tri (real M * x)\<bar> = 1/2"
+        proof (cases "frac (real M * x) = 0")
+          case True
+          text \<open>frac = 0: tri(Mx) = 0, tri(Mx-1/4) has frac = 3/4, tri = 1/2.\<close>
+          have "tri (real M * x) = 0" unfolding tri_def using True by argo
+          have "real M * x \<in> \<int>" using True
+            by simp
+          then have "frac (real M * x - 1/4) = frac (- (1/4::real))"
+            using frac_add_int_left[of "real M * x" "-1/4"]
+            by argo
+          then have hfrac34: "frac (real M * x - 1/4) = 3/4" unfolding frac_def
+            by simp
+          have "tri (real M * x - 1/4) = 1 - 2 * \<bar>(3/4::real) - 1/2\<bar>"
+            unfolding tri_def using hfrac34
+            by metis
+          then have "tri (real M * x - 1/4) = 1/2"
+            by argo
+          then show ?thesis using \<open>tri (real M * x) = 0\<close>
+            by linarith
+        next
+          case False
+          then have hge34: "frac (real M * x) \<ge> 3/4" using hge by satx
+          then have "frac (real M * x - 1/4) = frac (real M * x) - 1/4" using hfrac_sub_ge by simp
+          then have h1: "tri (real M * x - 1/4) = 1 - 2 * \<bar>(frac (real M * x) - 1/4) - 1/2\<bar>"
+            unfolding tri_def by presburger
+          have h2: "tri (real M * x) = 1 - 2 * \<bar>frac (real M * x) - 1/2\<bar>" unfolding tri_def by presburger
+          show ?thesis using h1 h2 hge34 frac_lt_1[of "real M * x"] by simp
+        qed
+      qed
       show ?thesis
       proof (cases "x + h49 \<in> top1_I01")
         case True
         then have "\<not>(x - h49 \<in> top1_I01)" using False by satx
         then have "x < h49" using hx01 hh49_pos unfolding top1_closed_interval_def by simp
-        then have "frac (real M * x) < 1/4" using hMh hx01(1) hMpos sorry
+        then have "real M * x < real M * h49" using hMpos by (simp add: mult_strict_left_mono)
+        then have hMx_bound: "0 \<le> real M * x \<and> real M * x < 1/4" using hMh hx01(1) hMpos by simp
+        then have "\<lfloor>real M * x\<rfloor> = 0" by linarith
+        then have "frac (real M * x) = real M * x" unfolding frac_def by linarith
+        then have "frac (real M * x) < 1/4" using hMx_bound by metis
         then show ?thesis using True hfwd_eq hdir_fwd by simp
       next
         case nfwd: False
         then have "x - h49 \<in> top1_I01" using havail by satx
         have "x > 1 - h49" using nfwd hx01 unfolding top1_closed_interval_def
           using hh49_pos by force
-        then have "frac (real M * x) = 0 \<or> frac (real M * x) \<ge> 3/4"
-          using hx01 hMpos hM hMh sorry
+        then have "real M * x > real M * (1 - h49)" using hMpos by (simp add: mult_strict_left_mono)
+        then have hMx_hi: "real M * x > real M - 1/4" using hMh by (simp add: algebra_simps)
+        have hMx_le: "real M * x \<le> real M" using hx01(2) hMpos by simp
+        have "frac (real M * x) = 0 \<or> frac (real M * x) \<ge> 3/4"
+        proof (cases "real M * x = real M")
+          case True then show ?thesis unfolding frac_def by auto
+        next
+          case False
+          then have "real M * x < real M" using hMx_le by linarith
+          then have "\<lfloor>real M * x\<rfloor> = int M - 1" using hMx_hi hx01(1) hMpos by linarith
+          then have "frac (real M * x) = real M * x - (real M - 1)" unfolding frac_def by linarith
+          then show ?thesis using hMx_hi by linarith
+        qed
         then show ?thesis using \<open>x - h49 \<in> top1_I01\<close> hbwd_eq hdir_bwd by simp
       qed
     qed
