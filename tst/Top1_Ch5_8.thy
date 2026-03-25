@@ -18049,8 +18049,44 @@ proof -
       Requires 4-way case split on frac(Mx) mod 1/4, combined with boundary.
       Left as sorry — the mathematical argument is clear (see text above).\<close>
     text \<open>Standalone tri property: one of forward/backward by 1/4 gives diff 1/2.\<close>
+    have hfrac_q: "frac (1/4 :: real) = 1/4" unfolding frac_def by simp
+    have hfrac_add_lt: "\<And>t::real. frac t < 3/4 \<Longrightarrow> frac (t + 1/4) = frac t + 1/4"
+    proof -
+      fix t :: real assume h: "frac t < 3/4"
+      have "frac t + frac (1/4::real) < 1" using h hfrac_q by linarith
+      then have "frac (t + 1/4) = frac t + frac (1/4::real)"
+        using frac_add[of t "1/4"] if_P[of "frac t + frac (1/4::real) < 1"] by presburger
+      then show "frac (t + 1/4) = frac t + 1/4" using hfrac_q by presburger
+    qed
+    have hfrac_sub_ge: "\<And>t::real. frac t \<ge> 1/4 \<Longrightarrow> frac (t - 1/4) = frac t - 1/4"
+      by (metis hfrac_q frac_diff_pos)
     have htri_either: "\<And>t::real. \<bar>tri (t + 1/4) - tri t\<bar> = 1/2 \<or> \<bar>tri (t - 1/4) - tri t\<bar> = 1/2"
-      sorry
+    proof -
+      fix t :: real
+      define u where "u = frac t"
+      have hu: "0 \<le> u" "u < 1" unfolding u_def by (simp_all add: frac_ge_0 frac_lt_1)
+      show "\<bar>tri (t + 1/4) - tri t\<bar> = 1/2 \<or> \<bar>tri (t - 1/4) - tri t\<bar> = 1/2"
+      proof (cases "u < 1/4 \<or> (1/2 \<le> u \<and> u < 3/4)")
+        case True
+        then have "frac t < 3/4" unfolding u_def by linarith
+        then have hfwd: "frac (t + 1/4) = u + 1/4" using hfrac_add_lt unfolding u_def by presburger
+        have "tri (t + 1/4) = 1 - 2 * \<bar>(u + 1/4) - 1/2\<bar>" unfolding tri_def using hfwd u_def by metis
+        moreover have "tri t = 1 - 2 * \<bar>u - 1/2\<bar>" unfolding tri_def u_def by metis
+        ultimately have "\<bar>tri (t + 1/4) - tri t\<bar> = \<bar>2 * \<bar>u - 1/2\<bar> - 2 * \<bar>(u + 1/4) - 1/2\<bar>\<bar>" by argo
+        also have "\<dots> = 1/2" using True hu by fastforce
+        finally show ?thesis by presburger
+      next
+        case False
+        then have "1/4 \<le> u \<and> u < 1/2 \<or> 3/4 \<le> u \<and> u < 1" using hu by linarith
+        then have "frac t \<ge> 1/4" unfolding u_def by linarith
+        then have hbwd: "frac (t - 1/4) = u - 1/4" using hfrac_sub_ge unfolding u_def by presburger
+        have "tri (t - 1/4) = 1 - 2 * \<bar>(u - 1/4) - 1/2\<bar>" unfolding tri_def using hbwd u_def by metis
+        moreover have "tri t = 1 - 2 * \<bar>u - 1/2\<bar>" unfolding tri_def u_def by metis
+        ultimately have "\<bar>tri (t - 1/4) - tri t\<bar> = \<bar>2 * \<bar>u - 1/2\<bar> - 2 * \<bar>(u - 1/4) - 1/2\<bar>\<bar>" by argo
+        also have "\<dots> = 1/2" using False hu by argo
+        finally show ?thesis by presburger
+      qed
+    qed
     have htri_quot: "\<exists>s \<in> {h49, -h49}. x + s \<in> top1_I01 \<and> \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2"
     proof (cases "x + h49 \<in> top1_I01 \<and> x - h49 \<in> top1_I01")
       case True
