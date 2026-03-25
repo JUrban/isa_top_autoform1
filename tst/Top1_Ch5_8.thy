@@ -13140,14 +13140,13 @@ text \<open>Theorem 46.8: On C(X,Y), the compact-convergence and compact-open to
 text \<open>Key fact: compact set inside open set has an ε-gap (Lebesgue number argument).\<close>
 lemma compact_in_open_eps_gap:
   assumes hd: "top1_metric_on Y d"
-  assumes hK: "top1_compact_on K (top1_metric_topology_on Y d)"
+  assumes hKY: "K \<subseteq> Y"
+  assumes hK: "top1_compact_on K (subspace_topology Y (top1_metric_topology_on Y d) K)"
   assumes hU: "U \<in> top1_metric_topology_on Y d"
   assumes hKU: "K \<subseteq> U"
   assumes hKne: "K \<noteq> {}"
   shows "\<exists>\<epsilon>>0. \<forall>y\<in>Y. (\<exists>k\<in>K. d k y < \<epsilon>) \<longrightarrow> y \<in> U"
 proof -
-  have hKY: "K \<subseteq> Y" using hK unfolding top1_compact_on_def top1_metric_topology_on_def
-    topology_generated_by_basis_def by (simp add: is_topology_on_def)
   have hUY: "U \<subseteq> Y" using hU unfolding top1_metric_topology_on_def
     topology_generated_by_basis_def by blast
   text \<open>For each k in K, get r_k > 0 with B(k, r_k) ⊆ U.\<close>
@@ -13170,8 +13169,12 @@ proof -
     unfolding halfcover_def using top1_ball_open_in_metric_topology[OF hd] hKY hrk by auto
   have hopen_sub: "halfcover ` K \<subseteq> top1_metric_topology_on Y d"
     using hopen_half by force
+  have hTY_top: "is_topology_on Y (top1_metric_topology_on Y d)"
+    using top1_metric_topology_on_is_topology_on[OF hd] by blast
+  have hK_L26: "\<forall>Uc. Uc \<subseteq> top1_metric_topology_on Y d \<and> K \<subseteq> \<Union>Uc \<longrightarrow> (\<exists>F. finite F \<and> F \<subseteq> Uc \<and> K \<subseteq> \<Union>F)"
+    using iffD1[OF Lemma_26_1[OF hTY_top hKY] hK] by argo
   obtain F where hF: "finite F" "F \<subseteq> halfcover ` K" "K \<subseteq> \<Union>F"
-    using hK hopen_sub hcov unfolding top1_compact_on_def by meson
+    using hK_L26 hopen_sub hcov by (metis hopen_sub hcov hK_L26)
   have hFne: "F \<noteq> {}" using hKne hF(3) by blast
   text \<open>Extract representative centers from the finite subcover.\<close>
   have hFK: "\<forall>V\<in>F. \<exists>k\<in>K. V = halfcover k" using hF(2) by blast
@@ -13250,7 +13253,11 @@ proof -
       using top1_metric_topology_on_is_topology_on[OF hd] by presburger
     have hfC0_sub: "f ` C0 \<subseteq> Y" using hfCont hCU(3) unfolding top1_continuous_map_on_def
       by blast
-    have hfC0_compact: "top1_compact_on (f ` C0) ?TY" sorry
+    have hfC0_cont: "top1_continuous_map_on C0 (subspace_topology X TX C0) Y ?TY f"
+      using hfCont hCU(3) hTopX
+      by (metis hCU(3) hTopX hfCont top1_continuous_map_on_restrict_domain_simple)
+    have hfC0_compact: "top1_compact_on (f ` C0) (subspace_topology Y ?TY (f ` C0))"
+      using top1_compact_on_continuous_image[OF hCU(2) hTY_top hfC0_cont] by blast
     text \<open>Use ε-gap: compact f(C0) ⊆ open U0.\<close>
     show "f \<in> V \<inter> ?C"
     proof (cases "C0 = {}")
@@ -13284,7 +13291,7 @@ proof -
       case False
       have hfC0ne: "f ` C0 \<noteq> {}" using False by blast
       obtain \<epsilon>0 where h\<epsilon>0: "\<epsilon>0 > 0" and heps_nbhd: "\<forall>y\<in>Y. (\<exists>k\<in>f`C0. d k y < \<epsilon>0) \<longrightarrow> y \<in> U0"
-        using compact_in_open_eps_gap[OF hd hfC0_compact hCU(4) hfC0U0 hfC0ne] by blast
+        using compact_in_open_eps_gap[OF hd hfC0_sub hfC0_compact hCU(4) hfC0U0 hfC0ne] by blast
       define \<epsilon> where "\<epsilon> = min \<epsilon>0 1"
       have h\<epsilon>: "\<epsilon> > 0" unfolding \<epsilon>_def using h\<epsilon>0 by linarith
       have h\<epsilon>1: "\<epsilon> \<le> 1" unfolding \<epsilon>_def by simp
