@@ -13426,7 +13426,7 @@ theorem Theorem_46_8:
            (top1_compact_open_topology_on X TX Y (top1_metric_topology_on Y d))
            (top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d))"
   using Theorem_46_8_cc_finer_co[OF hTopX hd] Theorem_46_8_co_finer_cc[OF hTopX hd]
-  sorry
+  by fast
 
 lemma compact_on_subspace_self:
   assumes hComp: "top1_compact_on X TX"
