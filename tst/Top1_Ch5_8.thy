@@ -18038,6 +18038,10 @@ proof -
       using hh49_half hh49_pos hx01 top1_closed_interval_def by force
     have hf_osc: "\<forall>y\<in>top1_I01. dist y x < \<delta> \<longrightarrow> \<bar>f y - f x\<bar> < A"
       by (metis dist_real_def h\<delta>_osc hx)
+    text \<open>The key geometric fact: tri has linear segments of length 1/(2M).
+      h49 = 1/(4M) is half a segment. From the first half of any segment,
+      forward by h49 stays in the segment (slope gives diff 1/2).
+      From the second half, backward stays in the segment.\<close>
     have htri_quot: "\<exists>s \<in> {h49, -h49}. x + s \<in> top1_I01 \<and> \<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2"
       sorry
     then obtain s where hs_set: "s \<in> {h49, -h49}" and hs_in: "x + s \<in> top1_I01"
