@@ -18099,9 +18099,27 @@ proof -
       case False
       text \<open>Only one direction available. The available one gives diff 1/2
         because boundary forces frac into the right quarter.\<close>
-      show ?thesis using False havail hfwd_eq hbwd_eq hx01 hMpos hh49_pos
-        unfolding top1_closed_interval_def tri_def h49_def frac_def
+      have hdir_fwd: "frac (real M * x) < 1/4 \<Longrightarrow> \<bar>tri (real M * x + 1/4) - tri (real M * x)\<bar> = 1/2"
         sorry
+      have hdir_bwd: "(frac (real M * x) = 0 \<or> frac (real M * x) \<ge> 3/4) \<Longrightarrow>
+        \<bar>tri (real M * x - 1/4) - tri (real M * x)\<bar> = 1/2"
+        sorry
+      show ?thesis
+      proof (cases "x + h49 \<in> top1_I01")
+        case True
+        then have "\<not>(x - h49 \<in> top1_I01)" using False by satx
+        then have "x < h49" using hx01 hh49_pos unfolding top1_closed_interval_def by simp
+        then have "frac (real M * x) < 1/4" using hMh hx01(1) hMpos sorry
+        then show ?thesis using True hfwd_eq hdir_fwd by simp
+      next
+        case nfwd: False
+        then have "x - h49 \<in> top1_I01" using havail by satx
+        have "x > 1 - h49" using nfwd hx01 unfolding top1_closed_interval_def
+          using hh49_pos by force
+        then have "frac (real M * x) = 0 \<or> frac (real M * x) \<ge> 3/4"
+          using hx01 hMpos hM hMh sorry
+        then show ?thesis using \<open>x - h49 \<in> top1_I01\<close> hbwd_eq hdir_bwd by simp
+      qed
     qed
     then obtain s where hs_set: "s \<in> {h49, -h49}" and hs_in: "x + s \<in> top1_I01"
       and hs_tri: "\<bar>tri (real M * (x + s)) - tri (real M * x)\<bar> = 1/2" by meson
