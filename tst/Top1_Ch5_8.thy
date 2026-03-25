@@ -13240,15 +13240,34 @@ proof -
   have hVS_sup: "S \<subseteq> V \<inter> ?C"
   proof (rule subsetI)
     fix f assume hf: "f \<in> S"
-    have hfC: "f \<in> ?C" using hf hS_sub_C sorry
-    have hfCont: "top1_continuous_map_on X TX Y ?TY f" sorry
-    have hfPiE: "f \<in> ?P" sorry
-    have hfC0U0: "f ` C0 \<subseteq> U0" using hf unfolding hCU(1) sorry
-    text \<open>f(C0) is compact (continuous image of compact).\<close>
+    have hfC: "f \<in> ?C" using hf hS_sub_C by blast
+    have hfCont: "top1_continuous_map_on X TX Y ?TY f"
+      using hfC unfolding top1_continuous_funcs_on_def by force
+    have hfPiE: "f \<in> ?P"
+      using hfC unfolding top1_continuous_funcs_on_def by blast
+    have hfC0U0: "f ` C0 \<subseteq> U0" using hf unfolding hCU(1) by blast
     have hfC0_compact: "top1_compact_on (f ` C0) ?TY" sorry
     text \<open>Use ε-gap: compact f(C0) ⊆ open U0.\<close>
-    have hC0ne_or_empty: "C0 = {} \<or> C0 \<noteq> {}" sorry
-    show "f \<in> V \<inter> ?C" sorry
+    show "f \<in> V \<inter> ?C"
+    proof (cases "C0 = {}")
+      case True
+      text \<open>C0 = {}: B({}, f, 1) covers everything in cc-basis, and B ∩ C = C = S.\<close>
+      then show ?thesis sorry
+    next
+      case False
+      have hfC0ne: "f ` C0 \<noteq> {}" using False by blast
+      obtain \<epsilon> where h\<epsilon>: "\<epsilon> > 0" and heps_nbhd: "\<forall>y\<in>Y. (\<exists>k\<in>f`C0. d k y < \<epsilon>) \<longrightarrow> y \<in> U0"
+        using compact_in_open_eps_gap[OF hd hfC0_compact hCU(4) hfC0U0 hfC0ne] by blast
+      text \<open>B_{C0}(f, ε) is a cc-basis element.\<close>
+      define B where "B = {g \<in> ?P. (if C0 = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` C0)) < \<epsilon>}"
+      have hB_basis: "B \<in> top1_compact_convergence_basis_on X TX Y d" sorry
+      have hfB: "f \<in> B" sorry
+      have hB_in_S: "B \<inter> ?C \<subseteq> S" sorry
+      have "B \<in> {Bx \<in> top1_compact_convergence_basis_on X TX Y d. \<exists>fx\<in>S. fx \<in> Bx \<and> Bx \<inter> ?C \<subseteq> S}"
+        using hB_basis hf hfB hB_in_S by blast
+      then have "f \<in> V" unfolding V_def using hfB by blast
+      then show ?thesis using hfC by blast
+    qed
   qed
   have hVS: "V \<inter> ?C = S" using hVS_sub hVS_sup by fastforce
   show ?thesis unfolding subspace_topology_def using hVS hV_cc by blast
