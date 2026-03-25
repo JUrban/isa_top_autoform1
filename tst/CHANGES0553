@@ -1,0 +1,23 @@
+bck0553 - 2026-03-25 - 23 proof sorry's, 19s build
+
+Session summary (this conversation, started at 27 sorry's from bck0548):
+
+PROVED this session:
+1. hunion: {0..1} = ⋃k∈{0..<M}. {k/M..(k+1)/M}
+   - ⊇: divide_right_mono + frac_le for Suc(k)/M ≤ 1
+   - ⊆: floor-based k with nat_less_iff, of_nat_nat + field_simps
+2. hcont_each: continuous_on (II k) (λx. tri(M*x))
+   - htri_eq: tri(Mx) = 1-2|Mx-k-1/2| on [k/M,(k+1)/M]
+   - Case split: endpoint (frac=0) vs interior (floor=k)
+   - continuous_intros for affine+abs composition
+3. Various hgC assembly steps, hh49_le, M arithmetic
+
+TOTAL PROGRESS since start of all sessions (from 30 sorry's):
+- Proved: C01_complete (7 steps), Heine-Cantor, rho49_pointwise_bound,
+  U49_dense structure (hunion, hcont_each, ρ<ε, tri_bound, Archimedean M, hgC, hgUn assembly)
+- Remaining: 22 original theorem sorry's + 1 (hDelta_large = difference quotient Inf > n+2)
+- 23 proof sorry's total, 19s build
+
+The entire §49 chain is:
+  C01_complete → C01_baire → Inter_U49_dense → Theorem_49_1
+  All PROVED except U49_dense_approx's hDelta_large (1 sorry).
