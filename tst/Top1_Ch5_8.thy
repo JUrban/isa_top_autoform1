@@ -7886,8 +7886,14 @@ proof -
     have "{i\<in>I. \<psi> i x \<noteq> 0} \<subseteq> {i\<in>I. x \<in> V i}" using h\<psi>_nonzero_in_V \<open>x \<in> X\<close> by blast
     then show "finite {i\<in>I. \<psi> i x \<noteq> 0}" using hVfin \<open>x \<in> X\<close> finite_subset by blast
   qed
-  text \<open>Step 4: \<Psi> and \<phi>. Left as sorry — finiteness now proved, construction is mechanical.\<close>
-  show ?thesis sorry
+  text \<open>Step 4: Define \<phi>_i = \<psi>_i / \<Psi> and verify partition of unity.\<close>
+  define \<phi> where "\<phi> i x = \<psi> i x / (\<Sum>j\<in>{j\<in>I. \<psi> j x \<noteq> 0}. \<psi> j x)" for i x
+  have hU_open: "\<forall>i\<in>I. U i \<in> TX" using hCov unfolding top1_open_covering_on_def sorry
+  text \<open>Remaining properties: continuity, support, locally finite, sum = 1.
+    All follow from \<psi> properties + \<Psi> > 0 + finiteness.\<close>
+  show ?thesis
+    unfolding top1_partition_of_unity_dominated_family_on_def
+    sorry
 qed
 
 (** from \S41 Theorem 41.8 (Continuous control on locally finite families) [top1.tex:6024] **)
