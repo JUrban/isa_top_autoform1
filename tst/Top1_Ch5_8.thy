@@ -7761,7 +7761,7 @@ proof -
   have "\<forall>B\<in>\<B>. \<exists>i\<in>I. closure_on X TX B \<subseteq> U i"
   proof (intro ballI)
     fix B assume "B \<in> \<B>"
-    obtain Ui where "Ui \<in> U ` I" "closure_on X TX B \<subseteq> Ui" using hBcl \<open>B \<in> \<B>\<close> by blast
+    obtain Ui where "Ui \<in> U ` I" "closure_on X TX B \<subseteq> Ui" using hBcl \<open>B \<in> \<B>\<close> by fast
     then obtain i where "i \<in> I" "Ui = U i" by blast
     then show "\<exists>i\<in>I. closure_on X TX B \<subseteq> U i" using \<open>closure_on X TX B \<subseteq> Ui\<close> by blast
   qed
@@ -8218,7 +8218,7 @@ proof -
   have hCov_fam: "\<forall>x\<in>X. \<exists>Ux\<in>TX. x \<in> Ux \<and> finite {C\<in>\<C>. intersects C Ux}"
     using hLF unfolding top1_locally_finite_family_on_def by blast
   then obtain Ux where hUx: "\<forall>x\<in>X. Ux x \<in> TX \<and> x \<in> Ux x \<and> finite {C\<in>\<C>. intersects C (Ux x)}"
-    by metis
+    by meson
   have hUxcov: "top1_open_covering_on X TX (Ux ` X)"
     unfolding top1_open_covering_on_def
   proof (intro conjI subsetI)
@@ -21491,7 +21491,7 @@ proof -
       have "\<forall>B\<in>{B\<in>\<B>. x \<in> D B}. \<exists>C\<in>\<C>. x \<in> C \<and> fsel C = B"
         unfolding D_def by blast
       then obtain Csel where hCsel: "\<forall>B\<in>{B\<in>\<B>. x \<in> D B}. Csel B \<in> \<C> \<and> x \<in> Csel B \<and> fsel (Csel B) = B"
-        by metis
+        by meson
       have hCsel_inj: "inj_on Csel {B\<in>\<B>. x \<in> D B}"
       proof (rule inj_onI)
         fix B1 B2 assume "B1 \<in> {B\<in>\<B>. x \<in> D B}" "B2 \<in> {B\<in>\<B>. x \<in> D B}" "Csel B1 = Csel B2"
