@@ -1668,13 +1668,152 @@ definition top1_bounded_on :: "'a set \<Rightarrow> ('a \<Rightarrow> real) \<Ri
 
 text \<open>Compactness of [a,b] in the order/subspace topology (Theorem 27.1 of Munkres).
   This is a prerequisite for Stone-\<C>ech and other results.\<close>
-text \<open>Compactness of [a,b]. This deep result (Munkres Theorem 27.1) uses the least upper bound
-  property. The full formal proof requires substantial work with the subspace topology.
-  We leave it as sorry pending a bridge to HOL's compact_Icc or a direct lub proof.\<close>
+text \<open>Bridge between HOL standard topology and our order topology on \<real>.
+  The order topology on UNIV (for reals) coincides with HOL's euclidean topology.\<close>
+lemma basis_order_topology_HOL_open:
+  fixes B :: "real set"
+  assumes "B \<in> basis_order_topology"
+  shows "open B"
+proof -
+  have hB: "B \<in> {open_interval a b |a b. a < b} \<union> {open_ray_gt a |a. True} \<union> {open_ray_lt a |a. True} \<union> {UNIV}"
+    using assms unfolding basis_order_topology_def by blast
+  have h1: "\<forall>a b. B = open_interval a b \<longrightarrow> open B"
+  proof (intro allI impI)
+    fix a b :: real assume "B = open_interval a b"
+    then have "B = {a<..<b}" unfolding open_interval_def greaterThanLessThan_def greaterThan_def lessThan_def by auto
+    then show "open B" by simp
+  qed
+  have h2: "\<forall>a. B = open_ray_gt a \<longrightarrow> open B"
+  proof (intro allI impI)
+    fix a :: real assume "B = open_ray_gt a"
+    then have "B = {a<..}" unfolding open_ray_gt_def greaterThan_def by auto
+    then show "open B" by simp
+  qed
+  have h3: "\<forall>a. B = open_ray_lt a \<longrightarrow> open B"
+  proof (intro allI impI)
+    fix a :: real assume "B = open_ray_lt a"
+    then have "B = {..<a}" unfolding open_ray_lt_def lessThan_def by auto
+    then show "open B" by simp
+  qed
+  show "open B" using hB h1 h2 h3 by blast
+qed
+
+lemma order_topology_on_UNIV_imp_HOL_open:
+  assumes "(U::real set) \<in> order_topology_on_UNIV"
+  shows "open U"
+proof -
+  have "\<forall>x\<in>U. \<exists>T. open T \<and> x \<in> T \<and> T \<subseteq> U"
+  proof (intro ballI)
+    fix x assume "x \<in> U"
+    obtain b where "b \<in> basis_order_topology" "x \<in> b" "b \<subseteq> U"
+      using assms \<open>x \<in> U\<close> unfolding order_topology_on_UNIV_def topology_generated_by_basis_def by blast
+    have "open b" using basis_order_topology_HOL_open[OF \<open>b \<in> basis_order_topology\<close>] by blast
+    then show "\<exists>T. open T \<and> x \<in> T \<and> T \<subseteq> U" using \<open>x \<in> b\<close> \<open>b \<subseteq> U\<close> by blast
+  qed
+  then show "open U" using open_subopen by blast
+qed
+
+lemma HOL_open_imp_order_topology_on_UNIV:
+  assumes "open (U::real set)"
+  shows "U \<in> order_topology_on_UNIV"
+proof -
+  have hTopOT: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  text \<open>Every HOL-open set is locally in our topology: for each x \<in> U, there's an
+    open interval (x-e, x+e) \<subseteq> U, and open intervals are in our topology.\<close>
+  have "\<forall>x\<in>U. \<exists>b\<in>basis_order_topology. x \<in> b \<and> b \<subseteq> U"
+  proof (intro ballI)
+    fix x :: real assume "x \<in> U"
+    have "\<exists>e>0. \<forall>y. dist y x < e \<longrightarrow> y \<in> U"
+      using assms \<open>x \<in> U\<close> unfolding open_dist by blast
+    then obtain e :: real where "e > 0" "\<forall>y. dist y x < e \<longrightarrow> y \<in> U" by blast
+    have "open_interval (x - e) (x + e) \<subseteq> U"
+    proof (rule subsetI)
+      fix y assume "y \<in> open_interval (x - e) (x + e)"
+      then have "x - e < y" "y < x + e" unfolding open_interval_def by auto
+      then have "dist y x < e" unfolding dist_real_def by auto
+      then show "y \<in> U" using \<open>\<forall>y. dist y x < e \<longrightarrow> y \<in> U\<close> by blast
+    qed
+    have "x - e < x + e" using \<open>e > 0\<close> by linarith
+    have "open_interval (x - e) (x + e) \<in> basis_order_topology"
+      unfolding basis_order_topology_def using \<open>x - e < x + e\<close> by blast
+    moreover have "x \<in> open_interval (x - e) (x + e)"
+      unfolding open_interval_def using \<open>e > 0\<close> by auto
+    ultimately show "\<exists>b\<in>basis_order_topology. x \<in> b \<and> b \<subseteq> U"
+      using \<open>open_interval (x - e) (x + e) \<subseteq> U\<close> by blast
+  qed
+  then show "U \<in> order_topology_on_UNIV"
+    unfolding order_topology_on_UNIV_def topology_generated_by_basis_def by blast
+qed
+
+lemma order_topology_on_UNIV_eq_HOL_open:
+  "(U::real set) \<in> order_topology_on_UNIV \<longleftrightarrow> open U"
+  using order_topology_on_UNIV_imp_HOL_open HOL_open_imp_order_topology_on_UNIV by blast
+
+text \<open>Compactness of [a,b]. Uses the bridge to HOL's compact_Icc.\<close>
 lemma top1_closed_interval_compact:
   assumes hab: "(a::real) \<le> b"
   shows "top1_compact_on (top1_closed_interval a b) (top1_closed_interval_topology a b)"
-  sorry
+proof -
+  let ?I = "top1_closed_interval a b"
+  let ?TI = "top1_closed_interval_topology a b"
+  have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  have hTopI: "is_topology_on ?I ?TI"
+    unfolding top1_closed_interval_topology_def
+    by (rule subspace_topology_is_topology_on[OF hTopR], simp add: top1_closed_interval_def)
+  have hI_eq: "?I = {a..b}" unfolding top1_closed_interval_def by auto
+  have hTI_eq: "?TI = subspace_topology UNIV order_topology_on_UNIV ?I"
+    unfolding top1_closed_interval_topology_def by blast
+  text \<open>Use HOL's compact_Icc: compact {a..b}.\<close>
+  have hHOL_compact: "compact {a..b}" by (rule compact_Icc)
+  text \<open>Bridge: translate to our framework.\<close>
+  show ?thesis unfolding top1_compact_on_def
+  proof (intro conjI allI impI)
+    show "is_topology_on ?I ?TI" by (rule hTopI)
+  next
+    fix Uc assume hUc: "Uc \<subseteq> ?TI \<and> ?I \<subseteq> \<Union>Uc"
+    text \<open>Each U \<in> Uc is open in subspace, i.e. U = V \<inter> [a,b] for some V \<in> order_topology.
+      By bridge, V is HOL-open. So U is HOL-open in subspace {a..b}.\<close>
+    have "\<forall>U\<in>Uc. \<exists>V. open V \<and> U = V \<inter> ?I"
+    proof (intro ballI)
+      fix U assume "U \<in> Uc"
+      then have "U \<in> ?TI" using hUc by blast
+      then obtain V where "V \<in> order_topology_on_UNIV" "U = V \<inter> ?I"
+        unfolding hTI_eq subspace_topology_def by blast
+      then have "open V" using order_topology_on_UNIV_eq_HOL_open by blast
+      then show "\<exists>V. open V \<and> U = V \<inter> ?I" using \<open>U = V \<inter> ?I\<close> by blast
+    qed
+    then obtain Vf where hVf: "\<forall>U\<in>Uc. open (Vf U) \<and> U = Vf U \<inter> ?I" by metis
+    text \<open>The Vf's form an open cover of {a..b} in HOL.\<close>
+    have hVfcover: "{a..b} \<subseteq> \<Union>(Vf ` Uc)"
+    proof (rule subsetI)
+      fix x assume "x \<in> {a..b}"
+      then have "x \<in> ?I" using hI_eq by blast
+      then obtain U where "U \<in> Uc" "x \<in> U" using hUc by blast
+      then have "x \<in> Vf U" using hVf by blast
+      then show "x \<in> \<Union>(Vf ` Uc)" using \<open>U \<in> Uc\<close> by blast
+    qed
+    text \<open>By compactD_HOL (compact + open cover → finite subcover).\<close>
+    have hVfopen: "\<forall>V\<in>Vf ` Uc. open V" using hVf by blast
+    obtain F0 where "F0 \<subseteq> Uc" "finite F0" "{a..b} \<subseteq> \<Union>(Vf ` F0)"
+      by (metis compactE_image hHOL_compact hVf hVfcover)
+    text \<open>Translate: finite subcover in our topology.\<close>
+    have "?I \<subseteq> \<Union>F0"
+    proof (rule subsetI)
+      fix x assume "x \<in> ?I"
+      then have "x \<in> {a..b}" using hI_eq by blast
+      then obtain V where "V \<in> Vf ` F0" "x \<in> V" using \<open>{a..b} \<subseteq> \<Union>(Vf ` F0)\<close> by blast
+      then obtain U where "U \<in> F0" "V = Vf U" by blast
+      then have "U \<in> Uc" using \<open>F0 \<subseteq> Uc\<close> by blast
+      have "x \<in> Vf U \<inter> ?I" using \<open>x \<in> V\<close> \<open>V = Vf U\<close> \<open>x \<in> ?I\<close> by blast
+      then have "x \<in> U" using hVf \<open>U \<in> Uc\<close> by blast
+      then show "x \<in> \<Union>F0" using \<open>U \<in> F0\<close> by blast
+    qed
+    show "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> ?I \<subseteq> \<Union>F"
+      using \<open>finite F0\<close> \<open>F0 \<subseteq> Uc\<close> \<open>?I \<subseteq> \<Union>F0\<close> by blast
+  qed
+qed
 
 (** from \S38 Theorem 38.2 (Existence of Stone-\<C>ech compactification) [top1.tex:5418] **)
 text \<open>Proof strategy: use Theorem 34.3 (completely regular \<open>\<Rightarrow>\<close> embeds in \<open>[0,1]^J\<close>)
