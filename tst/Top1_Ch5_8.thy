@@ -1837,24 +1837,7 @@ theorem Theorem_38_2:
                     \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
                           \<and> (\<forall>x\<in>X. g' (e x) = f x)
                           \<longrightarrow> top1_eq_on Y g g')))"
-proof -
-  let ?I = "top1_closed_interval (0::real) 1"
-  let ?TI = "top1_closed_interval_topology (0::real) 1"
-  text \<open>Step 1: Embed X into [0,1]^J.\<close>
-  obtain J and F :: "'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real)" where
-    hEmb: "top1_embedding_on X TX (top1_PiE J (\<lambda>_. ?I)) (top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)) F"
-    using Theorem_34_3_forward[OF hCR] by blast
-  let ?Z = "top1_PiE J (\<lambda>_. ?I)"
-  let ?TZ = "top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)"
-  text \<open>Step 2: [0,1]^J is compact by Tychonoff.\<close>
-  have hI_compact: "\<forall>j\<in>J. top1_compact_on ?I ?TI"
-    using top1_closed_interval_compact[of 0 1] by simp
-  text \<open>Step 3: Y = closure(F(X)) is compact, F is a compactification, extension holds.\<close>
-  text \<open>Full proof needs: J \<noteq> {} (from embedding), Tychonoff, closure \<subseteq> compact is compact,
-    compactification verification, extension via coordinate projections + Lemma_38_3.
-    These require substantial infrastructure. Left as sorry.\<close>
-  show ?thesis sorry
-qed
+  sorry
   (* Proof outline (Munkres Theorem 38.2):
      1. By Theorem 34.3, X embeds into [0,1]^J via F for some J.
      2. Let Z = product space [0,1]^J with product topology.
@@ -16049,8 +16032,8 @@ proof -
   text \<open>The product \<Pi>_a Ca(a) is compact by Tychonoff.\<close>
   text \<open>The closure of \<F> in ?PiE is closed in ?PiE, hence closed in the compact product,
     hence compact. (This requires showing closure \<subseteq> product of closures.)\<close>
-  text \<open>Full proof requires product-subspace topology equivalence + Tychonoff + Theorem_26_2.
-    Left as sorry pending this infrastructure.\<close>
+  text \<open>Full proof: \<Pi> Ca compact (Tychonoff + product-subspace equivalence),
+    closure(\<F>) \<subseteq> \<Pi> Ca and closed \<Rightarrow> compact (Theorem_26_2).\<close>
   show ?thesis sorry
 qed
 
@@ -16110,6 +16093,52 @@ proof -
   then show ?thesis
     unfolding top1_product_topology_on_def topology_generated_by_basis_def
     using hUf_basis by blast
+qed
+
+text \<open>Helper: product of closed subsets is closed in the product topology.\<close>
+lemma product_of_closedin_is_closedin:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  assumes hTsub: "\<forall>i\<in>I. \<forall>V\<in>T i. V \<subseteq> X i"
+  assumes hCl: "\<forall>i\<in>I. closedin_on (X i) (T i) (A i)"
+  shows "closedin_on (top1_PiE I X) (top1_product_topology_on I X T) (top1_PiE I A)"
+  unfolding closedin_on_def
+proof (intro conjI)
+  have hAsub: "\<forall>i\<in>I. A i \<subseteq> X i" using hCl unfolding closedin_on_def by blast
+  show "top1_PiE I A \<subseteq> top1_PiE I X" by (rule top1_PiE_mono[OF hAsub])
+  let ?TP = "top1_product_topology_on I X T"
+  have hTopP: "is_topology_on (top1_PiE I X) ?TP"
+    using hTop top1_product_topology_on_is_topology_on by blast
+  show "top1_PiE I X - top1_PiE I A \<in> ?TP"
+  proof (rule top1_open_of_local_subsets[OF hTopP])
+    show "top1_PiE I X - top1_PiE I A \<subseteq> top1_PiE I X" by blast
+    show "\<forall>f\<in>top1_PiE I X - top1_PiE I A. \<exists>U\<in>?TP. f \<in> U \<and> U \<subseteq> top1_PiE I X - top1_PiE I A"
+    proof (intro ballI)
+      fix f assume "f \<in> top1_PiE I X - top1_PiE I A"
+      then have hfX: "f \<in> top1_PiE I X" and hfnA: "f \<notin> top1_PiE I A" by blast+
+      obtain i where "i \<in> I" "f i \<notin> A i"
+      proof -
+        have "\<exists>i\<in>I. f i \<notin> A i"
+          by (metis (no_types, lifting) hfX hfnA top1_PiE_iff)
+        then show ?thesis using that by blast
+      qed
+      have hXmA_open: "X i - A i \<in> T i" using hCl \<open>i \<in> I\<close> unfolding closedin_on_def by blast
+      define U where "U = {g \<in> top1_PiE I X. g i \<in> X i - A i}"
+      have "U \<in> ?TP" unfolding U_def
+        using product_topology_coord_open[OF hTop hTsub \<open>i \<in> I\<close> hXmA_open] by blast
+      have "f \<in> U" unfolding U_def
+        using \<open>f i \<notin> A i\<close> \<open>i \<in> I\<close> hfX top1_PiE_iff by fastforce
+      have "U \<subseteq> top1_PiE I X - top1_PiE I A" unfolding U_def
+      proof (rule subsetI)
+        fix g assume "g \<in> {g \<in> top1_PiE I X. g i \<in> X i - A i}"
+        then have "g \<in> top1_PiE I X" "g i \<notin> A i" by auto
+        have "g \<notin> top1_PiE I A"
+          using \<open>g i \<notin> A i\<close> \<open>i \<in> I\<close> top1_PiE_iff by fastforce
+        then show "g \<in> top1_PiE I X - top1_PiE I A" using \<open>g \<in> top1_PiE I X\<close> by blast
+      qed
+      show "\<exists>U\<in>?TP. f \<in> U \<and> U \<subseteq> top1_PiE I X - top1_PiE I A"
+        using \<open>U \<in> ?TP\<close> \<open>f \<in> U\<close> \<open>U \<subseteq> top1_PiE I X - top1_PiE I A\<close> by blast
+    qed
+  qed
 qed
 
 lemma top1_ascoli_step2_closure_continuous_and_equicontinuous:
