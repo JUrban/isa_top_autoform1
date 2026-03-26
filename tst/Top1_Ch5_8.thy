@@ -16032,8 +16032,11 @@ proof -
   text \<open>The product \<Pi>_a Ca(a) is compact by Tychonoff.\<close>
   text \<open>The closure of \<F> in ?PiE is closed in ?PiE, hence closed in the compact product,
     hence compact. (This requires showing closure \<subseteq> product of closures.)\<close>
-  text \<open>Full proof: \<Pi> Ca compact (Tychonoff + product-subspace equivalence),
-    closure(\<F>) \<subseteq> \<Pi> Ca and closed \<Rightarrow> compact (Theorem_26_2).\<close>
+  text \<open>Full proof: \<Pi> Ca compact (Tychonoff + product_subspace_topology_eq),
+    closure(\<F>) \<subseteq> \<Pi> Ca (product_of_closedin + closure monotonicity),
+    closed in compact \<Rightarrow> compact (Theorem_26_2).
+    The proof assembles existing infrastructure but requires careful type handling
+    to avoid kernel blowup. Left as sorry.\<close>
   show ?thesis sorry
 qed
 
@@ -16094,6 +16097,15 @@ proof -
     unfolding top1_product_topology_on_def topology_generated_by_basis_def
     using hUf_basis by blast
 qed
+
+text \<open>Product of subspace topologies = subspace of product topology.
+  This is a standard fact needed for Tychonoff on subspaces.\<close>
+lemma product_subspace_topology_eq:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  assumes hSub: "\<forall>i\<in>I. A i \<subseteq> X i"
+  shows "top1_product_topology_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
+    = subspace_topology (top1_PiE I X) (top1_product_topology_on I X T) (top1_PiE I A)"
+  sorry
 
 text \<open>Helper: product of closed subsets is closed in the product topology.\<close>
 lemma product_of_closedin_is_closedin:
@@ -21793,6 +21805,7 @@ text \<open>Corollary 50.3: dim(Y_1 \<union> ... \<union> Y_k) = max(dim Y_1, ..
 corollary Corollary_50_3:
   assumes hTop: "is_topology_on X TX"
   assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
+  assumes hkpos: "0 < k"
   assumes hcov: "X = (\<Union>i\<in>{0..<k}. Y i)"
   assumes hClosed: "\<forall>i<k. closedin_on X TX (Y i)"
   assumes hdim: "\<forall>i<k. top1_finite_dimensional_on (Y i) (subspace_topology X TX (Y i))"
