@@ -16100,6 +16100,15 @@ qed
 
 text \<open>Product of subspace topologies = subspace of product topology.
   This is a standard fact needed for Tychonoff on subspaces.\<close>
+text \<open>Key helper: every product-basis element of the product-on-A topology
+  equals a product-basis element of the product-on-X topology intersected with PiE I A.\<close>
+lemma product_basis_subspace_iff:
+  assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  assumes hSub: "\<forall>i\<in>I. A i \<subseteq> X i"
+  shows "top1_product_basis_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
+    = (\<lambda>B. B \<inter> top1_PiE I A) ` top1_product_basis_on I X T"
+  sorry
+
 lemma product_subspace_topology_eq:
   assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
   assumes hSub: "\<forall>i\<in>I. A i \<subseteq> X i"
