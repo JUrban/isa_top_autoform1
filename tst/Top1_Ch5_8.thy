@@ -1837,7 +1837,24 @@ theorem Theorem_38_2:
                     \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
                           \<and> (\<forall>x\<in>X. g' (e x) = f x)
                           \<longrightarrow> top1_eq_on Y g g')))"
-  sorry
+proof -
+  let ?I = "top1_closed_interval (0::real) 1"
+  let ?TI = "top1_closed_interval_topology (0::real) 1"
+  text \<open>Step 1: Embed X into [0,1]^J.\<close>
+  obtain J and F :: "'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real)" where
+    hEmb: "top1_embedding_on X TX (top1_PiE J (\<lambda>_. ?I)) (top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)) F"
+    using Theorem_34_3_forward[OF hCR] by blast
+  let ?Z = "top1_PiE J (\<lambda>_. ?I)"
+  let ?TZ = "top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)"
+  text \<open>Step 2: [0,1]^J is compact by Tychonoff.\<close>
+  have hI_compact: "\<forall>j\<in>J. top1_compact_on ?I ?TI"
+    using top1_closed_interval_compact[of 0 1] by simp
+  text \<open>Step 3: Y = closure(F(X)) is compact, F is a compactification, extension holds.\<close>
+  text \<open>Full proof needs: J \<noteq> {} (from embedding), Tychonoff, closure \<subseteq> compact is compact,
+    compactification verification, extension via coordinate projections + Lemma_38_3.
+    These require substantial infrastructure. Left as sorry.\<close>
+  show ?thesis sorry
+qed
   (* Proof outline (Munkres Theorem 38.2):
      1. By Theorem 34.3, X embeds into [0,1]^J via F for some J.
      2. Let Z = product space [0,1]^J with product topology.
