@@ -7938,10 +7938,34 @@ proof -
       finally show ?thesis .
     qed
   qed
-  text \<open>Properties 1-3 left as sorry.\<close>
+  text \<open>Property 2: support(\<phi>_i) \<subseteq> U_i.\<close>
+  have hprop2_support: "\<forall>i\<in>I. top1_support_on X TX (\<phi> i) \<subseteq> U i"
+  proof (intro ballI)
+    fix i assume "i \<in> I"
+    text \<open>\<phi>_i = 0 on X - V_i (since \<psi>_i = 0 there). So {x | \<phi>_i(x) \<noteq> 0} \<subseteq> V_i.
+      support = cl({x | \<phi>_i(x) \<noteq> 0}) \<subseteq> cl(V_i) \<subseteq> U_i.\<close>
+    have "\<forall>x\<in>X - V i. \<phi> i x = 0" unfolding \<phi>_def using h\<psi>_zero_outside \<open>i \<in> I\<close> by simp
+    then have "{x \<in> X. \<phi> i x \<noteq> 0} \<subseteq> V i" by blast
+    then have "closure_on X TX {x \<in> X. \<phi> i x \<noteq> 0} \<subseteq> closure_on X TX (V i)"
+      using closure_on_mono by fast
+    also have "closure_on X TX (V i) \<subseteq> U i" using hV \<open>i \<in> I\<close> by blast
+    finally show "top1_support_on X TX (\<phi> i) \<subseteq> U i" unfolding top1_support_on_def by order
+  qed
+  text \<open>Property 3: locally finite supports.
+    support(\<phi>_i) \<subseteq> cl(V_i), and the family {cl(V_i)} is locally finite.\<close>
+  have hprop3: "top1_locally_finite_family_on X TX ((\<lambda>i. top1_support_on X TX (\<phi> i)) ` I)"
+    sorry
+  text \<open>Property 2a: \<phi>_i continuous [0,1]. Left as sorry.\<close>
+  have hprop2_cont: "\<forall>i\<in>I. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (\<phi> i)"
+    sorry
+  have hprop2: "\<forall>i\<in>I. top1_continuous_map_on X TX (top1_closed_interval 0 1) (top1_closed_interval_topology 0 1) (\<phi> i) \<and> top1_support_on X TX (\<phi> i) \<subseteq> U i"
+    using hprop2_cont hprop2_support by blast
   show ?thesis
-    unfolding top1_partition_of_unity_dominated_family_on_def
-    using hU_open hprop4 sorry
+  proof (rule exI[of _ \<phi>])
+    show "top1_partition_of_unity_dominated_family_on X TX I U \<phi>"
+      unfolding top1_partition_of_unity_dominated_family_on_def
+      using hU_open hprop2 hprop3 hprop4 by blast
+  qed
 qed
 
 (** from \S41 Theorem 41.8 (Continuous control on locally finite families) [top1.tex:6024] **)
