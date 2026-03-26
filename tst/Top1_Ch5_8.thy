@@ -15860,7 +15860,31 @@ lemma top1_ascoli_step1_compact_closure_pointwise:
       (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>)
       (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d))
         (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>))"
-  sorry
+proof -
+  let ?TY = "top1_metric_topology_on Y d"
+  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
+  let ?Tpw = "top1_pointwise_topology_on X Y ?TY"
+  text \<open>Pointwise topology = product topology.\<close>
+  have hTpw_eq: "?Tpw = top1_product_topology_on X (\<lambda>_. Y) (\<lambda>_. ?TY)"
+    unfolding top1_pointwise_topology_on_def by blast
+  have hTopY: "is_topology_on Y ?TY"
+    using top1_metric_topology_on_is_topology_on[OF hd] by blast
+  text \<open>Step 1: Define the 'box' product of coordinate closures.\<close>
+  define Ca where "Ca a = closure_on Y ?TY ((\<lambda>f. f a) ` \<F>)" for a
+  text \<open>Each Ca(a) is compact.\<close>
+  have hCa_comp: "\<forall>a\<in>X. top1_compact_on (Ca a) (subspace_topology Y ?TY (Ca a))"
+    using hCa unfolding Ca_def by blast
+  text \<open>The product \<Pi>_a Ca(a) is compact by Tychonoff.\<close>
+  text \<open>The closure of \<F> in ?PiE is closed in ?PiE, hence closed in the compact product,
+    hence compact. (This requires showing closure \<subseteq> product of closures.)\<close>
+  text \<open>Full proof requires:
+    1. Ca a \<subseteq> Y for all a
+    2. \<Pi>_a Ca(a) compact (Tychonoff on subspace)
+    3. closure(\<F>) \<subseteq> \<Pi>_a Ca(a) (coordinate containment)
+    4. closure is closed in the product
+    5. Closed in compact \<Rightarrow> compact\<close>
+  show ?thesis sorry
+qed
 
 text \<open>Helper: coordinate preimage of open set is product-open.\<close>
 lemma product_topology_coord_open:
@@ -21564,13 +21588,18 @@ proof -
 qed
 
 (** from \S50 Corollary 50.3 [top1.tex:7598] **)
+text \<open>Corollary 50.3: dim(Y_1 \<union> ... \<union> Y_k) = max(dim Y_1, ..., dim Y_k) for closed finite-dim Y_i.
+  The proof requires induction on k using Theorem 50.2. We leave it as sorry because
+  the inductive step requires careful handling of subspace topologies for unions,
+  closedin_on for sub-unions, and Max over finite sets. The key mathematical content
+  is already captured by Theorem 50.2.\<close>
 corollary Corollary_50_3:
+  assumes hTop: "is_topology_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   assumes hcov: "X = (\<Union>i\<in>{0..<k}. Y i)"
   assumes hClosed: "\<forall>i<k. closedin_on X TX (Y i)"
   assumes hdim: "\<forall>i<k. top1_finite_dimensional_on (Y i) (subspace_topology X TX (Y i))"
   shows "top1_dim_on X TX = (Max ((\<lambda>i. top1_dim_on (Y i) (subspace_topology X TX (Y i))) ` {0..<k}))"
-  text \<open>Follows from Theorem_50_2 by induction on k.
-    Proof deferred — requires careful handling of dim_on, Max, subspace of unions.\<close>
   sorry
 
 (** A convenient sup metric on the concrete model \<open>\<real>^N\<close> (as extensional functions). **)
