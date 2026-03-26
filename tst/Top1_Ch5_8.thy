@@ -7888,12 +7888,60 @@ proof -
   qed
   text \<open>Step 4: Define \<phi>_i = \<psi>_i / \<Psi> and verify partition of unity.\<close>
   define \<phi> where "\<phi> i x = \<psi> i x / (\<Sum>j\<in>{j\<in>I. \<psi> j x \<noteq> 0}. \<psi> j x)" for i x
-  have hU_open: "\<forall>i\<in>I. U i \<in> TX" using hCov unfolding top1_open_covering_on_def sorry
+  have hUITX: "U ` I \<subseteq> TX" using hCov unfolding top1_open_covering_on_def by blast
+  have hU_open: "\<forall>i\<in>I. U i \<in> TX" using hUITX by blast
   text \<open>Remaining properties: continuity, support, locally finite, sum = 1.
     All follow from \<psi> properties + \<Psi> > 0 + finiteness.\<close>
+  text \<open>Property 4: finite nonzero and sum = 1.\<close>
+  have hprop4: "\<forall>x\<in>X. finite {i\<in>I. \<phi> i x \<noteq> 0} \<and> (\<Sum>i\<in>{i\<in>I. \<phi> i x \<noteq> 0}. \<phi> i x) = 1"
+  proof (intro ballI conjI)
+    fix x assume hxX: "x \<in> X"
+    have hfin_x: "finite {i\<in>I. \<psi> i x \<noteq> 0}" using h\<psi>fin hxX by blast
+    define \<Psi>x where "\<Psi>x = (\<Sum>j\<in>{j\<in>I. \<psi> j x \<noteq> 0}. \<psi> j x)"
+    have h\<Psi>x_pos: "0 < \<Psi>x"
+    proof -
+      obtain i0 where "i0 \<in> I" "x \<in> W i0" using hWcov hxX unfolding top1_open_covering_on_def by blast
+      then have "x \<in> closure_on X TX (W i0)" using subset_closure_on by fast
+      then have "\<psi> i0 x = 1" using h\<psi> \<open>i0 \<in> I\<close> by blast
+      then have "i0 \<in> {j\<in>I. \<psi> j x \<noteq> 0}" using \<open>i0 \<in> I\<close> by simp
+      have h\<psi>_nn: "\<forall>j\<in>{j\<in>I. \<psi> j x \<noteq> 0}. 0 \<le> \<psi> j x"
+      proof (intro ballI)
+        fix j assume "j \<in> {j\<in>I. \<psi> j x \<noteq> 0}"
+        then have "j \<in> I" by blast
+        then have "\<psi> j x \<in> top1_closed_interval 0 1"
+          using h\<psi> hxX unfolding top1_continuous_map_on_def by fast
+        then show "0 \<le> \<psi> j x" unfolding top1_closed_interval_def by blast
+      qed
+      have "\<psi> i0 x \<le> (\<Sum>j\<in>{j\<in>I. \<psi> j x \<noteq> 0}. \<psi> j x)"
+        by (rule member_le_sum[OF \<open>i0 \<in> {j\<in>I. \<psi> j x \<noteq> 0}\<close> _ hfin_x])
+           (use h\<psi>_nn in blast)
+      then show ?thesis unfolding \<Psi>x_def using \<open>\<psi> i0 x = 1\<close> by linarith
+    qed
+    have h\<phi>_eq: "{i\<in>I. \<phi> i x \<noteq> 0} = {i\<in>I. \<psi> i x \<noteq> 0}"
+    proof (rule set_eqI, rule iffI)
+      fix i assume "i \<in> {i\<in>I. \<phi> i x \<noteq> 0}"
+      then show "i \<in> {i\<in>I. \<psi> i x \<noteq> 0}" unfolding \<phi>_def using h\<Psi>x_pos \<Psi>x_def by simp
+    next
+      fix i assume "i \<in> {i\<in>I. \<psi> i x \<noteq> 0}"
+      then show "i \<in> {i\<in>I. \<phi> i x \<noteq> 0}" unfolding \<phi>_def using h\<Psi>x_pos \<Psi>x_def by simp
+    qed
+    then show "finite {i\<in>I. \<phi> i x \<noteq> 0}" using hfin_x by presburger
+    show "(\<Sum>i\<in>{i\<in>I. \<phi> i x \<noteq> 0}. \<phi> i x) = 1"
+    proof -
+      have "{i\<in>I. \<phi> i x \<noteq> 0} = {i\<in>I. \<psi> i x \<noteq> 0}" using h\<phi>_eq by fast
+      then have "(\<Sum>i\<in>{i\<in>I. \<phi> i x \<noteq> 0}. \<phi> i x) = (\<Sum>i\<in>{i\<in>I. \<psi> i x \<noteq> 0}. \<psi> i x / \<Psi>x)"
+        unfolding \<phi>_def \<Psi>x_def by presburger
+      also have "... = (\<Sum>i\<in>{i\<in>I. \<psi> i x \<noteq> 0}. \<psi> i x) / \<Psi>x"
+        using sum_divide_distrib by (metis (mono_tags, lifting) sum.cong)
+      also have "... = \<Psi>x / \<Psi>x" unfolding \<Psi>x_def by argo
+      also have "... = 1" using h\<Psi>x_pos by simp
+      finally show ?thesis .
+    qed
+  qed
+  text \<open>Properties 1-3 left as sorry.\<close>
   show ?thesis
     unfolding top1_partition_of_unity_dominated_family_on_def
-    sorry
+    using hU_open hprop4 sorry
 qed
 
 (** from \S41 Theorem 41.8 (Continuous control on locally finite families) [top1.tex:6024] **)
