@@ -21265,15 +21265,303 @@ proof -
   qed
 qed
 
+text \<open>Step 1 helper for Theorem 50.2: given an open covering of X and a closed Y with dim Y \<le> m,
+  refine to a covering of X that has order \<le> m+1 at points of Y.\<close>
+lemma Theorem_50_2_step1:
+  assumes hTop: "is_topology_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
+  assumes hYcl: "closedin_on X TX Y"
+  assumes hdimY: "top1_dim_le_on Y (subspace_topology X TX Y) m"
+  assumes hCov: "top1_open_covering_on X TX \<A>"
+  shows "\<exists>\<C>. top1_open_covering_on X TX \<C> \<and> top1_refines \<C> \<A>
+    \<and> (\<forall>y\<in>Y. finite {C\<in>\<C>. y \<in> C} \<and> card {C\<in>\<C>. y \<in> C} \<le> Suc m)"
+proof -
+  let ?TY = "subspace_topology X TX Y"
+  have hYsubX: "Y \<subseteq> X" using hYcl unfolding closedin_on_def by blast
+  have hXmY_open: "X - Y \<in> TX" using hYcl unfolding closedin_on_def by blast
+  have hA_TX: "\<A> \<subseteq> TX" using hCov unfolding top1_open_covering_on_def by blast
+  have hA_cov: "X \<subseteq> \<Union>\<A>" using hCov unfolding top1_open_covering_on_def by blast
+  text \<open>Step 1: {A \<inter> Y | A \<in> \<A>} is an open covering of Y.\<close>
+  define \<A>Y where "\<A>Y = (\<lambda>A. A \<inter> Y) ` \<A>"
+  have hAY_cov: "top1_open_covering_on Y ?TY \<A>Y"
+    unfolding top1_open_covering_on_def
+  proof (intro conjI subsetI)
+    fix S assume "S \<in> \<A>Y"
+    then obtain A where "A \<in> \<A>" "S = A \<inter> Y" unfolding \<A>Y_def by blast
+    have "A \<in> TX" using hA_TX \<open>A \<in> \<A>\<close> by blast
+    show "S \<in> ?TY" unfolding \<open>S = A \<inter> Y\<close> subspace_topology_def using \<open>A \<in> TX\<close> by blast
+  next
+    fix y assume "y \<in> Y"
+    then have "y \<in> X" using hYsubX by blast
+    then obtain A where "A \<in> \<A>" "y \<in> A" using hA_cov by blast
+    then have "y \<in> A \<inter> Y" using \<open>y \<in> Y\<close> by blast
+    moreover have "A \<inter> Y \<in> \<A>Y" unfolding \<A>Y_def using \<open>A \<in> \<A>\<close> by blast
+    ultimately show "y \<in> \<Union>\<A>Y" by blast
+  qed
+  text \<open>Step 2: Refine to \<B> covering Y with order \<le> m+1.\<close>
+  obtain \<B> where hBcov: "top1_open_covering_on Y ?TY \<B>"
+    and hBref: "top1_refines \<B> \<A>Y"
+    and hBord: "top1_cover_order_le_on Y \<B> m"
+    using hdimY hAY_cov unfolding top1_dim_le_on_def by blast
+  text \<open>Step 3: For each B \<in> \<B>, choose U_B open in X with U_B \<inter> Y = B.\<close>
+  have hBsubTY: "\<B> \<subseteq> ?TY" using hBcov unfolding top1_open_covering_on_def by blast
+  have "\<forall>B\<in>\<B>. \<exists>UB\<in>TX. B = UB \<inter> Y"
+  proof (intro ballI)
+    fix B assume "B \<in> \<B>"
+    then have "B \<in> ?TY" using hBsubTY by blast
+    then show "\<exists>UB\<in>TX. B = UB \<inter> Y" unfolding subspace_topology_def by blast
+  qed
+  then obtain UB where hUB: "\<forall>B\<in>\<B>. UB B \<in> TX \<and> B = UB B \<inter> Y" by metis
+  text \<open>For each B, choose A_B \<in> \<A> with B \<subseteq> A_B.\<close>
+  have "\<forall>B\<in>\<B>. \<exists>A\<in>\<A>. B \<subseteq> A"
+  proof (intro ballI)
+    fix B assume "B \<in> \<B>"
+    obtain AY where "AY \<in> \<A>Y" "B \<subseteq> AY" using hBref \<open>B \<in> \<B>\<close> unfolding top1_refines_def by blast
+    then obtain A where "A \<in> \<A>" "AY = A \<inter> Y" unfolding \<A>Y_def by blast
+    then have "B \<subseteq> A" using \<open>B \<subseteq> AY\<close> by blast
+    then show "\<exists>A\<in>\<A>. B \<subseteq> A" using \<open>A \<in> \<A>\<close> by blast
+  qed
+  then obtain AB where hAB: "\<forall>B\<in>\<B>. AB B \<in> \<A> \<and> B \<subseteq> AB B" by metis
+  text \<open>Step 4: \<C> = {UB \<inter> AB | B \<in> \<B>} \<union> {A - Y | A \<in> \<A>}.\<close>
+  define \<C> where "\<C> = (\<lambda>B. UB B \<inter> AB B) ` \<B> \<union> (\<lambda>A. A - Y) ` \<A>"
+  text \<open>Step 5: Verify properties.\<close>
+  have hUBAB_open: "\<forall>B\<in>\<B>. UB B \<inter> AB B \<in> TX"
+  proof (intro ballI)
+    fix B assume "B \<in> \<B>"
+    have "UB B \<in> TX" using hUB \<open>B \<in> \<B>\<close> by blast
+    have "AB B \<in> TX" using hAB \<open>B \<in> \<B>\<close> hA_TX by blast
+    show "UB B \<inter> AB B \<in> TX" using topology_inter2[OF hTop \<open>UB B \<in> TX\<close> \<open>AB B \<in> TX\<close>] by blast
+  qed
+  have hAmY_open: "\<forall>A\<in>\<A>. A - Y \<in> TX"
+  proof (intro ballI)
+    fix A assume "A \<in> \<A>"
+    have "A \<in> TX" using hA_TX \<open>A \<in> \<A>\<close> by blast
+    have "A \<subseteq> X" using hTsub \<open>A \<in> TX\<close> by blast
+    then have "A - Y = A \<inter> (X - Y)" by blast
+    have "A \<inter> (X - Y) \<in> TX" using topology_inter2[OF hTop \<open>A \<in> TX\<close> hXmY_open] by blast
+    then show "A - Y \<in> TX" using \<open>A - Y = A \<inter> (X - Y)\<close> by argo
+  qed
+  have h\<C>_open: "\<C> \<subseteq> TX" unfolding \<C>_def using hUBAB_open hAmY_open by blast
+  have h\<C>_covers: "X \<subseteq> \<Union>\<C>"
+  proof (rule subsetI)
+    fix x assume "x \<in> X"
+    show "x \<in> \<Union>\<C>"
+    proof (cases "x \<in> Y")
+      case True
+      then obtain B where "B \<in> \<B>" "x \<in> B"
+        using hBcov unfolding top1_open_covering_on_def by blast
+      have "x \<in> UB B" using hUB \<open>B \<in> \<B>\<close> \<open>x \<in> B\<close> by blast
+      have "x \<in> AB B" using hAB \<open>B \<in> \<B>\<close> \<open>x \<in> B\<close> by blast
+      then have "x \<in> UB B \<inter> AB B" using \<open>x \<in> UB B\<close> by blast
+      moreover have "UB B \<inter> AB B \<in> \<C>" unfolding \<C>_def using \<open>B \<in> \<B>\<close> by blast
+      ultimately show ?thesis by blast
+    next
+      case False
+      obtain A where "A \<in> \<A>" "x \<in> A" using hA_cov \<open>x \<in> X\<close> by blast
+      then have "x \<in> A - Y" using False by blast
+      moreover have "A - Y \<in> \<C>" unfolding \<C>_def using \<open>A \<in> \<A>\<close> by blast
+      ultimately show ?thesis by blast
+    qed
+  qed
+  have h\<C>_cov: "top1_open_covering_on X TX \<C>"
+    unfolding top1_open_covering_on_def using h\<C>_open h\<C>_covers by blast
+  have h\<C>_ref: "top1_refines \<C> \<A>"
+    unfolding top1_refines_def \<C>_def using hAB by auto
+  have h\<C>_ord_Y: "\<forall>y\<in>Y. finite {C\<in>\<C>. y \<in> C} \<and> card {C\<in>\<C>. y \<in> C} \<le> Suc m"
+  proof (intro ballI conjI)
+    fix y assume "y \<in> Y"
+    have hsub: "{C\<in>\<C>. y \<in> C} \<subseteq> (\<lambda>B. UB B \<inter> AB B) ` {B\<in>\<B>. y \<in> B}"
+    proof (rule subsetI)
+      fix C assume hC: "C \<in> {C\<in>\<C>. y \<in> C}"
+      then have "C \<in> \<C>" "y \<in> C" by blast+
+      have "C \<notin> (\<lambda>A. A - Y) ` \<A>" using \<open>y \<in> C\<close> \<open>y \<in> Y\<close> by blast
+      then have "C \<in> (\<lambda>B. UB B \<inter> AB B) ` \<B>"
+        using \<open>C \<in> \<C>\<close> unfolding \<C>_def by blast
+      then obtain B where "B \<in> \<B>" "C = UB B \<inter> AB B" by blast
+      have "y \<in> UB B" using \<open>y \<in> C\<close> \<open>C = UB B \<inter> AB B\<close> by blast
+      then have "y \<in> UB B \<inter> Y" using \<open>y \<in> Y\<close> by blast
+      then have "y \<in> B" using hUB \<open>B \<in> \<B>\<close> by blast
+      then show "C \<in> (\<lambda>B. UB B \<inter> AB B) ` {B\<in>\<B>. y \<in> B}"
+        using \<open>B \<in> \<B>\<close> \<open>C = UB B \<inter> AB B\<close> by blast
+    qed
+    have hfin_By: "finite {B\<in>\<B>. y \<in> B}"
+      using hBord \<open>y \<in> Y\<close> unfolding top1_cover_order_le_on_def by blast
+    show "finite {C\<in>\<C>. y \<in> C}"
+      using finite_subset[OF hsub finite_imageI[OF hfin_By]] by blast
+    have "card {C\<in>\<C>. y \<in> C} \<le> card ((\<lambda>B. UB B \<inter> AB B) ` {B\<in>\<B>. y \<in> B})"
+      using card_mono[OF finite_imageI[OF hfin_By] hsub] by blast
+    also have "... \<le> card {B\<in>\<B>. y \<in> B}" using card_image_le[OF hfin_By] by blast
+    also have "... \<le> Suc m"
+      using hBord \<open>y \<in> Y\<close> unfolding top1_cover_order_le_on_def by blast
+    finally show "card {C\<in>\<C>. y \<in> C} \<le> Suc m" .
+  qed
+  show ?thesis using h\<C>_cov h\<C>_ref h\<C>_ord_Y by blast
+qed
+
 (** from \S50 Theorem 50.2 [top1.tex:7566] **)
 theorem Theorem_50_2:
+  assumes hTop: "is_topology_on X TX"
+  assumes hTsub: "\<forall>U\<in>TX. U \<subseteq> X"
   assumes hYX: "X = Y \<union> Z"
   assumes hYcl: "closedin_on X TX Y"
   assumes hZcl: "closedin_on X TX Z"
   assumes hdimY: "top1_finite_dimensional_on Y (subspace_topology X TX Y)"
   assumes hdimZ: "top1_finite_dimensional_on Z (subspace_topology X TX Z)"
   shows "top1_dim_on X TX = max (top1_dim_on Y (subspace_topology X TX Y)) (top1_dim_on Z (subspace_topology X TX Z))"
-  sorry
+proof -
+  define mY where "mY = top1_dim_on Y (subspace_topology X TX Y)"
+  define mZ where "mZ = top1_dim_on Z (subspace_topology X TX Z)"
+  define m where "m = max mY mZ"
+  have hTopX: "is_topology_on X TX" using hTop by blast
+  have hYsubX: "Y \<subseteq> X" using hYcl unfolding closedin_on_def by blast
+  have hZsubX: "Z \<subseteq> X" using hZcl unfolding closedin_on_def by blast
+  text \<open>Finite dimensionality: extract dim_le from finite_dimensional.\<close>
+  have hdimY_le_mY: "top1_dim_le_on Y (subspace_topology X TX Y) mY"
+    unfolding mY_def by (rule top1_dim_le_on_dim_on_finite[OF hdimY])
+  have hdimZ_le_mZ: "top1_dim_le_on Z (subspace_topology X TX Z) mZ"
+    unfolding mZ_def by (rule top1_dim_le_on_dim_on_finite[OF hdimZ])
+  text \<open>Direction \<le>: dim X \<le> m. Show top1_dim_le_on X TX m first.\<close>
+  have hdimY_le: "top1_dim_le_on Y (subspace_topology X TX Y) m"
+    unfolding m_def by (rule top1_dim_le_on_mono_m[OF hdimY_le_mY]) simp
+  have hdimZ_le: "top1_dim_le_on Z (subspace_topology X TX Z) m"
+    unfolding m_def by (rule top1_dim_le_on_mono_m[OF hdimZ_le_mZ]) simp
+  have hdim_le: "top1_dim_le_on X TX m"
+    unfolding top1_dim_le_on_def
+  proof (intro allI impI)
+    fix \<A> assume hCov: "top1_open_covering_on X TX \<A>"
+    text \<open>Step 1: Refine to order \<le> m+1 at points of Y.\<close>
+    obtain \<B> where hBcov: "top1_open_covering_on X TX \<B>"
+      and hBref: "top1_refines \<B> \<A>"
+      and hBord: "\<forall>y\<in>Y. finite {B\<in>\<B>. y \<in> B} \<and> card {B\<in>\<B>. y \<in> B} \<le> Suc m"
+      using Theorem_50_2_step1[OF hTopX hTsub hYcl hdimY_le hCov] by blast
+    text \<open>Step 1b: Refine \<B> to order \<le> m+1 at points of Z.\<close>
+    obtain \<C> where hCcov: "top1_open_covering_on X TX \<C>"
+      and hCref: "top1_refines \<C> \<B>"
+      and hCord: "\<forall>z\<in>Z. finite {C\<in>\<C>. z \<in> C} \<and> card {C\<in>\<C>. z \<in> C} \<le> Suc m"
+      using Theorem_50_2_step1[OF hTopX hTsub hZcl hdimZ_le hBcov] by blast
+    text \<open>Step 2: Group \<C> by refinement map into \<B> to get \<D> with order \<le> m+1.\<close>
+    have "\<forall>C\<in>\<C>. \<exists>B\<in>\<B>. C \<subseteq> B" using hCref unfolding top1_refines_def by blast
+    then obtain fsel where hfsel: "\<forall>C\<in>\<C>. fsel C \<in> \<B> \<and> C \<subseteq> fsel C" by metis
+    define D where "D B = \<Union>{C\<in>\<C>. fsel C = B}" for B
+    define \<D> where "\<D> = D ` \<B>"
+    text \<open>D(B) \<subseteq> B for all B.\<close>
+    have hDB_sub: "\<forall>B\<in>\<B>. D B \<subseteq> B"
+    proof (intro ballI)
+      fix B assume "B \<in> \<B>"
+      show "D B \<subseteq> B" unfolding D_def using hfsel by blast
+    qed
+    have hDcov: "top1_open_covering_on X TX \<D>"
+      unfolding top1_open_covering_on_def \<D>_def
+    proof (intro conjI subsetI)
+      fix S assume "S \<in> D ` \<B>"
+      then obtain B where "B \<in> \<B>" "S = D B" by blast
+      have hCsubTX: "\<C> \<subseteq> TX" using hCcov unfolding top1_open_covering_on_def by blast
+      have "{C\<in>\<C>. fsel C = B} \<subseteq> TX" using hCsubTX by blast
+      then have "\<Union>{C\<in>\<C>. fsel C = B} \<in> TX" using hTopX unfolding is_topology_on_def by blast
+      then show "S \<in> TX" unfolding \<open>S = D B\<close> D_def by blast
+    next
+      fix x assume "x \<in> X"
+      obtain C where "C \<in> \<C>" "x \<in> C" using hCcov \<open>x \<in> X\<close> unfolding top1_open_covering_on_def by blast
+      then have "fsel C \<in> \<B>" using hfsel by blast
+      have "C \<in> {C\<in>\<C>. fsel C = fsel C}" using \<open>C \<in> \<C>\<close> by blast
+      then have "x \<in> D (fsel C)" unfolding D_def using \<open>x \<in> C\<close> by blast
+      then show "x \<in> \<Union>(D ` \<B>)" using \<open>fsel C \<in> \<B>\<close> by blast
+    qed
+    have hDref: "top1_refines \<D> \<A>"
+      unfolding top1_refines_def \<D>_def
+    proof (intro ballI)
+      fix S assume "S \<in> D ` \<B>"
+      then obtain B where "B \<in> \<B>" "S = D B" by blast
+      have "D B \<subseteq> B" using hDB_sub \<open>B \<in> \<B>\<close> by blast
+      obtain A where "A \<in> \<A>" "B \<subseteq> A" using hBref \<open>B \<in> \<B>\<close> unfolding top1_refines_def by blast
+      then have "S \<subseteq> A" using \<open>S = D B\<close> \<open>D B \<subseteq> B\<close> by blast
+      then show "\<exists>A\<in>\<A>. S \<subseteq> A" using \<open>A \<in> \<A>\<close> by blast
+    qed
+    have hDord: "top1_cover_order_le_on X \<D> m"
+      unfolding top1_cover_order_le_on_def
+    proof (intro ballI conjI)
+      fix x assume "x \<in> X"
+      text \<open>Key: {S \<in> \<D>. x \<in> S} = D ` {B \<in> \<B>. x \<in> D B}.
+        Bound card using: D B \<subseteq> B, so x \<in> D B \<Rightarrow> x \<in> B.
+        If x \<in> Y, use \<B>'s order. If x \<in> Z, use \<C>'s order via Csel.\<close>
+      have h\<D>_eq: "{S\<in>\<D>. x \<in> S} = D ` {B\<in>\<B>. x \<in> D B}" unfolding \<D>_def by blast
+      have hDB_in_B: "{B\<in>\<B>. x \<in> D B} \<subseteq> {B\<in>\<B>. x \<in> B}"
+        using hDB_sub by blast
+      text \<open>For each B with x \<in> D(B), pick C_B \<in> \<C> with x \<in> C_B, fsel(C_B) = B.\<close>
+      have "\<forall>B\<in>{B\<in>\<B>. x \<in> D B}. \<exists>C\<in>\<C>. x \<in> C \<and> fsel C = B"
+        unfolding D_def by blast
+      then obtain Csel where hCsel: "\<forall>B\<in>{B\<in>\<B>. x \<in> D B}. Csel B \<in> \<C> \<and> x \<in> Csel B \<and> fsel (Csel B) = B"
+        by metis
+      have hCsel_inj: "inj_on Csel {B\<in>\<B>. x \<in> D B}"
+      proof (rule inj_onI)
+        fix B1 B2 assume "B1 \<in> {B\<in>\<B>. x \<in> D B}" "B2 \<in> {B\<in>\<B>. x \<in> D B}" "Csel B1 = Csel B2"
+        then have h1: "fsel (Csel B1) = B1" and h2: "fsel (Csel B2) = B2" using hCsel by blast+
+        have "B1 = fsel (Csel B1)" using h1 by blast
+        also have "... = fsel (Csel B2)" using \<open>Csel B1 = Csel B2\<close> by argo
+        also have "... = B2" using h2 by blast
+        finally show "B1 = B2" .
+      qed
+      have hCsel_in: "Csel ` {B\<in>\<B>. x \<in> D B} \<subseteq> {C\<in>\<C>. x \<in> C}"
+        using hCsel by blast
+      text \<open>Finiteness of {B | x \<in> D B}: two cases.\<close>
+      have hfin_DB: "finite {B\<in>\<B>. x \<in> D B}"
+      proof (cases "x \<in> Y")
+        case True
+        have "finite {B\<in>\<B>. x \<in> B}" using hBord True by blast
+        then show ?thesis using finite_subset[OF hDB_in_B] by blast
+      next
+        case False
+        then have "x \<in> Z" using \<open>x \<in> X\<close> hYX by blast
+        have "finite {C\<in>\<C>. x \<in> C}" using hCord \<open>x \<in> Z\<close> by blast
+        have "finite (Csel ` {B\<in>\<B>. x \<in> D B})"
+          using finite_subset[OF hCsel_in \<open>finite {C\<in>\<C>. x \<in> C}\<close>] by blast
+        then show ?thesis using finite_imageD[OF _ hCsel_inj] by blast
+      qed
+      have hk_le: "card {B\<in>\<B>. x \<in> D B} \<le> Suc m"
+      proof (cases "x \<in> Y")
+        case True
+        have hfin_B_x: "finite {B\<in>\<B>. x \<in> B}" using hBord True by blast
+        have "card {B\<in>\<B>. x \<in> D B} \<le> card {B\<in>\<B>. x \<in> B}"
+          using card_mono[OF hfin_B_x hDB_in_B] by blast
+        also have "... \<le> Suc m" using hBord True by blast
+        finally show ?thesis .
+      next
+        case False
+        then have "x \<in> Z" using \<open>x \<in> X\<close> hYX by blast
+        have hfin_C_x: "finite {C\<in>\<C>. x \<in> C}" using hCord \<open>x \<in> Z\<close> by blast
+        have "card {B\<in>\<B>. x \<in> D B} = card (Csel ` {B\<in>\<B>. x \<in> D B})"
+          using card_image[OF hCsel_inj] by simp
+        also have "... \<le> card {C\<in>\<C>. x \<in> C}"
+          using card_mono[OF hfin_C_x hCsel_in] by blast
+        also have "... \<le> Suc m" using hCord \<open>x \<in> Z\<close> by blast
+        finally show ?thesis .
+      qed
+      show "finite {S\<in>\<D>. x \<in> S}"
+        using h\<D>_eq hfin_DB by simp
+      have "card {S\<in>\<D>. x \<in> S} \<le> card {B\<in>\<B>. x \<in> D B}"
+        using h\<D>_eq card_image_le[OF hfin_DB] by simp
+      then show "card {S\<in>\<D>. x \<in> S} \<le> Suc m"
+        using hk_le by simp
+    qed
+    show "\<exists>\<B>. top1_open_covering_on X TX \<B> \<and> top1_refines \<B> \<A> \<and> top1_cover_order_le_on X \<B> m"
+      using hDcov hDref hDord by blast
+  qed
+  have hfdX: "top1_finite_dimensional_on X TX"
+    by (rule top1_dim_le_on_imp_finite_dimensional[OF hdim_le])
+  have hle: "top1_dim_on X TX \<le> m"
+    by (rule top1_dim_on_le_of_dim_le'[OF hdim_le])
+  text \<open>Direction \<ge>: dim X \<ge> max(dim Y, dim Z) by Theorem 50.1.\<close>
+  have hge: "m \<le> top1_dim_on X TX"
+  proof -
+    have "mY \<le> top1_dim_on X TX"
+      using Theorem_50_1[OF hfdX hYcl] unfolding mY_def by linarith
+    moreover have "mZ \<le> top1_dim_on X TX"
+      using Theorem_50_1[OF hfdX hZcl] unfolding mZ_def by linarith
+    ultimately show ?thesis unfolding m_def by simp
+  qed
+  have "top1_dim_on X TX = m" using hge hle by simp
+  then show ?thesis unfolding m_def mY_def mZ_def by presburger
+qed
 
 (** from \S50 Corollary 50.3 [top1.tex:7598] **)
 corollary Corollary_50_3:
