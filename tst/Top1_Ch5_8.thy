@@ -1914,63 +1914,6 @@ text \<open>Theorem 38.2 proof strategy:
   3. Y = closure(F(X)) is compact (closed in compact, Theorem_26_2).
   4. (Y, TY, F) is a compactification of X.
   5. Extension property via coordinate projections.\<close>
-text \<open>Helper: given an embedding F into [0,1]^J, construct the Stone-\<C>ech compactification.\<close>
-lemma Theorem_38_2_helper:
-  assumes hCR: "top1_completely_regular_on X TX"
-  assumes hEmb: "top1_embedding_on X TX
-    (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))
-    (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1)) F"
-  defines "Z \<equiv> top1_PiE J (\<lambda>_. top1_closed_interval 0 1)"
-  defines "TZ \<equiv> top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1)"
-  defines "Y \<equiv> closure_on Z TZ (F ` X)"
-  defines "TY \<equiv> subspace_topology Z TZ Y"
-  shows "top1_compactification_via_on X TX Y TY F
-    \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
-            \<and> top1_bounded_on X f
-            \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                    \<and> (\<forall>x\<in>X. g (F x) = f x)
-                    \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
-                          \<and> (\<forall>x\<in>X. g' (F x) = f x)
-                          \<longrightarrow> top1_eq_on Y g g')))"
-proof -
-  let ?I = "top1_closed_interval (0::real) 1"
-  let ?TI = "top1_closed_interval_topology (0::real) 1"
-  text \<open>Step 1: Z = [0,1]^J is compact Hausdorff.\<close>
-  have hTopI: "is_topology_on ?I ?TI"
-    by (metis top1_closed_interval_topology_def subspace_topology_is_topology_on
-      order_topology_on_UNIV_is_topology_on top.extremum)
-  have hI_compact: "\<forall>j\<in>J. top1_compact_on ?I ?TI"
-    using top1_closed_interval_compact[of 0 1] by simp
-  have hI_haus: "\<forall>j\<in>J. is_hausdorff_on ?I ?TI"
-    using closed_interval_hausdorff by blast
-  have hTI_sub: "\<forall>j\<in>J. \<forall>V\<in>?TI. V \<subseteq> ?I"
-    unfolding top1_closed_interval_topology_def subspace_topology_def by blast
-  have hTopAll: "\<forall>j\<in>J. is_topology_on ?I ?TI" using hTopI by blast
-  have hTopZ: "is_topology_on Z TZ" unfolding Z_def TZ_def
-    by (rule top1_product_topology_on_is_topology_on[OF hTopAll])
-  have hZ_compact: "top1_compact_on Z TZ" unfolding Z_def TZ_def
-    sorry
-  have hZ_haus: "is_hausdorff_on Z TZ" unfolding Z_def TZ_def
-    sorry
-  text \<open>Step 2: Y = closure(F(X)) is compact Hausdorff.\<close>
-  have hY_compact: "top1_compact_on Y TY"
-    sorry
-  have hY_haus: "is_hausdorff_on Y TY"
-    sorry
-  text \<open>Step 3: F is an embedding into Y with dense image.\<close>
-  have hCompactification: "top1_compactification_via_on X TX Y TY F"
-    sorry
-  text \<open>Step 4: Extension property.\<close>
-  have hExtension: "\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
-    \<and> top1_bounded_on X f
-    \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-            \<and> (\<forall>x\<in>X. g (F x) = f x)
-            \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
-                  \<and> (\<forall>x\<in>X. g' (F x) = f x) \<longrightarrow> top1_eq_on Y g g'))"
-    sorry
-  show ?thesis using hCompactification hExtension by blast
-qed
-
 theorem Theorem_38_2:
   assumes hCR: "top1_completely_regular_on X TX"
   shows "\<exists>Y TY e.
@@ -1982,25 +1925,7 @@ theorem Theorem_38_2:
                     \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
                           \<and> (\<forall>x\<in>X. g' (e x) = f x)
                           \<longrightarrow> top1_eq_on Y g g')))"
-proof -
-  obtain J and F :: "'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real)" where
-    hEmb: "top1_embedding_on X TX
-      (top1_PiE J (\<lambda>_. top1_closed_interval 0 1))
-      (top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1)) F"
-    using Theorem_34_3_forward[OF hCR] by blast
-  define Z where "Z = top1_PiE J (\<lambda>_. top1_closed_interval 0 1)"
-  define TZ where "TZ = top1_product_topology_on J (\<lambda>_. top1_closed_interval 0 1) (\<lambda>_. top1_closed_interval_topology 0 1)"
-  define Y where "Y = closure_on Z TZ (F ` X)"
-  define TY where "TY = subspace_topology Z TZ Y"
-  have hconj: "top1_compactification_via_on X TX Y TY F
-    \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f \<and> top1_bounded_on X f
-        \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                \<and> (\<forall>x\<in>X. g (F x) = f x)
-                \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
-                      \<and> (\<forall>x\<in>X. g' (F x) = f x) \<longrightarrow> top1_eq_on Y g g')))"
-    using Theorem_38_2_helper[OF hCR hEmb] unfolding Z_def TZ_def Y_def TY_def by blast
-  show ?thesis sorry
-qed
+  sorry
   (* Proof outline (Munkres Theorem 38.2):
      1. By Theorem 34.3, X embeds into [0,1]^J via F for some J.
      2. Let Z = product space [0,1]^J with product topology.
