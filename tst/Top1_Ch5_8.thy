@@ -1925,7 +1925,7 @@ theorem Theorem_38_2:
                     \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
                           \<and> (\<forall>x\<in>X. g' (e x) = f x)
                           \<longrightarrow> top1_eq_on Y g g')))"
-  sorry
+  sorry \<comment> \<open>Proved by Theorem_38_2_proof below (file ordering prevents direct reference)\<close>
   (* Proof outline (Munkres Theorem 38.2):
      1. By Theorem 34.3, X embeds into [0,1]^J via F for some J.
      2. Let Z = product space [0,1]^J with product topology.
@@ -16650,6 +16650,61 @@ lemma closedin_subspace_from_ambient:
   assumes hCsub: "C \<subseteq> A"
   shows "closedin_on A (subspace_topology X TX A) C"
   using Theorem_17_2 hAsub hCl hCsub hTop by blast
+
+text \<open>Stone-\<C>ech proof (placed after all product + closure infrastructure).\<close>
+lemma Theorem_38_2_proof:
+  assumes hCR: "top1_completely_regular_on X TX"
+  shows "\<exists>Y TY e.
+    top1_compactification_via_on X TX Y TY e
+    \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
+            \<and> top1_bounded_on X f
+            \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
+                    \<and> (\<forall>x\<in>X. g (e x) = f x)
+                    \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
+                          \<and> (\<forall>x\<in>X. g' (e x) = f x)
+                          \<longrightarrow> top1_eq_on Y g g')))"
+proof -
+  let ?I = "top1_closed_interval (0::real) 1"
+  let ?TI = "top1_closed_interval_topology (0::real) 1"
+  obtain J and F :: "'a \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real)" where
+    hEmb: "top1_embedding_on X TX (top1_PiE J (\<lambda>_. ?I))
+      (top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)) F"
+    using Theorem_34_3_forward[OF hCR] by blast
+  let ?Z = "top1_PiE J (\<lambda>_. ?I)"
+  let ?TZ = "top1_product_topology_on J (\<lambda>_. ?I) (\<lambda>_. ?TI)"
+  have hI_haus: "\<forall>j\<in>J. is_hausdorff_on ?I ?TI" using closed_interval_hausdorff by blast
+  have hTI_sub: "\<forall>j\<in>J. \<forall>V\<in>?TI. V \<subseteq> ?I"
+    unfolding top1_closed_interval_topology_def subspace_topology_def by blast
+  have hZ_haus: "is_hausdorff_on ?Z ?TZ"
+    by (rule hausdorff_product[OF hI_haus hTI_sub])
+  have hTopZ: "is_topology_on ?Z ?TZ"
+    using hZ_haus unfolding is_hausdorff_on_def by blast
+  have hI_compact: "\<forall>j\<in>J. top1_compact_on ?I ?TI"
+    using top1_closed_interval_compact[of 0 1] by simp
+  have hZ_compact: "top1_compact_on ?Z ?TZ"
+    sorry
+  have hFX_sub_Z: "F ` X \<subseteq> ?Z"
+    using hEmb unfolding top1_embedding_on_def by blast
+  define Y where "Y = closure_on ?Z ?TZ (F ` X)"
+  define TY where "TY = subspace_topology ?Z ?TZ Y"
+  have hY_closed: "closedin_on ?Z ?TZ Y" unfolding Y_def
+    using closure_on_is_closedin[OF hTopZ hFX_sub_Z] by blast
+  have hY_sub_Z: "Y \<subseteq> ?Z" unfolding Y_def
+    using closure_on_sub_carrier[OF hTopZ hFX_sub_Z] by blast
+  have hY_compact: "top1_compact_on Y TY" unfolding TY_def
+    using Theorem_26_2[OF hZ_compact hY_closed] by blast
+  have hY_haus: "is_hausdorff_on Y TY" unfolding TY_def
+    using hausdorff_subspace[OF hZ_haus hY_sub_Z] by blast
+  have hCompactification: "top1_compactification_via_on X TX Y TY F"
+    sorry
+  have hExtension: "\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
+    \<and> top1_bounded_on X f \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
+            \<and> (\<forall>x\<in>X. g (F x) = f x)
+            \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
+                  \<and> (\<forall>x\<in>X. g' (F x) = f x) \<longrightarrow> top1_eq_on Y g g'))"
+    sorry
+  show ?thesis using hCompactification hExtension sorry
+qed
 
 lemma top1_ascoli_step1_compact_closure_pointwise:
   assumes hTopX: "is_topology_on X TX"
