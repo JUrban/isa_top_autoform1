@@ -1891,12 +1891,6 @@ proof (intro conjI)
   qed
 qed
 
-text \<open>Product of Hausdorff spaces is Hausdorff.\<close>
-lemma hausdorff_product:
-  assumes hHaus: "\<forall>i\<in>I. is_hausdorff_on (X i) (T i)"
-  shows "is_hausdorff_on (top1_PiE I X) (top1_product_topology_on I X T)"
-  sorry
-
 text \<open>[0,1] is Hausdorff.\<close>
 lemma closed_interval_hausdorff:
   shows "is_hausdorff_on (top1_closed_interval (a::real) b) (top1_closed_interval_topology a b)"
@@ -16244,6 +16238,45 @@ proof -
   then show ?thesis
     unfolding top1_product_topology_on_def topology_generated_by_basis_def
     using hUf_basis by blast
+qed
+
+text \<open>Product of Hausdorff spaces is Hausdorff.\<close>
+lemma hausdorff_product:
+  assumes hHaus: "\<forall>i\<in>I. is_hausdorff_on (X i) (T i)"
+  assumes hTsub: "\<forall>i\<in>I. \<forall>V\<in>T i. V \<subseteq> X i"
+  shows "is_hausdorff_on (top1_PiE I X) (top1_product_topology_on I X T)"
+  unfolding is_hausdorff_on_def
+proof (intro conjI)
+  have hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+    using hHaus unfolding is_hausdorff_on_def by blast
+  show "is_topology_on (top1_PiE I X) (top1_product_topology_on I X T)"
+    by (rule top1_product_topology_on_is_topology_on[OF hTop])
+  show "\<forall>f\<in>top1_PiE I X. \<forall>g\<in>top1_PiE I X. f \<noteq> g \<longrightarrow>
+    (\<exists>U V. neighborhood_of f (top1_PiE I X) (top1_product_topology_on I X T) U
+         \<and> neighborhood_of g (top1_PiE I X) (top1_product_topology_on I X T) V \<and> U \<inter> V = {})"
+  proof (intro ballI impI)
+    fix f g assume hfP: "f \<in> top1_PiE I X" and hgP: "g \<in> top1_PiE I X" and hfg: "f \<noteq> g"
+    obtain i where "i \<in> I" "f i \<noteq> g i"
+      sorry
+    have "f i \<in> X i" "g i \<in> X i"
+      using hfP hgP \<open>i \<in> I\<close> unfolding top1_PiE_iff by blast+
+    obtain Ui Vi where hUi: "Ui \<in> T i" "f i \<in> Ui" and hVi: "Vi \<in> T i" "g i \<in> Vi"
+      and hdisj: "Ui \<inter> Vi = {}"
+      using hHaus \<open>i \<in> I\<close> \<open>f i \<noteq> g i\<close> \<open>f i \<in> X i\<close> \<open>g i \<in> X i\<close>
+      unfolding is_hausdorff_on_def neighborhood_of_def by blast
+    define Uf where "Uf = {h \<in> top1_PiE I X. h i \<in> Ui}"
+    define Vf where "Vf = {h \<in> top1_PiE I X. h i \<in> Vi}"
+    have "Uf \<in> top1_product_topology_on I X T" unfolding Uf_def
+      using product_topology_coord_open[OF hTop hTsub \<open>i \<in> I\<close> hUi(1)] by blast
+    moreover have "Vf \<in> top1_product_topology_on I X T" unfolding Vf_def
+      using product_topology_coord_open[OF hTop hTsub \<open>i \<in> I\<close> hVi(1)] by blast
+    moreover have "f \<in> Uf" unfolding Uf_def using hfP hUi(2) by blast
+    moreover have "g \<in> Vf" unfolding Vf_def using hgP hVi(2) by blast
+    moreover have "Uf \<inter> Vf = {}" unfolding Uf_def Vf_def using hdisj by blast
+    ultimately show "\<exists>U V. neighborhood_of f (top1_PiE I X) (top1_product_topology_on I X T) U
+      \<and> neighborhood_of g (top1_PiE I X) (top1_product_topology_on I X T) V \<and> U \<inter> V = {}"
+      unfolding neighborhood_of_def by blast
+  qed
 qed
 
 text \<open>Product of subspace topologies = subspace of product topology.
