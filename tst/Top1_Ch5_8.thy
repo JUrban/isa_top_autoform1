@@ -16223,12 +16223,92 @@ qed
 
 text \<open>General: subspace of a generated topology = generated topology on the subspace
   with intersected basis.\<close>
+text \<open>Characterization of topology_generated_by_basis with intersected basis,
+  avoiding the image pattern that causes kernel blowup.\<close>
+lemma topology_generated_by_basis_inter_image:
+  "W \<in> topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)
+  \<longleftrightarrow> W \<subseteq> Y \<and> (\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W)"
+proof (rule iffI)
+  assume h: "W \<in> topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)"
+  then have hWY: "W \<subseteq> Y" and
+    hloc: "\<forall>x\<in>W. \<exists>bY\<in>(\<lambda>b. b \<inter> Y) ` \<B>. x \<in> bY \<and> bY \<subseteq> W"
+    unfolding topology_generated_by_basis_def by auto
+  have "\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W"
+  proof (intro ballI)
+    fix x assume "x \<in> W"
+    obtain bY where "bY \<in> (\<lambda>b. b \<inter> Y) ` \<B>" "x \<in> bY" "bY \<subseteq> W" using hloc \<open>x \<in> W\<close> by meson
+    then obtain b where "b \<in> \<B>" "bY = b \<inter> Y" by blast
+    show "\<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W" using \<open>b \<in> \<B>\<close> \<open>x \<in> bY\<close> \<open>bY = b \<inter> Y\<close> \<open>bY \<subseteq> W\<close> by blast
+  qed
+  then show "W \<subseteq> Y \<and> (\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W)" using hWY by blast
+next
+  assume h: "W \<subseteq> Y \<and> (\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W)"
+  have hWY: "W \<subseteq> Y" using h by blast
+  have hloc: "\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W" using h by blast
+  show "W \<in> topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)"
+    unfolding topology_generated_by_basis_def
+  proof (intro CollectI conjI ballI)
+    show "W \<subseteq> Y" by (rule hWY)
+    fix x assume "x \<in> W"
+    then obtain b where "b \<in> \<B>" "x \<in> b" "b \<inter> Y \<subseteq> W" using hloc by blast
+    have "x \<in> Y" using hWY \<open>x \<in> W\<close> by blast
+    have "b \<inter> Y \<in> (\<lambda>b. b \<inter> Y) ` \<B>" using \<open>b \<in> \<B>\<close> by blast
+    moreover have "x \<in> b \<inter> Y" using \<open>x \<in> b\<close> \<open>x \<in> Y\<close> by blast
+    moreover have "b \<inter> Y \<subseteq> W" by (rule \<open>b \<inter> Y \<subseteq> W\<close>)
+    ultimately show "\<exists>bY\<in>(\<lambda>b. b \<inter> Y) ` \<B>. x \<in> bY \<and> bY \<subseteq> W" by blast
+  qed
+qed
+
 lemma subspace_topology_generated_by_basis:
   assumes hBasis: "is_basis_on X \<B>"
   assumes hT: "T = topology_generated_by_basis X \<B>"
   assumes hYX: "Y \<subseteq> X"
   shows "subspace_topology X T Y = topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)"
-  sorry
+proof (rule set_eqI)
+  fix W
+  show "W \<in> subspace_topology X T Y \<longleftrightarrow> W \<in> topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)"
+  proof
+    assume "W \<in> subspace_topology X T Y"
+    then obtain U where "U \<in> T" "W = U \<inter> Y" unfolding subspace_topology_def by blast
+    have hU: "U \<subseteq> X \<and> (\<forall>x\<in>U. \<exists>b\<in>\<B>. x \<in> b \<and> b \<subseteq> U)"
+      using \<open>U \<in> T\<close> unfolding hT topology_generated_by_basis_def by blast
+    have "W \<subseteq> Y" using \<open>W = U \<inter> Y\<close> by blast
+    moreover have "\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W"
+    proof (intro ballI)
+      fix x assume "x \<in> W"
+      then have "x \<in> U" using \<open>W = U \<inter> Y\<close> by blast
+      obtain b where "b \<in> \<B>" "x \<in> b" "b \<subseteq> U" using hU \<open>x \<in> U\<close> by blast
+      then have "b \<inter> Y \<subseteq> W" using \<open>W = U \<inter> Y\<close> by blast
+      then show "\<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W" using \<open>b \<in> \<B>\<close> \<open>x \<in> b\<close> by blast
+    qed
+    ultimately show "W \<in> topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)"
+      using topology_generated_by_basis_inter_image by blast
+  next
+    assume hW: "W \<in> topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)"
+    have hchar: "W \<subseteq> Y \<and> (\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W)"
+      using iffD1[OF topology_generated_by_basis_inter_image hW] by blast
+    then have hWY: "W \<subseteq> Y" and hloc: "\<forall>x\<in>W. \<exists>b\<in>\<B>. x \<in> b \<and> b \<inter> Y \<subseteq> W" by blast+
+    text \<open>Each basis element is in T.\<close>
+    have hBsubT: "\<B> \<subseteq> T"
+      by (simp add: basis_elem_open_in_generated_topology hBasis hT subsetI)
+    have hTopT: "is_topology_on X T"
+      using topology_generated_by_basis_is_topology_on[OF hBasis] hT by presburger
+    text \<open>\<Union>{b \<in> B. b \<inter> Y \<subseteq> W} is a union of elements of T, hence in T.\<close>
+    have "{b \<in> \<B>. b \<inter> Y \<subseteq> W} \<subseteq> T" using hBsubT by blast
+    then have hU_in_T: "\<Union>{b \<in> \<B>. b \<inter> Y \<subseteq> W} \<in> T"
+      using hTopT unfolding is_topology_on_def by blast
+    text \<open>Its intersection with Y equals W.\<close>
+    have hWeq: "W = \<Union>{b \<in> \<B>. b \<inter> Y \<subseteq> W} \<inter> Y"
+    proof
+      show "W \<subseteq> \<Union>{b \<in> \<B>. b \<inter> Y \<subseteq> W} \<inter> Y"
+        using hloc hWY by blast
+    next
+      show "\<Union>{b \<in> \<B>. b \<inter> Y \<subseteq> W} \<inter> Y \<subseteq> W" by blast
+    qed
+    show "W \<in> subspace_topology X T Y"
+      unfolding subspace_topology_def using hU_in_T hWeq by blast
+  qed
+qed
 
 lemma product_subspace_topology_eq:
   assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
