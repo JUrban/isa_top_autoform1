@@ -15999,46 +15999,6 @@ text \<open>
   The following lemmas record these steps as named goals (to be proved later).
 \<close>
 
-lemma top1_ascoli_step1_compact_closure_pointwise:
-  assumes hTopX: "is_topology_on X TX"
-  assumes hd: "top1_metric_on Y d"
-  assumes hFsub:
-    "\<F> \<subseteq> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
-  assumes hCa:
-	    "\<forall>a\<in>X.
-	      top1_compact_on
-	        (closure_on Y (top1_metric_topology_on Y d) ((\<lambda>f. f a) ` \<F>))
-	        (subspace_topology Y (top1_metric_topology_on Y d)
-	          (closure_on Y (top1_metric_topology_on Y d) ((\<lambda>f. f a) ` \<F>)))"
-  shows
-    "top1_compact_on
-      (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>)
-      (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d))
-        (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>))"
-proof -
-  let ?TY = "top1_metric_topology_on Y d"
-  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
-  let ?Tpw = "top1_pointwise_topology_on X Y ?TY"
-  text \<open>Pointwise topology = product topology.\<close>
-  have hTpw_eq: "?Tpw = top1_product_topology_on X (\<lambda>_. Y) (\<lambda>_. ?TY)"
-    unfolding top1_pointwise_topology_on_def by blast
-  have hTopY: "is_topology_on Y ?TY"
-    using top1_metric_topology_on_is_topology_on[OF hd] by blast
-  text \<open>Step 1: Define the 'box' product of coordinate closures.\<close>
-  define Ca where "Ca a = closure_on Y ?TY ((\<lambda>f. f a) ` \<F>)" for a
-  text \<open>Each Ca(a) is compact.\<close>
-  have hCa_comp: "\<forall>a\<in>X. top1_compact_on (Ca a) (subspace_topology Y ?TY (Ca a))"
-    using hCa unfolding Ca_def by blast
-  text \<open>The product \<Pi>_a Ca(a) is compact by Tychonoff.\<close>
-  text \<open>The closure of \<F> in ?PiE is closed in ?PiE, hence closed in the compact product,
-    hence compact. (This requires showing closure \<subseteq> product of closures.)\<close>
-  text \<open>Full proof: uses Tychonoff + product_subspace_topology_eq + product_of_closedin
-    + Theorem_26_2. The proof assembles these but requires careful type instantiation
-    (product_subspace_topology_eq with I=X, X=\<lambda>_.Y, T=\<lambda>_.TY, A=Ca).
-    Left as sorry pending type-level debugging.\<close>
-  show ?thesis sorry
-qed
-
 text \<open>Helper: coordinate preimage of open set is product-open.\<close>
 lemma product_topology_coord_open:
   assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
@@ -16339,6 +16299,39 @@ proof -
   show ?thesis using hLHS hRHS hBasis_eq by presburger
 qed
 
+text \<open>Specialization for constant families.\<close>
+lemma product_subspace_topology_eq_const:
+  assumes hTop: "is_topology_on Y TY"
+  assumes hTsub: "\<forall>V\<in>TY. V \<subseteq> Y"
+  assumes hSub: "\<forall>i\<in>I. A i \<subseteq> Y"
+  shows "top1_product_topology_on I A (\<lambda>i. subspace_topology Y TY (A i))
+    = subspace_topology (top1_PiE I (\<lambda>_. Y)) (top1_product_topology_on I (\<lambda>_. Y) (\<lambda>_. TY)) (top1_PiE I A)"
+proof -
+  have h1: "\<forall>i\<in>I. is_topology_on ((\<lambda>_. Y) i) ((\<lambda>_. TY) i)" using hTop by simp
+  have h2: "\<forall>i\<in>I. \<forall>V\<in>((\<lambda>_. TY) i). V \<subseteq> (\<lambda>_. Y) i" using hTsub by simp
+  have h3: "\<forall>i\<in>I. A i \<subseteq> (\<lambda>_. Y) i" using hSub by simp
+  show ?thesis using product_subspace_topology_eq[OF h1 h2 h3] by blast
+qed
+
+text \<open>Tychonoff on subspaces: if each A(i) \<subseteq> Y is compact,
+  then \<Pi> A(i) is compact as subspace of Y^I.\<close>
+lemma tychonoff_subspace_compact:
+  assumes hIne: "I \<noteq> {}"
+  assumes hTop: "is_topology_on Y TY"
+  assumes hTsub: "\<forall>V\<in>TY. V \<subseteq> Y"
+  assumes hSub: "\<forall>i\<in>I. A i \<subseteq> Y"
+  assumes hComp: "\<forall>i\<in>I. top1_compact_on (A i) (subspace_topology Y TY (A i))"
+  shows "top1_compact_on (top1_PiE I A)
+    (subspace_topology (top1_PiE I (\<lambda>_. Y)) (top1_product_topology_on I (\<lambda>_. Y) (\<lambda>_. TY)) (top1_PiE I A))"
+proof -
+  have "top1_compact_on (top1_PiE I A) (top1_product_topology_on I A (\<lambda>i. subspace_topology Y TY (A i)))"
+    using Theorem_37_3[OF hIne hComp] by blast
+  moreover have "top1_product_topology_on I A (\<lambda>i. subspace_topology Y TY (A i))
+    = subspace_topology (top1_PiE I (\<lambda>_. Y)) (top1_product_topology_on I (\<lambda>_. Y) (\<lambda>_. TY)) (top1_PiE I A)"
+    using product_subspace_topology_eq_const[OF hTop hTsub hSub] by blast
+  ultimately show ?thesis by argo
+qed
+
 text \<open>Helper: product of closed subsets is closed in the product topology.\<close>
 lemma product_of_closedin_is_closedin:
   assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
@@ -16384,6 +16377,27 @@ proof (intro conjI)
     qed
   qed
 qed
+
+lemma top1_ascoli_step1_compact_closure_pointwise:
+  assumes hTopX: "is_topology_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  assumes hFsub:
+    "\<F> \<subseteq> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
+  assumes hCa:
+	    "\<forall>a\<in>X.
+	      top1_compact_on
+	        (closure_on Y (top1_metric_topology_on Y d) ((\<lambda>f. f a) ` \<F>))
+	        (subspace_topology Y (top1_metric_topology_on Y d)
+	          (closure_on Y (top1_metric_topology_on Y d) ((\<lambda>f. f a) ` \<F>)))"
+  shows
+    "top1_compact_on
+      (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>)
+      (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d))
+        (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>))"
+  text \<open>Proof: tychonoff_subspace_compact + product_of_closedin + Theorem_26_2.
+    All infrastructure is now proved. The assembly requires careful handling of
+    metric topology subset property and closure containment arguments.\<close>
+  sorry
 
 lemma top1_ascoli_step2_closure_continuous_and_equicontinuous:
   assumes hTopX: "is_topology_on X TX"
