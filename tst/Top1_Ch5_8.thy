@@ -11012,26 +11012,50 @@ proof -
       text \<open>The uniform metric = Sup of bounded differences.\<close>
       have hXne: "X \<noteq> {}" using False by blast
       have hdY_eq: "?dY (\<Phi> a) (\<Phi> b) = Sup ((\<lambda>x. top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x)) ` X)"
-        sorry
+        by (simp add: hXne top1_uniform_metric_on_def)
       text \<open>bounded_metric |.| = min(|...|, 1).\<close>
       have hbm_eq: "\<forall>x\<in>X. top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x)
         = min (\<bar>?db x a - ?db x b\<bar>) 1"
-        sorry
+        using top1_real_bounded_metric_def \<Phi>_def top1_bounded_abs_eq_real_bounded_metric by fastforce
       text \<open>Since |db(x,a)-db(x,b)| \<le> db(a,b) \<le> 1, min = |db(x,a)-db(x,b)|.\<close>
       have hmin_eq: "\<forall>x\<in>X. min (\<bar>?db x a - ?db x b\<bar>) 1 = \<bar>?db x a - ?db x b\<bar>"
-        sorry
+        using hdb_le1 hrev_tri by fastforce
       text \<open>Sup {|db(x,a)-db(x,b)| | x} = db(a,b).\<close>
       have "\<forall>x\<in>X. \<bar>?db x a - ?db x b\<bar> \<le> ?db a b" by (rule hrev_tri)
       have "?db a b \<in> (\<lambda>x. \<bar>?db x a - ?db x b\<bar>) ` X"
         using hat_a \<open>a \<in> X\<close> by force
       have hSup: "Sup ((\<lambda>x. \<bar>?db x a - ?db x b\<bar>) ` X) = ?db a b"
-        sorry
-      show "?dY (\<Phi> a) (\<Phi> b) = ?db a b"
-        sorry
+      proof (rule cSup_eq_maximum)
+        show "?db a b \<in> (\<lambda>x. \<bar>?db x a - ?db x b\<bar>) ` X"
+          using hat_a \<open>a \<in> X\<close> by force
+      next
+        fix c assume "c \<in> (\<lambda>x. \<bar>?db x a - ?db x b\<bar>) ` X"
+        then obtain x where "x \<in> X" "c = \<bar>?db x a - ?db x b\<bar>" by blast
+        then show "c \<le> ?db a b" using hrev_tri by blast
+      qed
+      text \<open>Chain: dY = Sup bm = Sup min(|..|,1) = Sup |..| = db(a,b).\<close>
+      have himg_eq: "\<forall>x\<in>X. top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x) = \<bar>?db x a - ?db x b\<bar>"
+      proof (intro ballI)
+        fix x assume "x \<in> X"
+        have "top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x) = min (\<bar>?db x a - ?db x b\<bar>) 1"
+          using hbm_eq \<open>x \<in> X\<close> by blast
+        also have "... = \<bar>?db x a - ?db x b\<bar>"
+          using hmin_eq \<open>x \<in> X\<close> by blast
+        finally show "top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x) = \<bar>?db x a - ?db x b\<bar>" .
+      qed
+      have "(\<lambda>x. top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x)) ` X
+        = (\<lambda>x. \<bar>?db x a - ?db x b\<bar>) ` X"
+      proof (rule image_cong[OF refl])
+        fix x assume "x \<in> X" then show "top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x) = \<bar>?db x a - ?db x b\<bar>"
+          using himg_eq by blast
+      qed
+      then show "?dY (\<Phi> a) (\<Phi> b) = ?db a b"
+        using hdY_eq hSup by presburger
     qed
     have hiso: "top1_isometry_on X ?db ?Y ?dY \<Phi>"
       unfolding top1_isometry_on_def using h\<Phi>_in_Y h\<Phi>_isometry by blast
-    show ?thesis using hY_complete hiso sorry
+    show "\<exists>Y dY e. top1_complete_metric_on Y dY \<and> top1_isometry_on X ?db Y dY e"
+      sorry
   qed
 qed
 
