@@ -16621,6 +16621,78 @@ lemma closedin_subspace_from_ambient:
   shows "closedin_on A (subspace_topology X TX A) C"
   using Theorem_17_2 hAsub hCl hCsub hTop by blast
 
+text \<open>Closure in a closed subspace equals intersection with ambient closure.\<close>
+lemma closure_on_closed_subspace:
+  assumes hTop: "is_topology_on X TX"
+  assumes hYcl: "closedin_on X TX Y"
+  assumes hAY: "A \<subseteq> Y"
+  shows "closure_on Y (subspace_topology X TX Y) A = Y \<inter> closure_on X TX A"
+proof -
+  let ?TY = "subspace_topology X TX Y"
+  have hYX: "Y \<subseteq> X" using hYcl unfolding closedin_on_def by blast
+  have hAX: "A \<subseteq> X" using hAY hYX by blast
+  have hTopY: "is_topology_on Y ?TY" by (rule subspace_topology_is_topology_on[OF hTop hYX])
+  show ?thesis
+  proof (rule set_eqI, rule iffI)
+    fix y assume "y \<in> closure_on Y ?TY A"
+    then have "y \<in> Y" using closure_on_sub_carrier[OF hTopY hAY] by blast
+    moreover have "y \<in> closure_on X TX A"
+    proof (rule iffD2[OF Theorem_17_5a[OF hTop _ hAX]])
+      show "y \<in> X" using \<open>y \<in> Y\<close> hYX by blast
+      show "\<forall>U. neighborhood_of y X TX U \<longrightarrow> intersects U A"
+      proof (intro allI impI)
+        fix U assume "neighborhood_of y X TX U"
+        then have "U \<in> TX" "y \<in> U" unfolding neighborhood_of_def by blast+
+        have "U \<inter> Y \<in> ?TY" unfolding subspace_topology_def using \<open>U \<in> TX\<close> by blast
+        have "y \<in> U \<inter> Y" using \<open>y \<in> U\<close> \<open>y \<in> Y\<close> by blast
+        have "neighborhood_of y Y ?TY (U \<inter> Y)"
+          unfolding neighborhood_of_def using \<open>U \<inter> Y \<in> ?TY\<close> \<open>y \<in> U \<inter> Y\<close> by blast
+        then have "intersects (U \<inter> Y) A"
+          using \<open>y \<in> closure_on Y ?TY A\<close> iffD1[OF Theorem_17_5a[OF hTopY \<open>y \<in> Y\<close> hAY]] by blast
+        then show "intersects U A" unfolding intersects_def using hAY by blast
+      qed
+    qed
+    ultimately show "y \<in> Y \<inter> closure_on X TX A" by blast
+  next
+    fix y assume "y \<in> Y \<inter> closure_on X TX A"
+    then have "y \<in> Y" "y \<in> closure_on X TX A" by blast+
+    show "y \<in> closure_on Y ?TY A"
+    proof (rule iffD2[OF Theorem_17_5a[OF hTopY \<open>y \<in> Y\<close> hAY]])
+      show "\<forall>U. neighborhood_of y Y ?TY U \<longrightarrow> intersects U A"
+      proof (intro allI impI)
+        fix V assume "neighborhood_of y Y ?TY V"
+        then have "V \<in> ?TY" "y \<in> V" unfolding neighborhood_of_def by blast+
+        then obtain U where "U \<in> TX" "V = U \<inter> Y" unfolding subspace_topology_def by blast
+        have "y \<in> U" using \<open>y \<in> V\<close> \<open>V = U \<inter> Y\<close> by blast
+        have "neighborhood_of y X TX U"
+          unfolding neighborhood_of_def using \<open>U \<in> TX\<close> \<open>y \<in> U\<close> by blast
+        have "y \<in> X" using \<open>y \<in> Y\<close> hYX by blast
+        then have "intersects U A"
+          using \<open>y \<in> closure_on X TX A\<close> iffD1[OF Theorem_17_5a[OF hTop \<open>y \<in> X\<close> hAX]]
+            \<open>neighborhood_of y X TX U\<close> by blast
+        then show "intersects V A" unfolding intersects_def \<open>V = U \<inter> Y\<close>
+          using hAY by blast
+      qed
+    qed
+  qed
+qed
+
+text \<open>Dense image in closure subspace: closure of A in closure(A) = closure(A).\<close>
+lemma dense_in_own_closure:
+  assumes hTop: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
+  shows "closure_on (closure_on X TX A) (subspace_topology X TX (closure_on X TX A)) A
+    = closure_on X TX A"
+proof -
+  have hcl_closed: "closedin_on X TX (closure_on X TX A)"
+    using closure_on_is_closedin[OF hTop hAX] by blast
+  have hA_sub_cl: "A \<subseteq> closure_on X TX A" using subset_closure_on by fast
+  have "closure_on (closure_on X TX A) (subspace_topology X TX (closure_on X TX A)) A
+    = (closure_on X TX A) \<inter> closure_on X TX A"
+    using closure_on_closed_subspace[OF hTop hcl_closed hA_sub_cl] by blast
+  then show ?thesis by blast
+qed
+
 text \<open>Theorem 38.2 (Stone-\<C>ech compactification existence).
   Placed here after all product topology infrastructure.\<close>
 theorem Theorem_38_2:
@@ -16685,7 +16757,7 @@ proof -
   qed
   have hTopY: "is_topology_on Y TY" using hY_haus unfolding is_hausdorff_on_def by blast
   have hDense: "closure_on Y TY (F ` X) = Y"
-    sorry
+    unfolding Y_def TY_def using dense_in_own_closure[OF hTopZ hFX_sub_Z] by blast
   have hCompactification: "top1_compactification_via_on X TX Y TY F"
     unfolding top1_compactification_via_on_def top1_dense_image_via_on_def
     using hY_compact hY_haus hEmb_Y hDense by blast
