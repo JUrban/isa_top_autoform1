@@ -16256,8 +16256,19 @@ proof (intro conjI)
          \<and> neighborhood_of g (top1_PiE I X) (top1_product_topology_on I X T) V \<and> U \<inter> V = {})"
   proof (intro ballI impI)
     fix f g assume hfP: "f \<in> top1_PiE I X" and hgP: "g \<in> top1_PiE I X" and hfg: "f \<noteq> g"
-    obtain i where "i \<in> I" "f i \<noteq> g i"
-      sorry
+    have "\<exists>i\<in>I. f i \<noteq> g i"
+    proof (rule ccontr)
+      assume "\<not>(\<exists>i\<in>I. f i \<noteq> g i)"
+      then have h1: "\<forall>i\<in>I. f i = g i" by blast
+      have h2: "\<forall>i. i \<notin> I \<longrightarrow> f i = g i"
+        using hfP hgP unfolding top1_PiE_iff by auto
+      have "f = g"
+      proof (rule ext)
+        fix i show "f i = g i" using h1 h2 by (cases "i \<in> I") auto
+      qed
+      then show False using hfg by blast
+    qed
+    then obtain i where "i \<in> I" "f i \<noteq> g i" by blast
     have "f i \<in> X i" "g i \<in> X i"
       using hfP hgP \<open>i \<in> I\<close> unfolding top1_PiE_iff by blast+
     obtain Ui Vi where hUi: "Ui \<in> T i" "f i \<in> Ui" and hVi: "Vi \<in> T i" "g i \<in> Vi"
