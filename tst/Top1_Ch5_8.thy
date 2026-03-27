@@ -10962,6 +10962,7 @@ text \<open>Theorem 43.7 (Metric completion). We prove the bounded-metric versio
   metric infrastructure.\<close>
 theorem Theorem_43_7:
   assumes hd: "top1_metric_on X d"
+  assumes hXne: "X \<noteq> {}"
   shows "\<exists>e. top1_complete_metric_on
     (top1_PiE X (\<lambda>_. (UNIV :: real set)))
     (top1_uniform_metric_on X (\<lambda>x y :: real. \<bar>x - y\<bar>))
@@ -10976,22 +10977,10 @@ proof -
   have hR_complete: "top1_complete_metric_on (UNIV :: real set) (\<lambda>x y :: real. \<bar>x - y\<bar>)"
     by (rule Theorem_43_2)
   have hY_complete: "top1_complete_metric_on ?Y ?dY"
-  proof (cases "X = {}")
-    case True then show ?thesis sorry
-  next
-    case False
-    then have "X \<noteq> {}" by blast
-    then show ?thesis by (rule Theorem_43_5[OF _ hR_complete])
-  qed
+    by (rule Theorem_43_5[OF hXne hR_complete])
+  obtain x0 where "x0 \<in> X" using hXne by blast
   show ?thesis
-  proof (cases "X = {}")
-    case True
-    have hiso: "top1_isometry_on X ?db ?Y ?dY (\<lambda>a x. undefined)"
-      unfolding top1_isometry_on_def using True by blast
-    show ?thesis using hY_complete hiso by blast
-  next
-    case False
-    then obtain x0 where "x0 \<in> X" by blast
+  proof -
     text \<open>Kuratowski embedding: \<Phi>(a)(x) = db(x,a) - db(x,x0).\<close>
     define \<Phi> where "\<Phi> a = (\<lambda>x. if x \<in> X then ?db x a - ?db x x0 else undefined)" for a
     have h\<Phi>_in_Y: "\<forall>a\<in>X. \<Phi> a \<in> ?Y"
@@ -11017,7 +11006,7 @@ proof -
       have hat_a: "\<bar>?db a a - ?db a b\<bar> = ?db a b"
         using hrev_tri hdb_zero \<open>a \<in> X\<close> by fastforce
       text \<open>The uniform metric = Sup of bounded differences.\<close>
-      have hXne: "X \<noteq> {}" using False by blast
+      have hXne: "X \<noteq> {}" using hXne by blast
       have hdY_eq: "?dY (\<Phi> a) (\<Phi> b) = Sup ((\<lambda>x. top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x)) ` X)"
         by (simp add: hXne top1_uniform_metric_on_def)
       text \<open>bounded_metric |.| = min(|...|, 1).\<close>
