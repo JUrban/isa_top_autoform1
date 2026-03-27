@@ -16102,15 +16102,128 @@ text \<open>Product of subspace topologies = subspace of product topology.
   This is a standard fact needed for Tychonoff on subspaces.\<close>
 text \<open>Key helper: every product-basis element of the product-on-A topology
   equals a product-basis element of the product-on-X topology intersected with PiE I A.\<close>
+lemma PiE_inter:
+  "top1_PiE I U \<inter> top1_PiE I A = top1_PiE I (\<lambda>i. U i \<inter> A i)"
+  by (simp add: top1_PiE_Int)
+
 lemma product_basis_subspace_iff:
   assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  assumes hTsub: "\<forall>i\<in>I. \<forall>V\<in>T i. V \<subseteq> X i"
   assumes hSub: "\<forall>i\<in>I. A i \<subseteq> X i"
   shows "top1_product_basis_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
     = (\<lambda>B. B \<inter> top1_PiE I A) ` top1_product_basis_on I X T"
-  sorry
+proof (rule set_eqI)
+  fix B
+  show "B \<in> top1_product_basis_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
+    \<longleftrightarrow> B \<in> (\<lambda>B. B \<inter> top1_PiE I A) ` top1_product_basis_on I X T"
+    (is "?LHS \<longleftrightarrow> ?RHS")
+  proof
+    assume hL: ?LHS
+    text \<open>B = PiE I V where V i \<in> subspace, V i \<subseteq> A i, finite non-A.\<close>
+    obtain V where hB: "B = top1_PiE I V"
+      and hV: "\<forall>i\<in>I. V i \<in> subspace_topology (X i) (T i) (A i) \<and> V i \<subseteq> A i"
+      and hfin: "finite {i\<in>I. V i \<noteq> A i}"
+      using hL unfolding top1_product_basis_on_def by blast
+    text \<open>For each i, V i = U i \<inter> A i for some U i \<in> T i.\<close>
+    have "\<forall>i\<in>I. \<exists>Ui\<in>T i. V i = Ui \<inter> A i"
+    proof (intro ballI)
+      fix i assume "i \<in> I"
+      have "V i \<in> subspace_topology (X i) (T i) (A i)" using hV \<open>i \<in> I\<close> by blast
+      then show "\<exists>Ui\<in>T i. V i = Ui \<inter> A i" unfolding subspace_topology_def by blast
+    qed
+    then obtain U where hU: "\<forall>i\<in>I. U i \<in> T i \<and> V i = U i \<inter> A i"
+      by metis
+    text \<open>Define U' with U'(i) = U(i) for i with V(i) \<noteq> A(i), else X(i).\<close>
+    define U' where "U' i = (if i \<in> I \<and> V i \<noteq> A i then U i else X i)" for i
+    have hU'T: "\<forall>i\<in>I. U' i \<in> T i \<and> U' i \<subseteq> X i"
+    proof (intro ballI conjI)
+      fix i assume "i \<in> I"
+      show "U' i \<in> T i"
+      proof (cases "V i \<noteq> A i")
+        case True
+        then have "U' i = U i" unfolding U'_def using \<open>i \<in> I\<close> by simp
+        then show ?thesis using hU \<open>i \<in> I\<close> by simp
+      next
+        case False
+        then have "U' i = X i" unfolding U'_def by simp
+        then show ?thesis using hTop \<open>i \<in> I\<close> unfolding is_topology_on_def
+          by fastforce
+      qed
+    next
+      fix i assume "i \<in> I"
+      show "U' i \<subseteq> X i"
+      proof (cases "V i \<noteq> A i")
+        case True
+        then have "U' i = U i" unfolding U'_def using \<open>i \<in> I\<close> by simp
+        text \<open>U i might not be \<subseteq> X i. Use U i \<inter> X i instead would be cleaner, but
+          the U' definition already committed to U i. Add the subset assumption.\<close>
+        moreover have "U i \<subseteq> X i"
+          using hU hTsub \<open>i \<in> I\<close> by blast
+        ultimately show ?thesis by simp
+      next
+        case False
+        then have "U' i = X i" unfolding U'_def by simp
+        then show ?thesis by simp
+      qed
+    qed
+    have hU'fin: "finite {i\<in>I. U' i \<noteq> X i}"
+    proof -
+      have "{i\<in>I. U' i \<noteq> X i} \<subseteq> {i\<in>I. V i \<noteq> A i}" unfolding U'_def by auto
+      then show ?thesis using finite_subset hfin by blast
+    qed
+    have hPiU': "top1_PiE I U' \<in> top1_product_basis_on I X T"
+      unfolding top1_product_basis_on_def using hU'T hU'fin by blast
+    have "B = top1_PiE I U' \<inter> top1_PiE I A"
+    proof -
+      have "\<forall>i\<in>I. U' i \<inter> A i = V i"
+      proof (intro ballI)
+        fix i assume "i \<in> I"
+        show "U' i \<inter> A i = V i"
+        proof (cases "V i \<noteq> A i")
+          case True
+          then have "U' i = U i" unfolding U'_def using \<open>i \<in> I\<close> by simp
+          then show ?thesis using hU \<open>i \<in> I\<close> by simp
+        next
+          case False
+          then have "V i = A i" by simp
+          have "U' i = X i" unfolding U'_def using False by simp
+          then show ?thesis using \<open>V i = A i\<close> hSub \<open>i \<in> I\<close> by auto
+        qed
+      qed
+      then have "top1_PiE I (\<lambda>i. U' i \<inter> A i) = top1_PiE I V"
+        by (simp add: top1_PiE_cong_on)
+      moreover have "top1_PiE I U' \<inter> top1_PiE I A = top1_PiE I (\<lambda>i. U' i \<inter> A i)"
+        by (rule PiE_inter)
+      ultimately have "top1_PiE I U' \<inter> top1_PiE I A = top1_PiE I V" by presburger
+      then have "B = top1_PiE I U' \<inter> top1_PiE I A" using hB by presburger
+      then show ?thesis using hPiU' by blast
+    qed
+    then show ?RHS using hPiU' by blast
+  next
+    assume hR: ?RHS
+    obtain C where hC: "C \<in> top1_product_basis_on I X T" and hB: "B = C \<inter> top1_PiE I A"
+      using hR by blast
+    obtain U where hCeq: "C = top1_PiE I U"
+      and hU: "\<forall>i\<in>I. U i \<in> T i \<and> U i \<subseteq> X i"
+      and hfin: "finite {i\<in>I. U i \<noteq> X i}"
+      using hC unfolding top1_product_basis_on_def by blast
+    have "B = top1_PiE I (\<lambda>i. U i \<inter> A i)"
+      by (simp add: hB hCeq top1_PiE_Int)
+    moreover have "\<forall>i\<in>I. U i \<inter> A i \<in> subspace_topology (X i) (T i) (A i) \<and> U i \<inter> A i \<subseteq> A i"
+      using hU subspace_topology_def by fastforce
+    moreover have "finite {i\<in>I. U i \<inter> A i \<noteq> A i}"
+    proof -
+      have "{i\<in>I. U i \<inter> A i \<noteq> A i} \<subseteq> {i\<in>I. U i \<noteq> X i}"
+        using hSub by auto
+      then show ?thesis using finite_subset hfin by blast
+    qed
+    ultimately show ?LHS unfolding top1_product_basis_on_def by blast
+  qed
+qed
 
 lemma product_subspace_topology_eq:
   assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
+  assumes hTsub: "\<forall>i\<in>I. \<forall>V\<in>T i. V \<subseteq> X i"
   assumes hSub: "\<forall>i\<in>I. A i \<subseteq> X i"
   shows "top1_product_topology_on I A (\<lambda>i. subspace_topology (X i) (T i) (A i))
     = subspace_topology (top1_PiE I X) (top1_product_topology_on I X T) (top1_PiE I A)"
