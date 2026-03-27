@@ -10971,20 +10971,23 @@ proof -
   let ?dY = "top1_uniform_metric_on X (\<lambda>x y :: real. \<bar>x - y\<bar>)"
   have hR_complete: "top1_complete_metric_on (UNIV :: real set) (\<lambda>x y :: real. \<bar>x - y\<bar>)"
     by (rule Theorem_43_2)
+  have hY_complete: "top1_complete_metric_on ?Y ?dY"
+  proof (cases "X = {}")
+    case True then show ?thesis sorry
+  next
+    case False
+    then have "X \<noteq> {}" by blast
+    then show ?thesis by (rule Theorem_43_5[OF _ hR_complete])
+  qed
   show ?thesis
   proof (cases "X = {}")
     case True
-    text \<open>Empty X: PiE {} is singleton, uniform metric is trivial.\<close>
-    have hY_complete: "top1_complete_metric_on ?Y ?dY"
-      sorry
     have hiso: "top1_isometry_on X ?db ?Y ?dY (\<lambda>a x. undefined)"
       unfolding top1_isometry_on_def using True by blast
     show ?thesis using hY_complete hiso sorry
   next
     case False
     then obtain x0 where "x0 \<in> X" by blast
-    have hY_complete: "top1_complete_metric_on ?Y ?dY"
-      by (rule Theorem_43_5[OF False hR_complete])
     text \<open>Kuratowski embedding: \<Phi>(a)(x) = db(x,a) - db(x,x0).\<close>
     define \<Phi> where "\<Phi> a = (\<lambda>x. if x \<in> X then ?db x a - ?db x x0 else undefined)" for a
     have h\<Phi>_in_Y: "\<forall>a\<in>X. \<Phi> a \<in> ?Y"
