@@ -16389,8 +16389,9 @@ lemma metric_topology_open_sub:
 text \<open>Closure of a set under a topology is a subset of the carrier.\<close>
 lemma closure_on_sub_carrier:
   assumes hTop: "is_topology_on X TX"
+  assumes hAX: "A \<subseteq> X"
   shows "closure_on X TX A \<subseteq> X"
-  sorry
+  by (rule closure_on_subset_carrier[OF hTop hAX])
 
 text \<open>Closure of a set is closed.\<close>
 lemma closure_on_is_closedin:
