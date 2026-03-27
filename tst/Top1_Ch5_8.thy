@@ -1815,6 +1815,100 @@ proof -
   qed
 qed
 
+text \<open>The real line with order topology is Hausdorff.\<close>
+lemma real_order_topology_hausdorff:
+  "is_hausdorff_on (UNIV :: real set) order_topology_on_UNIV"
+  unfolding is_hausdorff_on_def
+proof (intro conjI)
+  show "is_topology_on (UNIV :: real set) order_topology_on_UNIV"
+    by (rule order_topology_on_UNIV_is_topology_on)
+  show "\<forall>x\<in>(UNIV::real set). \<forall>y\<in>UNIV. x \<noteq> y \<longrightarrow>
+    (\<exists>U V. neighborhood_of x UNIV order_topology_on_UNIV U
+         \<and> neighborhood_of y UNIV order_topology_on_UNIV V \<and> U \<inter> V = {})"
+  proof (intro ballI impI)
+    fix x y :: real assume "x \<in> UNIV" "y \<in> UNIV" "x \<noteq> y"
+    define m where "m = (x + y) / 2"
+    have hm: "m = (x + y) / 2" unfolding m_def by blast
+    text \<open>WLOG x < y (or y < x). Use open rays around midpoint.\<close>
+    have "x < y \<or> y < x" using \<open>x \<noteq> y\<close> by linarith
+    then show "\<exists>U V. neighborhood_of x UNIV order_topology_on_UNIV U
+      \<and> neighborhood_of y UNIV order_topology_on_UNIV V \<and> U \<inter> V = {}"
+    proof
+      assume "x < y"
+      have hm_between: "x < m" "m < y" using \<open>x < y\<close> unfolding m_def by simp+
+      have "neighborhood_of x UNIV order_topology_on_UNIV (open_ray_lt m)"
+        unfolding neighborhood_of_def using open_ray_lt_in_order_topology hm_between(1)
+        unfolding open_ray_lt_def by blast
+      moreover have "neighborhood_of y UNIV order_topology_on_UNIV (open_ray_gt m)"
+        unfolding neighborhood_of_def using open_ray_gt_in_order_topology hm_between(2)
+        unfolding open_ray_gt_def by blast
+      moreover have "open_ray_lt m \<inter> open_ray_gt m = {}"
+        unfolding open_ray_lt_def open_ray_gt_def by auto
+      ultimately show ?thesis by blast
+    next
+      assume "y < x"
+      have hm_between: "y < m" "m < x" using \<open>y < x\<close> unfolding m_def by simp+
+      have "neighborhood_of x UNIV order_topology_on_UNIV (open_ray_gt m)"
+        unfolding neighborhood_of_def using open_ray_gt_in_order_topology hm_between(2)
+        unfolding open_ray_gt_def by blast
+      moreover have "neighborhood_of y UNIV order_topology_on_UNIV (open_ray_lt m)"
+        unfolding neighborhood_of_def using open_ray_lt_in_order_topology hm_between(1)
+        unfolding open_ray_lt_def by blast
+      moreover have "open_ray_gt m \<inter> open_ray_lt m = {}"
+        unfolding open_ray_gt_def open_ray_lt_def by auto
+      ultimately show ?thesis by blast
+    qed
+  qed
+qed
+
+text \<open>Subspace of Hausdorff is Hausdorff.\<close>
+lemma hausdorff_subspace:
+  assumes hHaus: "is_hausdorff_on X TX"
+  assumes hAsub: "A \<subseteq> X"
+  shows "is_hausdorff_on A (subspace_topology X TX A)"
+  unfolding is_hausdorff_on_def
+proof (intro conjI)
+  have hTopX: "is_topology_on X TX" using hHaus unfolding is_hausdorff_on_def by blast
+  show hTopA: "is_topology_on A (subspace_topology X TX A)"
+    by (rule subspace_topology_is_topology_on[OF hTopX hAsub])
+  show "\<forall>x\<in>A. \<forall>y\<in>A. x \<noteq> y \<longrightarrow>
+    (\<exists>U V. neighborhood_of x A (subspace_topology X TX A) U
+         \<and> neighborhood_of y A (subspace_topology X TX A) V \<and> U \<inter> V = {})"
+  proof (intro ballI impI)
+    fix x y assume "x \<in> A" "y \<in> A" "x \<noteq> y"
+    then have "x \<in> X" "y \<in> X" using hAsub by blast+
+    then obtain U V where hU: "neighborhood_of x X TX U" and hV: "neighborhood_of y X TX V" and hdisj: "U \<inter> V = {}"
+      using hHaus \<open>x \<noteq> y\<close> unfolding is_hausdorff_on_def by blast
+    have "U \<in> TX" "x \<in> U" using hU unfolding neighborhood_of_def by blast+
+    have "V \<in> TX" "y \<in> V" using hV unfolding neighborhood_of_def by blast+
+    have "neighborhood_of x A (subspace_topology X TX A) (U \<inter> A)"
+      unfolding neighborhood_of_def subspace_topology_def using \<open>U \<in> TX\<close> \<open>x \<in> U\<close> \<open>x \<in> A\<close> by blast
+    moreover have "neighborhood_of y A (subspace_topology X TX A) (V \<inter> A)"
+      unfolding neighborhood_of_def subspace_topology_def using \<open>V \<in> TX\<close> \<open>y \<in> V\<close> \<open>y \<in> A\<close> by blast
+    moreover have "(U \<inter> A) \<inter> (V \<inter> A) = {}" using hdisj by blast
+    ultimately show "\<exists>U V. neighborhood_of x A (subspace_topology X TX A) U
+      \<and> neighborhood_of y A (subspace_topology X TX A) V \<and> U \<inter> V = {}" by blast
+  qed
+qed
+
+text \<open>Product of Hausdorff spaces is Hausdorff.\<close>
+lemma hausdorff_product:
+  assumes hHaus: "\<forall>i\<in>I. is_hausdorff_on (X i) (T i)"
+  shows "is_hausdorff_on (top1_PiE I X) (top1_product_topology_on I X T)"
+  sorry
+
+text \<open>[0,1] is Hausdorff.\<close>
+lemma closed_interval_hausdorff:
+  shows "is_hausdorff_on (top1_closed_interval (a::real) b) (top1_closed_interval_topology a b)"
+proof -
+  have hR_haus: "is_hausdorff_on (UNIV :: real set) order_topology_on_UNIV"
+    by (rule real_order_topology_hausdorff)
+  have hI_sub: "top1_closed_interval a b \<subseteq> (UNIV :: real set)" by simp
+  have hI_eq: "top1_closed_interval_topology a b = subspace_topology UNIV order_topology_on_UNIV (top1_closed_interval a b)"
+    unfolding top1_closed_interval_topology_def by blast
+  show ?thesis unfolding hI_eq by (rule hausdorff_subspace[OF hR_haus hI_sub])
+qed
+
 (** from \S38 Theorem 38.2 (Existence of Stone-\<C>ech compactification) [top1.tex:5418] **)
 text \<open>Proof strategy: use Theorem 34.3 (completely regular \<open>\<Rightarrow>\<close> embeds in \<open>[0,1]^J\<close>)
   to embed X into \<open>[0,1]^J\<close>. The closure of the image in \<open>[0,1]^J\<close> is compact
