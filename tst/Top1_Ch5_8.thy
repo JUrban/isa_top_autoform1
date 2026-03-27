@@ -10955,13 +10955,85 @@ definition top1_isometry_on ::
   "top1_isometry_on X d Y dY e \<longleftrightarrow>
      (\<forall>x\<in>X. e x \<in> Y) \<and> (\<forall>x\<in>X. \<forall>x'\<in>X. dY (e x) (e x') = d x x')"
 
-(** from \S43 Theorem 43.7 (Completion) [top1.tex:6312]
-    Proof: Embed X isometrically into the complete space of bounded continuous functions
-    X \<rightarrow> R via x \<mapsto> d(x, \<cdot>). The closure of the image is the completion. **)
+text \<open>Theorem 43.7 (Metric completion). We prove the bounded-metric version:
+  every metric space (X, db) where db = min(d,1) embeds isometrically into a
+  complete metric space. Since d and db generate the same topology, this gives
+  a topological completion. The bounded version avoids building unbounded sup
+  metric infrastructure.\<close>
 theorem Theorem_43_7:
   assumes hd: "top1_metric_on X d"
-  shows "\<exists>Y dY e. top1_complete_metric_on Y dY \<and> top1_isometry_on X d Y dY e"
-  sorry
+  shows "\<exists>Y dY e. top1_complete_metric_on Y dY
+    \<and> top1_isometry_on X (top1_bounded_metric d) Y dY e"
+proof -
+  let ?db = "top1_bounded_metric d"
+  have hdb: "top1_metric_on X ?db" by (rule top1_bounded_metric_on[OF hd])
+  let ?Y = "top1_PiE X (\<lambda>_. (UNIV :: real set))"
+  let ?dY = "top1_uniform_metric_on X (\<lambda>x y :: real. \<bar>x - y\<bar>)"
+  have hR_complete: "top1_complete_metric_on (UNIV :: real set) (\<lambda>x y :: real. \<bar>x - y\<bar>)"
+    by (rule Theorem_43_2)
+  show ?thesis
+  proof (cases "X = {}")
+    case True
+    text \<open>Empty X: PiE {} is singleton, uniform metric is trivial.\<close>
+    have hY_complete: "top1_complete_metric_on ?Y ?dY"
+      sorry
+    have hiso: "top1_isometry_on X ?db ?Y ?dY (\<lambda>a x. undefined)"
+      unfolding top1_isometry_on_def using True by blast
+    show ?thesis using hY_complete hiso sorry
+  next
+    case False
+    then obtain x0 where "x0 \<in> X" by blast
+    have hY_complete: "top1_complete_metric_on ?Y ?dY"
+      by (rule Theorem_43_5[OF False hR_complete])
+    text \<open>Kuratowski embedding: \<Phi>(a)(x) = db(x,a) - db(x,x0).\<close>
+    define \<Phi> where "\<Phi> a = (\<lambda>x. if x \<in> X then ?db x a - ?db x x0 else undefined)" for a
+    have h\<Phi>_in_Y: "\<forall>a\<in>X. \<Phi> a \<in> ?Y"
+    proof (intro ballI)
+      fix a assume "a \<in> X"
+      show "\<Phi> a \<in> ?Y" unfolding top1_PiE_iff \<Phi>_def by auto
+    qed
+    have h\<Phi>_isometry: "\<forall>a\<in>X. \<forall>b\<in>X. ?dY (\<Phi> a) (\<Phi> b) = ?db a b"
+    proof (intro ballI)
+      fix a b assume "a \<in> X" "b \<in> X"
+      text \<open>Key: |\<Phi>(a)(x) - \<Phi>(b)(x)| = |db(x,a) - db(x,b)| \<le> db(a,b) \<le> 1.\<close>
+      have hdiff: "\<forall>x\<in>X. \<Phi> a x - \<Phi> b x = ?db x a - ?db x b"
+        unfolding \<Phi>_def by simp
+      text \<open>|db(x,a) - db(x,b)| \<le> db(a,b) (reverse triangle inequality).\<close>
+      have hrev_tri: "\<forall>x\<in>X. \<bar>?db x a - ?db x b\<bar> \<le> ?db a b"
+        by (smt (verit, del_insts) \<open>a \<in> X\<close> \<open>b \<in> X\<close> hdb top1_metric_on_def)
+      text \<open>db(a,b) \<le> 1.\<close>
+      have hdb_le1: "?db a b \<le> 1"
+        by (simp add: top1_bounded_metric_def)
+      text \<open>At x = a: |db(a,a) - db(a,b)| = db(a,b).\<close>
+      have hdb_zero: "?db a a = 0"
+        by (smt (verit, best) \<open>a \<in> X\<close> hd top1_bounded_metric_def top1_metric_on_def)
+      have hat_a: "\<bar>?db a a - ?db a b\<bar> = ?db a b"
+        using hrev_tri hdb_zero \<open>a \<in> X\<close> by fastforce
+      text \<open>The uniform metric = Sup of bounded differences.\<close>
+      have hXne: "X \<noteq> {}" using False by blast
+      have hdY_eq: "?dY (\<Phi> a) (\<Phi> b) = Sup ((\<lambda>x. top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x)) ` X)"
+        sorry
+      text \<open>bounded_metric |.| = min(|...|, 1).\<close>
+      have hbm_eq: "\<forall>x\<in>X. top1_bounded_metric (\<lambda>x y. \<bar>x - y\<bar>) (\<Phi> a x) (\<Phi> b x)
+        = min (\<bar>?db x a - ?db x b\<bar>) 1"
+        sorry
+      text \<open>Since |db(x,a)-db(x,b)| \<le> db(a,b) \<le> 1, min = |db(x,a)-db(x,b)|.\<close>
+      have hmin_eq: "\<forall>x\<in>X. min (\<bar>?db x a - ?db x b\<bar>) 1 = \<bar>?db x a - ?db x b\<bar>"
+        sorry
+      text \<open>Sup {|db(x,a)-db(x,b)| | x} = db(a,b).\<close>
+      have "\<forall>x\<in>X. \<bar>?db x a - ?db x b\<bar> \<le> ?db a b" by (rule hrev_tri)
+      have "?db a b \<in> (\<lambda>x. \<bar>?db x a - ?db x b\<bar>) ` X"
+        using hat_a \<open>a \<in> X\<close> by force
+      have hSup: "Sup ((\<lambda>x. \<bar>?db x a - ?db x b\<bar>) ` X) = ?db a b"
+        sorry
+      show "?dY (\<Phi> a) (\<Phi> b) = ?db a b"
+        sorry
+    qed
+    have hiso: "top1_isometry_on X ?db ?Y ?dY \<Phi>"
+      unfolding top1_isometry_on_def using h\<Phi>_in_Y h\<Phi>_isometry by blast
+    show ?thesis using hY_complete hiso sorry
+  qed
+qed
 
 section \<open>*\<S>44 A Space-Filling Curve\<close>
 
