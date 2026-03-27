@@ -16221,6 +16221,15 @@ proof (rule set_eqI)
   qed
 qed
 
+text \<open>General: subspace of a generated topology = generated topology on the subspace
+  with intersected basis.\<close>
+lemma subspace_topology_generated_by_basis:
+  assumes hBasis: "is_basis_on X \<B>"
+  assumes hT: "T = topology_generated_by_basis X \<B>"
+  assumes hYX: "Y \<subseteq> X"
+  shows "subspace_topology X T Y = topology_generated_by_basis Y ((\<lambda>b. b \<inter> Y) ` \<B>)"
+  sorry
+
 lemma product_subspace_topology_eq:
   assumes hTop: "\<forall>i\<in>I. is_topology_on (X i) (T i)"
   assumes hTsub: "\<forall>i\<in>I. \<forall>V\<in>T i. V \<subseteq> X i"
