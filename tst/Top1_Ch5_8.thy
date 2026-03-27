@@ -16695,8 +16695,15 @@ proof -
     using Theorem_26_2[OF hZ_compact hY_closed] by blast
   have hY_haus: "is_hausdorff_on Y TY" unfolding TY_def
     using hausdorff_subspace[OF hZ_haus hY_sub_Z] by blast
-  have hCompactification: "top1_compactification_via_on X TX Y TY F"
+  text \<open>F embeds X into Y with dense image.\<close>
+  have hFX_sub_Y: "F ` X \<subseteq> Y" unfolding Y_def using subset_closure_on by fast
+  have hEmb_Y: "top1_embedding_on X TX Y TY F"
     sorry
+  have hDense: "closure_on Y TY (F ` X) = Y"
+    sorry \<comment> \<open>closure in subspace = intersection with ambient closure = Y \<inter> Y = Y\<close>
+  have hCompactification: "top1_compactification_via_on X TX Y TY F"
+    unfolding top1_compactification_via_on_def top1_dense_image_via_on_def
+    using hY_compact hY_haus hEmb_Y hDense by blast
   have hExtension: "\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
     \<and> top1_bounded_on X f \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
             \<and> (\<forall>x\<in>X. g (F x) = f x)
