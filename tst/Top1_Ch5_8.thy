@@ -16378,6 +16378,44 @@ proof (intro conjI)
   qed
 qed
 
+text \<open>Metric topology open sets are subsets of the carrier.\<close>
+lemma metric_topology_open_sub:
+  assumes hd: "top1_metric_on X d"
+  assumes hU: "U \<in> top1_metric_topology_on X d"
+  shows "U \<subseteq> X"
+  using hU unfolding top1_metric_topology_on_def topology_generated_by_basis_def
+  by blast
+
+text \<open>Closure of a set under a topology is a subset of the carrier.\<close>
+lemma closure_on_sub_carrier:
+  assumes hTop: "is_topology_on X TX"
+  shows "closure_on X TX A \<subseteq> X"
+  sorry
+
+text \<open>Closure of a set is closed.\<close>
+lemma closure_on_is_closedin:
+  assumes hTop: "is_topology_on X TX"
+  assumes hAsub: "A \<subseteq> X"
+  shows "closedin_on X TX (closure_on X TX A)"
+  by (simp add: closure_on_closed hAsub hTop)
+
+text \<open>Closed set contains closure of subset.\<close>
+lemma closedin_contains_closure:
+  assumes hTop: "is_topology_on X TX"
+  assumes hC: "closedin_on X TX C"
+  assumes hAC: "A \<subseteq> C"
+  shows "closure_on X TX A \<subseteq> C"
+  by (simp add: closure_on_subset_of_closed hAC hC)
+
+text \<open>Closed-in subspace from closed-in ambient + subset.\<close>
+lemma closedin_subspace_from_ambient:
+  assumes hTop: "is_topology_on X TX"
+  assumes hCl: "closedin_on X TX C"
+  assumes hAsub: "A \<subseteq> X"
+  assumes hCsub: "C \<subseteq> A"
+  shows "closedin_on A (subspace_topology X TX A) C"
+  using Theorem_17_2 hAsub hCl hCsub hTop by blast
+
 lemma top1_ascoli_step1_compact_closure_pointwise:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
@@ -16394,9 +16432,6 @@ lemma top1_ascoli_step1_compact_closure_pointwise:
       (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>)
       (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d))
         (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>))"
-  text \<open>Proof: tychonoff_subspace_compact + product_of_closedin + Theorem_26_2.
-    All infrastructure is now proved. The assembly requires careful handling of
-    metric topology subset property and closure containment arguments.\<close>
   sorry
 
 lemma top1_ascoli_step2_closure_continuous_and_equicontinuous:
