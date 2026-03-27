@@ -16319,7 +16319,8 @@ next
     have "b \<inter> Y \<in> (\<lambda>b. b \<inter> Y) ` \<B>" using \<open>b \<in> \<B>\<close> by blast
     moreover have "x \<in> b \<inter> Y" using \<open>x \<in> b\<close> \<open>x \<in> Y\<close> by blast
     moreover have "b \<inter> Y \<subseteq> W" by (rule \<open>b \<inter> Y \<subseteq> W\<close>)
-    ultimately show "\<exists>bY\<in>(\<lambda>b. b \<inter> Y) ` \<B>. x \<in> bY \<and> bY \<subseteq> W" by blast
+    ultimately show "\<exists>bY\<in>(\<lambda>b. b \<inter> Y) ` \<B>. x \<in> bY \<and> bY \<subseteq> W"
+      using \<open>b \<inter> Y \<in> (\<lambda>b. b \<inter> Y) ` \<B>\<close> by (intro bexI) blast
   qed
 qed
 
