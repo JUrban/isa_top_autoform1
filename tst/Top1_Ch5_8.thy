@@ -16682,7 +16682,12 @@ proof -
   have hI_compact: "\<forall>j\<in>J. top1_compact_on ?I ?TI"
     using top1_closed_interval_compact[of 0 1] by simp
   have hZ_compact: "top1_compact_on ?Z ?TZ"
-    sorry
+  proof (cases "J = {}")
+    case True then show ?thesis sorry
+  next
+    case False
+    show ?thesis using Theorem_37_3[OF False hI_compact] by blast
+  qed
   have hFX_sub_Z: "F ` X \<subseteq> ?Z"
     using hEmb unfolding top1_embedding_on_def by blast
   define Y where "Y = closure_on ?Z ?TZ (F ` X)"
