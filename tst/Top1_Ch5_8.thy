@@ -16767,6 +16767,13 @@ proof -
             \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
                   \<and> (\<forall>x\<in>X. g' (F x) = f x) \<longrightarrow> top1_eq_on Y g g'))"
     sorry
+  have "\<exists>e. top1_compactification_via_on X TX Y TY e
+    \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f \<and> top1_bounded_on X f
+        \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
+                \<and> (\<forall>x\<in>X. g (e x) = f x)
+                \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
+                      \<and> (\<forall>x\<in>X. g' (e x) = f x) \<longrightarrow> top1_eq_on Y g g')))"
+    using hCompactification hExtension by blast
   show ?thesis using hCompactification hExtension sorry
 qed
 
