@@ -17041,33 +17041,20 @@ definition top1_SC_Y :: "'a set \<Rightarrow> 'a set set \<Rightarrow> (('a \<Ri
 definition top1_SC_TY :: "'a set \<Rightarrow> 'a set set \<Rightarrow> (('a \<Rightarrow> real) \<Rightarrow> real) set set" where
   "top1_SC_TY X TX = subspace_topology (top1_SC_Z X TX) (top1_SC_TZ X TX) (top1_SC_Y X TX)"
 
-text \<open>Theorem 38.2 (Stone-\<C>ech compactification existence) — obtains form.\<close>
-theorem Theorem_38_2_obtains:
-  assumes hCR: "top1_completely_regular_on X TX"
-  obtains Y TY e where
-    "top1_compactification_via_on X TX Y TY e"
-    "\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
-            \<and> top1_bounded_on X f
-            \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                    \<and> (\<forall>x\<in>X. g (e x) = f x)
-                    \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
-                          \<and> (\<forall>x\<in>X. g' (e x) = f x)
-                          \<longrightarrow> top1_eq_on Y g g'))"
-  sorry \<comment> \<open>Blocked: type (('a => real) => real) set. Content in Theorem_38_2_concrete.\<close>
-
-text \<open>Theorem 38.2 (Stone-\<C>ech compactification existence) — existential form.
-  Derives from the obtains form.\<close>
+text \<open>Theorem 38.2 (Stone-Cech compactification existence).
+  Uses the concrete SC construction to avoid function-type existential issues.\<close>
 theorem Theorem_38_2:
   assumes hCR: "top1_completely_regular_on X TX"
-  shows "\<exists>Y TY e.
-    top1_compactification_via_on X TX Y TY e
+  shows "top1_compactification_via_on X TX (top1_SC_Y X TX) (top1_SC_TY X TX) (top1_SC_F X TX)
     \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
             \<and> top1_bounded_on X f
-            \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                    \<and> (\<forall>x\<in>X. g (e x) = f x)
-                    \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
-                          \<and> (\<forall>x\<in>X. g' (e x) = f x)
-                          \<longrightarrow> top1_eq_on Y g g')))"
+            \<longrightarrow> (\<exists>g. top1_continuous_map_on (top1_SC_Y X TX) (top1_SC_TY X TX)
+                      UNIV order_topology_on_UNIV g
+                    \<and> (\<forall>x\<in>X. g (top1_SC_F X TX x) = f x)
+                    \<and> (\<forall>g'. top1_continuous_map_on (top1_SC_Y X TX) (top1_SC_TY X TX)
+                              UNIV order_topology_on_UNIV g'
+                          \<and> (\<forall>x\<in>X. g' (top1_SC_F X TX x) = f x)
+                          \<longrightarrow> top1_eq_on (top1_SC_Y X TX) g g')))"
 proof -
   let ?I = "top1_closed_interval (0::real) 1"
   let ?TI = "top1_closed_interval_topology (0::real) 1"
@@ -17381,8 +17368,14 @@ proof -
                   \<and> (\<forall>x\<in>X. g' (F x) = f x) \<longrightarrow> top1_eq_on Y g g')"
       using hg_cont hg_ext hUnique by blast
   qed
-  show ?thesis
-    by (rule Theorem_38_2_obtains[OF hCR]) blast
+  have hJ_SC: "J = top1_SC_J X TX" unfolding J_def top1_SC_J_def by simp
+  have hF_SC: "F = top1_SC_F X TX" unfolding F_def top1_SC_F_def hJ_SC by simp
+  have hZ_SC: "?Z = top1_SC_Z X TX" unfolding top1_SC_Z_def hJ_SC by simp
+  have hTZ_SC: "?TZ = top1_SC_TZ X TX" unfolding top1_SC_TZ_def hJ_SC by simp
+  have hY_SC: "Y = top1_SC_Y X TX" unfolding Y_def top1_SC_Y_def hZ_SC hTZ_SC hF_SC by simp
+  have hTY_SC: "TY = top1_SC_TY X TX" unfolding TY_def top1_SC_TY_def hZ_SC hTZ_SC hY_SC by simp
+  show ?thesis using hCompactification hExtension
+    unfolding hY_SC hTY_SC hF_SC by blast
 qed
 
 lemma top1_ascoli_step1_compact_closure_pointwise:
