@@ -12718,7 +12718,27 @@ proof -
     have hSub_clF_metric: "subspace_topology ?C ?Tc ?clF = top1_metric_topology_on ?clF ?du"
       using subspace_metric_topology_eq_metric_topology[OF hdu_metric_C hclF_sub_C] hTc_is_metric by auto
     have hclF_PiE: "?clF \<subseteq> ?PiE" using hclF_sub_C hC_sub_PiE by order
-    show ?thesis sorry
+    have hclF_cont_funcs: "?clF \<subseteq> top1_continuous_funcs_on X TX Y ?TY"
+      using hclF_sub_C by fastforce
+    show ?thesis
+    proof (rule iffI)
+      assume hComp: "top1_compact_on ?clF (subspace_topology ?C ?Tc ?clF)"
+      have hComp_metric: "top1_compact_on ?clF (top1_metric_topology_on ?clF ?du)"
+        using hComp hSub_clF_metric by argo
+      have hTotB: "top1_totally_bounded_on ?clF ?du"
+        using Theorem_45_1[OF hdu_metric_clF] hComp_metric by blast
+      have hclF_equi: "top1_equicontinuous_family_on X TX Y d ?clF"
+        using Lemma_45_2[OF hTopX hd hclF_cont_funcs hclF_PiE hTotB] by blast
+      have hclF_ptwise_bdd: "top1_pointwise_bounded_family_on X Y d ?clF"
+        sorry
+      show "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
+        using hF_equi_from_clF hF_bdd_from_clF hclF_equi hclF_ptwise_bdd
+        sorry
+    next
+      assume "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
+      show "top1_compact_on ?clF (subspace_topology ?C ?Tc ?clF)"
+        sorry
+    qed
   qed
 qed
 
