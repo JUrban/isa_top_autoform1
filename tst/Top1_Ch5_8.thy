@@ -12640,12 +12640,37 @@ proof -
     done
 qed
 
+lemma sup_metric_ge_pointwise:
+  assumes ha: "a \<in> X"
+  assumes hbdd: "bdd_above ((\<lambda>x. d (f x) (g x)) ` X)"
+  shows "d (f a) (g a) \<le> top1_sup_metric_on X d f g"
+  unfolding top1_sup_metric_on_def using ha hbdd by (simp add: cSup_upper)
+
 lemma uniform_bounded_imp_pointwise_bounded:
   assumes hd: "top1_metric_on Y d"
-  assumes "\<F> \<subseteq> top1_PiE X (\<lambda>_. Y)"
-  assumes "top1_metric_bounded_subset_on (top1_PiE X (\<lambda>_. Y)) (top1_uniform_metric_on X d) \<F>"
+  assumes hFpiE: "\<F> \<subseteq> top1_PiE X (\<lambda>_. Y)"
+  assumes hFbdd: "top1_metric_bounded_subset_on (top1_PiE X (\<lambda>_. Y)) (top1_sup_metric_on X d) \<F>"
   shows "top1_pointwise_bounded_family_on X Y d \<F>"
-  sorry
+  unfolding top1_pointwise_bounded_family_on_def
+proof (intro ballI)
+  fix a assume ha: "a \<in> X"
+  from hFbdd obtain y0 M where hy0: "y0 \<in> top1_PiE X (\<lambda>_. Y)"
+    and hM: "\<forall>f\<in>\<F>. top1_sup_metric_on X d y0 f \<le> M"
+    unfolding top1_metric_bounded_subset_on_def by blast
+  have hy0a: "y0 a \<in> Y" using hy0 ha unfolding top1_PiE_iff by blast
+  have hfbd: "\<forall>f\<in>\<F>. d (y0 a) (f a) \<le> M"
+  proof (intro ballI)
+    fix f assume hf: "f \<in> \<F>"
+    have hbdd_above: "bdd_above ((\<lambda>x. d (y0 x) (f x)) ` X)"
+      sorry
+    have "d (y0 a) (f a) \<le> top1_sup_metric_on X d y0 f"
+      by (simp add: ha hbdd_above sup_metric_ge_pointwise)
+    also have "\<dots> \<le> M" using hM hf by blast
+    finally show "d (y0 a) (f a) \<le> M" .
+  qed
+  show "top1_metric_bounded_subset_on Y d ((\<lambda>f. f a) ` \<F>)"
+    unfolding top1_metric_bounded_subset_on_def using hy0a hfbd sorry
+qed
 
 lemma equicontinuous_subset:
   assumes hEq: "top1_equicontinuous_family_on X TX Y d G"
@@ -12773,12 +12798,10 @@ proof -
         using Theorem_45_1[OF hdu_metric_clF] hComp_metric by blast
       have hclF_equi: "top1_equicontinuous_family_on X TX Y d ?clF"
         using Lemma_45_2[OF hTopX hd hclF_cont_funcs hclF_PiE hTotB] by blast
-      have hclF_bdd: "top1_metric_bounded_subset_on ?clF ?du ?clF"
-        sorry
-      have hclF_bdd_PiE: "top1_metric_bounded_subset_on ?PiE ?du ?clF"
+      have hclF_bdd_sup: "top1_metric_bounded_subset_on ?PiE (top1_sup_metric_on X d) ?clF"
         sorry
       have hclF_ptwise_bdd: "top1_pointwise_bounded_family_on X Y d ?clF"
-        using uniform_bounded_imp_pointwise_bounded[OF hd hclF_PiE hclF_bdd_PiE] by blast
+        using uniform_bounded_imp_pointwise_bounded[OF hd hclF_PiE hclF_bdd_sup] sorry
       have hF_equi: "top1_equicontinuous_family_on X TX Y d \<F>"
         using hF_equi_from_clF hclF_equi by blast
       have hF_ptwise_bdd: "top1_pointwise_bounded_family_on X Y d \<F>"
