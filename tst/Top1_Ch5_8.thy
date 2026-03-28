@@ -12698,7 +12698,25 @@ proof -
   have hF_bdd_from_clF: "top1_pointwise_bounded_family_on X Y d ?clF
     \<longrightarrow> top1_pointwise_bounded_family_on X Y d \<F>"
     using pointwise_bounded_subset hF_sub_clF by blast
-  show ?thesis sorry
+  show ?thesis
+  proof (cases "X = {}")
+    case True then show ?thesis sorry
+  next
+    case False
+    have hdu_metric_PiE: "top1_metric_on ?PiE ?du"
+      by (rule top1_uniform_metric_is_metric[OF False hd])
+    have hTc_is_metric: "?Tc = top1_metric_topology_on ?C ?du"
+      by (rule subspace_metric_topology_eq_metric_topology[OF hdu_metric_PiE hC_sub_PiE])
+    have hdu_metric_C: "top1_metric_on ?C ?du"
+      by (rule metric_on_subset[OF hdu_metric_PiE hC_sub_PiE])
+    have hclF_sub_C: "?clF \<subseteq> ?C"
+      sorry
+    show ?thesis
+      using hF_equi_from_clF hF_bdd_from_clF
+        hTc_is_metric hclF_sub_C hdu_metric_C
+        subspace_metric_topology_eq_metric_topology
+      sorry
+  qed
 qed
 
 (** from \S45 Corollary 45.5 [top1.tex:6679] **)
