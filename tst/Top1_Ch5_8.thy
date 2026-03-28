@@ -12603,6 +12603,10 @@ next
   qed
 qed
 
+lemma continuous_funcs_eq_maps_metric:
+  "top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d) = top1_continuous_maps_metric_on X TX Y d"
+  by (simp add: top1_continuous_funcs_on_def top1_continuous_maps_metric_on_def)
+
 (** from \S45 Theorem 45.4 (Ascoli's theorem, classical version) [top1.tex:6655] **)
 theorem Theorem_45_4:
   assumes hCompX: "top1_compact_on X TX"
