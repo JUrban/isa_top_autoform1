@@ -2264,9 +2264,43 @@ proof (intro allI impI)
         using Theorem_18_2(6)[OF hTopC hTopSub\<iota> hTopProd] by blast
       then show ?thesis using h\<iota>_sub_cont h\<iota>C_sub by presburger
     qed
-    text \<open>Step 3: For each alpha, the composition pi_alpha o iota o f is bounded continuous.\<close>
-    text \<open>Step 4: Extend each via hExtR. Assemble into G: Y to [0,1]^J2.\<close>
-    text \<open>Step 5: G(Y) subset iota(C) via closure argument. Compose with iota-inverse.\<close>
+    text \<open>Step 3: For each alpha, extend the component function and get G: Y to product.\<close>
+    have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+      by (rule order_topology_on_UNIV_is_topology_on)
+    have h_alpha_ext: "\<forall>\<alpha>\<in>J2. \<exists>ga. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV ga
+          \<and> (\<forall>x\<in>X. ga (e x) = \<iota> (f x) \<alpha>)"
+    proof (intro ballI)
+      fix \<alpha> assume h\<alpha>: "\<alpha> \<in> J2"
+      text \<open>h_alpha(x) = iota(f(x))(alpha) is continuous X to [0,1] to R, bounded.\<close>
+      define h\<alpha> where "h\<alpha> x = \<iota> (f x) \<alpha>" for x
+      have h\<alpha>_cont_R: "top1_continuous_map_on X TX (UNIV::real set) order_topology_on_UNIV h\<alpha>"
+        unfolding h\<alpha>_def
+        sorry
+      have h\<alpha>_bdd: "top1_bounded_on X h\<alpha>"
+        unfolding top1_bounded_on_def h\<alpha>_def
+      proof (intro exI[where x=1] ballI)
+        fix x assume "x \<in> X"
+        have "f x \<in> C" using hf unfolding top1_continuous_map_on_def by (meson \<open>x \<in> X\<close>)
+        then have "\<iota> (f x) \<in> top1_PiE J2 (\<lambda>_. ?I)"
+          using h\<iota>C_sub by blast
+        then have "\<iota> (f x) \<alpha> \<in> ?I" using h\<alpha> unfolding top1_PiE_iff by blast
+        then show "\<bar>\<iota> (f x) \<alpha>\<bar> \<le> 1" unfolding top1_closed_interval_def by auto
+      qed
+      text \<open>By hExtR: extend to Y.\<close>
+      from hExtR h\<alpha>_cont_R h\<alpha>_bdd
+      obtain ga where "top1_continuous_map_on Y TY UNIV order_topology_on_UNIV ga"
+        "\<forall>x\<in>X. ga (e x) = h\<alpha> x"
+        by (smt (verit, del_insts) top1_eq_on_def)
+      then show "\<exists>ga. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV ga
+          \<and> (\<forall>x\<in>X. ga (e x) = \<iota> (f x) \<alpha>)"
+        unfolding h\<alpha>_def by blast
+    qed
+    obtain ghat where hghat: "\<forall>\<alpha>\<in>J2. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV (ghat \<alpha>)
+          \<and> (\<forall>x\<in>X. ghat \<alpha> (e x) = \<iota> (f x) \<alpha>)"
+      by (metis h_alpha_ext)
+    text \<open>Step 4: G(y)(alpha) = ghat alpha y. G(e x) = iota(f x).\<close>
+    define G where "G y = (\<lambda>\<alpha>. if \<alpha> \<in> J2 then ghat \<alpha> y else undefined)" for y
+    text \<open>Step 5: G maps Y into iota(C). Then g = inv_into o G.\<close>
     show ?thesis sorry
   qed
   then obtain g where hgcont: "top1_continuous_map_on Y TY C TC g"
