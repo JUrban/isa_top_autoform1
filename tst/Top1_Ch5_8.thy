@@ -17700,6 +17700,15 @@ proof -
   show ?thesis using hcl_self closure_on_closed[OF hTopProd hPiA_sub] by simp
 qed
 
+lemma Tychonoff_general:
+  assumes hComp: "\<forall>i\<in>I. top1_compact_on (X i) (TX i)"
+  shows "top1_compact_on (top1_PiE I X) (top1_product_topology_on I X TX)"
+proof (cases "I = {}")
+  case True then show ?thesis sorry
+next
+  case False then show ?thesis by (rule Theorem_37_3[OF _ hComp])
+qed
+
 lemma product_subspace_eq_pointwise:
   assumes hTop: "is_topology_on Y TY"
   assumes hA: "\<forall>a\<in>X. A a \<subseteq> Y"
@@ -17783,8 +17792,11 @@ proof -
     using PiE_closed_sets_closed_in_product[OF hTopTY hA_sub hA_closed] by simp
   have hclF_sub: "?clF \<subseteq> top1_PiE X A"
     by (simp add: closure_on_subset_of_closed hFsubA hPiA_closed)
+  have hPiA_comp_prod: "top1_compact_on (top1_PiE X A)
+        (top1_product_topology_on X A (\<lambda>a. subspace_topology Y ?TY (A a)))"
+    by (simp add: Tychonoff_general hA_comp)
   have hPiA_comp: "top1_compact_on (top1_PiE X A) (subspace_topology ?PiE ?Tpw (top1_PiE X A))"
-    sorry
+    using hPiA_comp_prod hPiA_top_eq by simp
   have hclF_closed: "closedin_on (top1_PiE X A) (subspace_topology ?PiE ?Tpw (top1_PiE X A)) ?clF"
     by (simp add: closedin_subspace_from_ambient closure_on_closed hFsub_PiE hPiA_sub hTopPw hclF_sub)
   show ?thesis using Theorem_26_2[OF hPiA_comp hclF_closed]
