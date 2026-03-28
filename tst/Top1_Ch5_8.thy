@@ -17679,6 +17679,14 @@ proof -
     unfolding hY_SC hTY_SC hF_SC by blast
 qed
 
+lemma product_subspace_eq_pointwise:
+  assumes hTop: "is_topology_on Y TY"
+  assumes hA: "\<forall>a\<in>X. A a \<subseteq> Y"
+  shows "top1_product_topology_on X A (\<lambda>a. subspace_topology Y TY (A a)) =
+    subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y TY) (top1_PiE X A)"
+  unfolding top1_pointwise_topology_on_def
+  using Theorem_19_3_product[of X "\<lambda>_. Y" "\<lambda>_. TY" A] hA hTop by blast
+
 lemma top1_ascoli_step1_compact_closure_pointwise:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
