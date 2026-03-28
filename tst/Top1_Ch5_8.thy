@@ -12742,11 +12742,18 @@ proof -
         using Theorem_45_1[OF hdu_metric_clF] hComp_metric by blast
       have hclF_equi: "top1_equicontinuous_family_on X TX Y d ?clF"
         using Lemma_45_2[OF hTopX hd hclF_cont_funcs hclF_PiE hTotB] by blast
+      have hclF_bdd: "top1_metric_bounded_subset_on ?clF ?du ?clF"
+        using compact_metric_imp_bounded[OF hdu_metric_clF hComp_metric] by blast
+      have hclF_bdd_PiE: "top1_metric_bounded_subset_on ?PiE ?du ?clF"
+        by (metis subspace_metric_topology_eq_metric_topology hd hFsub_C hF_sub_clF metric_on_subset top1_metric_topology_on_is_topology_on compact_metric_imp_bounded empty_subsetI empty_iff top1_compact_on_empty_subspace top1_metric_bounded_subset_on_def)
       have hclF_ptwise_bdd: "top1_pointwise_bounded_family_on X Y d ?clF"
-        sorry
+        using uniform_bounded_imp_pointwise_bounded[OF hd hclF_PiE hclF_bdd_PiE] by blast
+      have hF_equi: "top1_equicontinuous_family_on X TX Y d \<F>"
+        using hF_equi_from_clF hclF_equi by blast
+      have hF_ptwise_bdd: "top1_pointwise_bounded_family_on X Y d \<F>"
+        using hF_bdd_from_clF hclF_ptwise_bdd by blast
       show "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
-        using hF_equi_from_clF hF_bdd_from_clF hclF_equi hclF_ptwise_bdd
-        sorry
+        using hF_equi hF_ptwise_bdd by blast
     next
       assume "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
       show "top1_compact_on ?clF (subspace_topology ?C ?Tc ?clF)"
