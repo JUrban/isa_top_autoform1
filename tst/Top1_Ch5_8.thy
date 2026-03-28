@@ -17733,7 +17733,15 @@ proof -
   have hPiA_top_eq: "top1_product_topology_on X A (\<lambda>a. subspace_topology Y ?TY (A a)) =
       subspace_topology ?PiE ?Tpw (top1_PiE X A)"
     using product_subspace_eq_pointwise[OF hTopTY hA_sub] by metis
-  text \<open>Remaining: PiE X A subset PiE, topology, F sub A, closed, compact.\<close>
+  have hPiA_sub: "top1_PiE X A \<subseteq> ?PiE"
+    by (simp add: hA_sub top1_PiE_mono)
+  have hTopPw: "is_topology_on ?PiE ?Tpw"
+    unfolding top1_pointwise_topology_on_def
+    using top1_product_topology_on_is_topology_on hTopTY by fast
+  have hFsub_PiE: "\<F> \<subseteq> ?PiE"
+    sorry
+  have hFsubA: "\<F> \<subseteq> top1_PiE X A"
+    sorry
   show ?thesis sorry
 qed
 
