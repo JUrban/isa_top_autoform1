@@ -17755,7 +17755,16 @@ proof -
       then show "f a = undefined" using hf_pie unfolding top1_PiE_iff by blast
     qed
   qed
-  show ?thesis sorry
+  have hPiA_closed: "closedin_on ?PiE ?Tpw (top1_PiE X A)"
+    sorry
+  have hclF_sub: "?clF \<subseteq> top1_PiE X A"
+    by (simp add: closure_on_subset_of_closed hFsubA hPiA_closed)
+  have hPiA_comp: "top1_compact_on (top1_PiE X A) (subspace_topology ?PiE ?Tpw (top1_PiE X A))"
+    sorry
+  have hclF_closed: "closedin_on (top1_PiE X A) (subspace_topology ?PiE ?Tpw (top1_PiE X A)) ?clF"
+    sorry
+  show ?thesis
+    sorry
 qed
 
 lemma top1_ascoli_step2_closure_continuous_and_equicontinuous:
