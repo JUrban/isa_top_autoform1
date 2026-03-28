@@ -2454,9 +2454,64 @@ proof (intro allI impI)
       show ?thesis using hiff hcomp by blast
     qed
     text \<open>Step 9d: G(Y) subset iota(C) via closure argument.\<close>
+    have hI_haus: "\<forall>i\<in>J2. is_hausdorff_on ?I ?TI" using closed_interval_hausdorff by blast
+    have hHausProd: "is_hausdorff_on (top1_PiE J2 (\<lambda>_. ?I))
+        (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI))"
+      by (rule Theorem_19_4_product[OF hI_haus])
+    have h\<iota>C_closed: "closedin_on (top1_PiE J2 (\<lambda>_. ?I))
+        (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C)"
+    proof (rule compact_in_hausdorff_closed[OF hHausProd _ h\<iota>C_sub])
+      show "top1_compact_on (\<iota> ` C) (subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C))"
+        by (rule Theorem_26_5[OF hTopC hTopProd hCompC h\<iota>_cont])
+    qed
     have hGimg: "G ` Y \<subseteq> \<iota> ` C"
+    proof -
+      have hEimgY2: "e ` X \<subseteq> Y" using hEimgY by blast
+      have hGcl: "G ` Y \<subseteq> closure_on (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (G ` (e ` X))"
+        using continuous_image_closure_subset[OF hTopY hTopProd hGcont hEimgY2] hDense by simp
+      have hGeX_sub: "G ` (e ` X) \<subseteq> \<iota> ` C"
+      proof (rule subsetI)
+        fix z assume "z \<in> G ` (e ` X)"
+        then obtain x where "x \<in> X" "z = G (e x)" by blast
+        then show "z \<in> \<iota> ` C"
+          using hGext hf unfolding top1_continuous_map_on_def by blast
+      qed
+      have "closure_on (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (G ` (e ` X))
+          \<subseteq> \<iota> ` C"
+        using closedin_contains_closure_early[OF hTopProd h\<iota>C_closed hGeX_sub] by blast
+      then show ?thesis using hGcl by blast
+    qed
+    text \<open>Step 9e: G restricted to ι(C) as codomain.\<close>
+    have hTopSub\<iota>C: "is_topology_on (\<iota> ` C) (subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+        (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C))"
+      by (rule subspace_topology_is_topology_on[OF hTopProd h\<iota>C_sub])
+    have hGcont_restr: "top1_continuous_map_on Y TY (\<iota> ` C)
+        (subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C)) G"
+    proof -
+      have "\<forall>W fa. top1_continuous_map_on Y TY (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) fa
+          \<and> W \<subseteq> (top1_PiE J2 (\<lambda>_. ?I)) \<and> fa ` Y \<subseteq> W
+          \<longrightarrow> top1_continuous_map_on Y TY W
+            (subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+              (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) W) fa"
+        using Theorem_18_2(5)[OF hTopY hTopProd hTopSub\<iota>C] by blast
+      then show ?thesis using hGcont h\<iota>C_sub hGimg by blast
+    qed
+    text \<open>Step 9f: iota_inv continuous on iota(C).\<close>
+    have h\<iota>inv_cont: "top1_continuous_map_on (\<iota> ` C)
+        (subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C))
+        C TC (inv_into C \<iota>)"
+      using h\<iota>emb unfolding top1_embedding_on_def top1_homeomorphism_on_def
       sorry
-    text \<open>Step 9e: Compose with iota_inv.\<close>
+    text \<open>Step 9g: g = inv_into o G continuous (composition).\<close>
+    text \<open>g = inv_into o G. Since G: Y to iota(C) continuous and inv_into: iota(C) to C continuous,
+      composition gives g continuous.\<close>
+    text \<open>g = inv_into o G continuous (composition of continuous maps).\<close>
     have hgcont_pf: "top1_continuous_map_on Y TY C TC g"
       sorry
     show ?thesis using hgcont_pf hgext_pf by blast
