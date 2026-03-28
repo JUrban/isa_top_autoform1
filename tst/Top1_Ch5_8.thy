@@ -17679,6 +17679,27 @@ proof -
     unfolding hY_SC hTY_SC hF_SC by blast
 qed
 
+lemma PiE_closed_sets_closed_in_product:
+  assumes hTop: "is_topology_on Y TY"
+  assumes hA_sub: "\<forall>a\<in>I. A a \<subseteq> Y"
+  assumes hA_closed: "\<forall>a\<in>I. closedin_on Y TY (A a)"
+  shows "closedin_on (top1_PiE I (\<lambda>_. Y)) (top1_product_topology_on I (\<lambda>_. Y) (\<lambda>_. TY)) (top1_PiE I A)"
+proof -
+  have hcl_eq: "\<forall>i\<in>I. closure_on Y TY (A i) = A i"
+    using hA_closed by (simp add: closure_on_subset_of_closed set_eq_subset subset_closure_on)
+  have hcl_prod: "closure_on (top1_PiE I (\<lambda>_. Y)) (top1_product_topology_on I (\<lambda>_. Y) (\<lambda>_. TY)) (top1_PiE I A)
+      = top1_PiE I (\<lambda>i. closure_on ((\<lambda>_. Y) i) ((\<lambda>_. TY) i) (A i))"
+    using Theorem_19_5_product[of I "\<lambda>_. Y" "\<lambda>_. TY" A] hTop hA_sub by blast
+  then have hcl_self: "closure_on (top1_PiE I (\<lambda>_. Y)) (top1_product_topology_on I (\<lambda>_. Y) (\<lambda>_. TY)) (top1_PiE I A)
+      = top1_PiE I A"
+    using hcl_eq by (simp add: top1_PiE_cong_on)
+  have hPiA_sub: "top1_PiE I A \<subseteq> top1_PiE I (\<lambda>_. Y)"
+    by (simp add: hA_sub top1_PiE_mono)
+  have hTopProd: "is_topology_on (top1_PiE I (\<lambda>_. Y)) (top1_product_topology_on I (\<lambda>_. Y) (\<lambda>_. TY))"
+    using top1_product_topology_on_is_topology_on hTop by fast
+  show ?thesis using hcl_self closure_on_closed[OF hTopProd hPiA_sub] by simp
+qed
+
 lemma product_subspace_eq_pointwise:
   assumes hTop: "is_topology_on Y TY"
   assumes hA: "\<forall>a\<in>X. A a \<subseteq> Y"
