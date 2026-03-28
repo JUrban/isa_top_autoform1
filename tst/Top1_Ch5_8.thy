@@ -17695,7 +17695,18 @@ lemma top1_ascoli_step1_compact_closure_pointwise:
       (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>)
       (subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d))
         (closure_on (top1_PiE X (\<lambda>_. Y)) (top1_pointwise_topology_on X Y (top1_metric_topology_on Y d)) \<F>))"
-  sorry
+proof -
+  let ?TY = "top1_metric_topology_on Y d"
+  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
+  let ?Tpw = "top1_pointwise_topology_on X Y ?TY"
+  let ?clF = "closure_on ?PiE ?Tpw \<F>"
+  have hTopTY: "is_topology_on Y ?TY"
+    by (rule top1_metric_topology_on_is_topology_on[OF hd])
+  define A where "A a = closure_on Y ?TY ((\<lambda>f. f a) ` \<F>)" for a
+  text \<open>Each A(a) compact by hCa. Product compact by Tychonoff.
+    clF subset PiE X A (closed). Closed in compact is compact.\<close>
+  show ?thesis sorry
+qed
 
 lemma top1_ascoli_step2_closure_continuous_and_equicontinuous:
   assumes hTopX: "is_topology_on X TX"
