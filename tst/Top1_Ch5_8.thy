@@ -17382,31 +17382,6 @@ proof -
                   \<and> (\<forall>x\<in>X. g' (F x) = f x) \<longrightarrow> top1_eq_on Y g g')"
       using hg_cont hg_ext hUnique by blast
   qed
-  have hExE: "\<exists>e. top1_compactification_via_on X TX Y TY e
-    \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f \<and> top1_bounded_on X f
-        \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                \<and> (\<forall>x\<in>X. g (e x) = f x)
-                \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
-                      \<and> (\<forall>x\<in>X. g' (e x) = f x) \<longrightarrow> top1_eq_on Y g g')))"
-    using hCompactification hExtension by blast
-  then have hExTY: "\<exists>TY e.
-    top1_compactification_via_on X TX Y TY e
-    \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
-            \<and> top1_bounded_on X f
-            \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                    \<and> (\<forall>x\<in>X. g (e x) = f x)
-                    \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
-                          \<and> (\<forall>x\<in>X. g' (e x) = f x)
-                          \<longrightarrow> top1_eq_on Y g g')))"
-    by blast
-  then obtain TYe e where hTYe: "top1_compactification_via_on X TX Y TYe e
-    \<and> (\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
-            \<and> top1_bounded_on X f
-            \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TYe UNIV order_topology_on_UNIV g
-                    \<and> (\<forall>x\<in>X. g (e x) = f x)
-                    \<and> (\<forall>g'. top1_continuous_map_on Y TYe UNIV order_topology_on_UNIV g'
-                          \<and> (\<forall>x\<in>X. g' (e x) = f x)
-                          \<longrightarrow> top1_eq_on Y g g')))" by blast
   show ?thesis
     by (rule Theorem_38_2_obtains[OF hCR]) blast
 qed
