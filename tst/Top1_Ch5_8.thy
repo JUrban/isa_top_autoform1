@@ -17704,7 +17704,20 @@ lemma Tychonoff_general:
   assumes hComp: "\<forall>i\<in>I. top1_compact_on (X i) (TX i)"
   shows "top1_compact_on (top1_PiE I X) (top1_product_topology_on I X TX)"
 proof (cases "I = {}")
-  case True then show ?thesis sorry
+  case True
+  have hTopP: "is_topology_on (top1_PiE I X) (top1_product_topology_on I X TX)"
+    by (simp add: True top1_product_topology_on_is_topology_on)
+  have hPiE_sing: "top1_PiE I X = {(\<lambda>_. undefined)}"
+    apply (rule equalityI)
+     apply (rule subsetI)
+     apply (simp add: top1_PiE_iff True)
+     apply (rule ext, simp)
+    apply (rule subsetI)
+    apply (simp add: top1_PiE_iff True)
+    done
+  have "top1_compact_on {(\<lambda>_. undefined)} (top1_product_topology_on I X TX)"
+    unfolding top1_compact_on_def using hTopP hPiE_sing by auto
+  then show ?thesis using hPiE_sing by simp
 next
   case False then show ?thesis by (rule Theorem_37_3[OF _ hComp])
 qed
