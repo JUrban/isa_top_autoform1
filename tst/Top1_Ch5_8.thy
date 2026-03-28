@@ -12690,6 +12690,14 @@ proof -
   have hFsub_C: "\<F> \<subseteq> ?C" using hFsub by fastforce
   have hC_sub_PiE: "?C \<subseteq> ?PiE"
     unfolding top1_continuous_funcs_on_def by blast
+  have hF_sub_clF: "\<F> \<subseteq> ?clF"
+    using subset_closure_on hFsub_C by fast
+  have hF_equi_from_clF: "top1_equicontinuous_family_on X TX Y d ?clF
+    \<longrightarrow> top1_equicontinuous_family_on X TX Y d \<F>"
+    using equicontinuous_subset hF_sub_clF by blast
+  have hF_bdd_from_clF: "top1_pointwise_bounded_family_on X Y d ?clF
+    \<longrightarrow> top1_pointwise_bounded_family_on X Y d \<F>"
+    using pointwise_bounded_subset hF_sub_clF by blast
   show ?thesis sorry
 qed
 
