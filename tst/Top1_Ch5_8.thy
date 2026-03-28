@@ -12603,6 +12603,25 @@ next
   qed
 qed
 
+lemma equicontinuous_subset:
+  assumes hEq: "top1_equicontinuous_family_on X TX Y d G"
+  assumes hFG: "\<F> \<subseteq> G"
+  shows "top1_equicontinuous_family_on X TX Y d \<F>"
+  unfolding top1_equicontinuous_family_on_def
+proof (intro conjI ballI allI impI)
+  fix f x assume "f \<in> \<F>" "x \<in> X"
+  then have "f \<in> G" using hFG by blast
+  then show "f x \<in> Y" using hEq \<open>x \<in> X\<close> unfolding top1_equicontinuous_family_on_def by blast
+next
+  fix x0 and \<epsilon> :: real assume hx0: "x0 \<in> X" and heps: "0 < \<epsilon>"
+  have "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>G. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
+    using hEq hx0 heps unfolding top1_equicontinuous_family_on_def by blast
+  then obtain U where "U \<in> TX" "x0 \<in> U" "\<forall>f\<in>G. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>"
+    by blast
+  then show "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>\<F>. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
+    using hFG by blast
+qed
+
 lemma continuous_funcs_eq_maps_metric:
   "top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d) = top1_continuous_maps_metric_on X TX Y d"
   by (simp add: top1_continuous_funcs_on_def top1_continuous_maps_metric_on_def)
