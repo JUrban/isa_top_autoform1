@@ -2178,8 +2178,11 @@ theorem Theorem_38_4:
   assumes hExtR:
     "\<forall>f. top1_continuous_map_on X TX UNIV order_topology_on_UNIV f
           \<and> top1_bounded_on X f
-          \<longrightarrow> (\<exists>!g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
-                  \<and> (\<forall>x\<in>X. g (e x) = f x))"
+          \<longrightarrow> (\<exists>g. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g
+                  \<and> (\<forall>x\<in>X. g (e x) = f x)
+                  \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
+                        \<and> (\<forall>x\<in>X. g' (e x) = f x)
+                        \<longrightarrow> top1_eq_on Y g g'))"
   assumes hCompC: "top1_compact_on C TC"
   assumes hHausC: "is_hausdorff_on C TC"
   shows "\<forall>f. top1_continuous_map_on X TX C TC f \<longrightarrow>
@@ -2260,9 +2263,77 @@ theorem Theorem_38_5:
                         \<and> (\<forall>x\<in>X. g' (e2 x) = f x)
                         \<longrightarrow> top1_eq_on Y2 g g'))"
   shows "top1_equiv_compactification_via_on X TX Y1 TY1 e1 Y2 TY2 e2"
-  sorry
-  \<comment> \<open>Proof uses Theorem_38_4: extend e2 to f2: Y1 to Y2, e1 to f1: Y2 to Y1,
-    then f1 o f2 = id (by uniqueness) and f2 o f1 = id. So f2 homeomorphism.\<close>
+proof -
+  have hCompY1: "top1_compact_on Y1 TY1" and hHausY1: "is_hausdorff_on Y1 TY1"
+    using hC1 unfolding top1_compactification_via_on_def by blast+
+  have hCompY2: "top1_compact_on Y2 TY2" and hHausY2: "is_hausdorff_on Y2 TY2"
+    using hC2 unfolding top1_compactification_via_on_def by blast+
+  text \<open>Theorem 38.4: extend any continuous X to Y2 to a continuous Y1 to Y2.\<close>
+  have hExt1_C: "\<forall>f. top1_continuous_map_on X TX Y2 TY2 f \<longrightarrow>
+     (\<exists>g. top1_continuous_map_on Y1 TY1 Y2 TY2 g
+          \<and> (\<forall>x\<in>X. g (e1 x) = f x)
+          \<and> (\<forall>g'. top1_continuous_map_on Y1 TY1 Y2 TY2 g'
+                \<and> (\<forall>x\<in>X. g' (e1 x) = f x)
+                \<longrightarrow> top1_eq_on Y1 g g'))"
+    by (rule Theorem_38_4[OF hCR hC1 hExt1 hCompY2 hHausY2])
+  text \<open>Similarly for Y2.\<close>
+  have hExt2_C: "\<forall>f. top1_continuous_map_on X TX Y1 TY1 f \<longrightarrow>
+     (\<exists>g. top1_continuous_map_on Y2 TY2 Y1 TY1 g
+          \<and> (\<forall>x\<in>X. g (e2 x) = f x)
+          \<and> (\<forall>g'. top1_continuous_map_on Y2 TY2 Y1 TY1 g'
+                \<and> (\<forall>x\<in>X. g' (e2 x) = f x)
+                \<longrightarrow> top1_eq_on Y2 g g'))"
+    by (rule Theorem_38_4[OF hCR hC2 hExt2 hCompY1 hHausY1])
+  text \<open>e2 and e1 are continuous embeddings.\<close>
+  have hTopX: "is_topology_on X TX"
+    using hCR unfolding top1_completely_regular_on_def top1_T1_on_def by blast
+  have he2emb: "top1_embedding_on X TX Y2 TY2 e2"
+    using hC2 unfolding top1_compactification_via_on_def top1_dense_image_via_on_def by blast
+  have he2sub: "e2 ` X \<subseteq> Y2" using he2emb unfolding top1_embedding_on_def by blast
+  have he2_sub_cont: "top1_continuous_map_on X TX (e2 ` X) (subspace_topology Y2 TY2 (e2 ` X)) e2"
+    using he2emb unfolding top1_embedding_on_def top1_homeomorphism_on_def by blast
+  have hTopY2: "is_topology_on Y2 TY2" using hHausY2 unfolding is_hausdorff_on_def by blast
+  have hTopSub2: "is_topology_on (e2 ` X) (subspace_topology Y2 TY2 (e2 ` X))"
+    by (rule subspace_topology_is_topology_on[OF hTopY2 he2sub])
+  have he2cont: "top1_continuous_map_on X TX Y2 TY2 e2"
+  proof -
+    have "\<forall>W f. top1_continuous_map_on X TX (e2 ` X) (subspace_topology Y2 TY2 (e2 ` X)) f
+            \<and> (e2 ` X) \<subseteq> W \<and> subspace_topology Y2 TY2 (e2 ` X) = subspace_topology W TY2 (e2 ` X)
+            \<longrightarrow> top1_continuous_map_on X TX W TY2 f"
+      using Theorem_18_2(6)[OF hTopX hTopSub2 hTopY2] by blast
+    then show ?thesis using he2_sub_cont he2sub by presburger
+  qed
+  have he1emb: "top1_embedding_on X TX Y1 TY1 e1"
+    using hC1 unfolding top1_compactification_via_on_def top1_dense_image_via_on_def by blast
+  have he1sub: "e1 ` X \<subseteq> Y1" using he1emb unfolding top1_embedding_on_def by blast
+  have he1_sub_cont: "top1_continuous_map_on X TX (e1 ` X) (subspace_topology Y1 TY1 (e1 ` X)) e1"
+    using he1emb unfolding top1_embedding_on_def top1_homeomorphism_on_def by blast
+  have hTopY1: "is_topology_on Y1 TY1" using hHausY1 unfolding is_hausdorff_on_def by blast
+  have hTopSub1: "is_topology_on (e1 ` X) (subspace_topology Y1 TY1 (e1 ` X))"
+    by (rule subspace_topology_is_topology_on[OF hTopY1 he1sub])
+  have he1cont: "top1_continuous_map_on X TX Y1 TY1 e1"
+  proof -
+    have "\<forall>W f. top1_continuous_map_on X TX (e1 ` X) (subspace_topology Y1 TY1 (e1 ` X)) f
+            \<and> (e1 ` X) \<subseteq> W \<and> subspace_topology Y1 TY1 (e1 ` X) = subspace_topology W TY1 (e1 ` X)
+            \<longrightarrow> top1_continuous_map_on X TX W TY1 f"
+      using Theorem_18_2(6)[OF hTopX hTopSub1 hTopY1] by blast
+    then show ?thesis using he1_sub_cont he1sub by presburger
+  qed
+  text \<open>Get f2: Y1 to Y2 extending e2, and f1: Y2 to Y1 extending e1.\<close>
+  obtain f2 where hf2cont: "top1_continuous_map_on Y1 TY1 Y2 TY2 f2"
+    and hf2ext: "\<forall>x\<in>X. f2 (e1 x) = e2 x"
+    and hf2uniq: "\<forall>g'. top1_continuous_map_on Y1 TY1 Y2 TY2 g'
+          \<and> (\<forall>x\<in>X. g' (e1 x) = e2 x) \<longrightarrow> top1_eq_on Y1 g' f2"
+    using hExt1_C he2cont sorry
+  obtain f1 where hf1cont: "top1_continuous_map_on Y2 TY2 Y1 TY1 f1"
+    and hf1ext: "\<forall>x\<in>X. f1 (e2 x) = e1 x"
+    and hf1uniq: "\<forall>g'. top1_continuous_map_on Y2 TY2 Y1 TY1 g'
+          \<and> (\<forall>x\<in>X. g' (e2 x) = e1 x) \<longrightarrow> top1_eq_on Y2 g' f1"
+    using hExt2_C[rule_format, OF he1cont] sorry
+  text \<open>f2 is a homeomorphism and commutes with embeddings.\<close>
+  show ?thesis unfolding top1_equiv_compactification_via_on_def
+    sorry
+qed
 
 section \<open>\<S>39 Local Finiteness\<close>
 
