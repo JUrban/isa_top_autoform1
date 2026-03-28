@@ -2358,7 +2358,56 @@ proof (intro allI impI)
         unfolding top1_continuous_map_on_def by blast
       finally show "g (e x) = f x" .
     qed
-    text \<open>Step 9: g continuous Y to C (needs G continuous + image in iota(C) + iota_inv continuous).\<close>
+    text \<open>Step 9a: ghat(alpha) maps Y into [0,1] (density + closed preimage argument).\<close>
+    have hI_closed_R: "closedin_on (UNIV::real set) order_topology_on_UNIV ?I"
+      unfolding closedin_on_def top1_closed_interval_def
+    proof (intro conjI)
+      show "{x::real. 0 \<le> x \<and> x \<le> 1} \<subseteq> UNIV" by blast
+      have "closed {x::real. 0 \<le> x \<and> x \<le> 1}"
+        by (metis closed_atLeastAtMost Collect_conj_eq atLeastAtMost_def atLeast_def atMost_def)
+      then have "open (UNIV - {x::real. 0 \<le> x \<and> x \<le> 1})" using open_Diff by blast
+      then show "UNIV - {x::real. 0 \<le> x \<and> x \<le> 1} \<in> order_topology_on_UNIV"
+        using order_topology_on_UNIV_eq_HOL_open by simp
+    qed
+    have hghat_range: "\<forall>\<alpha>\<in>J2. \<forall>y\<in>Y. ghat \<alpha> y \<in> ?I"
+    proof (intro ballI)
+      fix \<alpha> y assume h\<alpha>: "\<alpha> \<in> J2" and hy: "y \<in> Y"
+      have hga_cont: "top1_continuous_map_on Y TY UNIV order_topology_on_UNIV (ghat \<alpha>)"
+        using hghat h\<alpha> by blast
+      have hS_closed: "closedin_on Y TY {y\<in>Y. ghat \<alpha> y \<in> ?I}"
+      proof -
+        have hTopR: "is_topology_on (UNIV::real set) order_topology_on_UNIV"
+          by (rule order_topology_on_UNIV_is_topology_on)
+        have "closedin_on (UNIV::real set) order_topology_on_UNIV ?I" using hI_closed_R .
+        then have hI_comp: "UNIV - ?I \<in> order_topology_on_UNIV"
+          unfolding closedin_on_def by blast
+        have hpre_open: "{y\<in>Y. ghat \<alpha> y \<in> UNIV - ?I} \<in> TY"
+          using hga_cont hI_comp unfolding top1_continuous_map_on_def by blast
+        have hY_sub: "{y\<in>Y. ghat \<alpha> y \<in> ?I} \<subseteq> Y" by blast
+        have "Y - {y\<in>Y. ghat \<alpha> y \<in> ?I} = {y\<in>Y. ghat \<alpha> y \<in> UNIV - ?I}"
+          by blast
+        then show ?thesis unfolding closedin_on_def using hY_sub hpre_open by presburger
+      qed
+      have hS_dense: "e ` X \<subseteq> {y\<in>Y. ghat \<alpha> y \<in> ?I}"
+      proof (rule subsetI)
+        fix z assume "z \<in> e ` X"
+        then obtain x where "x \<in> X" "z = e x" by blast
+        then have "ghat \<alpha> z = \<iota> (f x) \<alpha>" using hghat h\<alpha> by simp
+        also have "\<dots> \<in> ?I"
+        proof -
+          have "f x \<in> C" using hf \<open>x \<in> X\<close> unfolding top1_continuous_map_on_def by blast
+          then have "\<iota> (f x) \<in> top1_PiE J2 (\<lambda>_. ?I)" using h\<iota>C_sub by blast
+          then show ?thesis using h\<alpha> unfolding top1_PiE_iff by blast
+        qed
+        finally have "ghat \<alpha> z \<in> ?I" .
+        moreover have "z \<in> Y" using hEimgY \<open>z \<in> e ` X\<close> by blast
+        ultimately show "z \<in> {y\<in>Y. ghat \<alpha> y \<in> ?I}" by blast
+      qed
+      have "closure_on Y TY (e ` X) \<subseteq> {y\<in>Y. ghat \<alpha> y \<in> ?I}"
+        using closedin_contains_closure_early[OF hTopY hS_closed hS_dense] by order
+      then show "ghat \<alpha> y \<in> ?I" using hDense hy by blast
+    qed
+    text \<open>Step 9: g continuous Y to C.\<close>
     have hgcont_pf: "top1_continuous_map_on Y TY C TC g"
       sorry
     show ?thesis using hgcont_pf hgext_pf by blast
