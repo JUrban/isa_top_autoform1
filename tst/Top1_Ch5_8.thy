@@ -17053,7 +17053,7 @@ theorem Theorem_38_2_obtains:
                     \<and> (\<forall>g'. top1_continuous_map_on Y TY UNIV order_topology_on_UNIV g'
                           \<and> (\<forall>x\<in>X. g' (e x) = f x)
                           \<longrightarrow> top1_eq_on Y g g'))"
-  sorry \<comment> \<open>Blocked by Isabelle function-type unification in obtains/exI.\<close>
+  sorry \<comment> \<open>Blocked by Isabelle function-type unification for type (('a => real) => real) set.\<close>
 
 text \<open>Theorem 38.2 (Stone-\<C>ech compactification existence) — existential form.
   Derives from the obtains form.\<close>
