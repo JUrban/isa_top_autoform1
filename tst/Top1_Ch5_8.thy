@@ -17776,8 +17776,11 @@ proof -
       then show "f a = undefined" using hf_pie unfolding top1_PiE_iff by blast
     qed
   qed
+  have hA_closed: "\<forall>a\<in>X. closedin_on Y ?TY (A a)"
+    using hTopTY heval_sub A_def closure_on_is_closedin by fastforce
   have hPiA_closed: "closedin_on ?PiE ?Tpw (top1_PiE X A)"
-    sorry
+    unfolding top1_pointwise_topology_on_def
+    using PiE_closed_sets_closed_in_product[OF hTopTY hA_sub hA_closed] by simp
   have hclF_sub: "?clF \<subseteq> top1_PiE X A"
     by (simp add: closure_on_subset_of_closed hFsubA hPiA_closed)
   have hPiA_comp: "top1_compact_on (top1_PiE X A) (subspace_topology ?PiE ?Tpw (top1_PiE X A))"
