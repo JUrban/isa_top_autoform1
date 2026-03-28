@@ -12669,7 +12669,12 @@ proof (intro ballI)
     finally show "d (y0 a) (f a) \<le> M" .
   qed
   show "top1_metric_bounded_subset_on Y d ((\<lambda>f. f a) ` \<F>)"
-    unfolding top1_metric_bounded_subset_on_def using hy0a hfbd sorry
+    unfolding top1_metric_bounded_subset_on_def
+    apply (rule bexI[of _ "y0 a"])
+     apply (rule exI[of _ M])
+     using hfbd apply force
+    using hy0a apply blast
+    done
 qed
 
 lemma equicontinuous_subset:
