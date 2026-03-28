@@ -2230,7 +2230,45 @@ proof (intro allI impI)
   have hTopC: "is_topology_on C TC"
     using hHausC unfolding is_hausdorff_on_def by blast
   have "\<exists>g. top1_continuous_map_on Y TY C TC g \<and> (\<forall>x\<in>X. g (e x) = f x)"
-    sorry
+  proof -
+    text \<open>Step 1: Embed C into [0,1]^J2.\<close>
+    let ?I = "top1_closed_interval (0::real) 1"
+    let ?TI = "top1_closed_interval_topology (0::real) 1"
+    obtain J2 and \<iota> :: "'c \<Rightarrow> (('c \<Rightarrow> real) \<Rightarrow> real)" where
+      h\<iota>emb: "top1_embedding_on C TC (top1_PiE J2 (\<lambda>_. ?I))
+        (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) \<iota>"
+      using Theorem_34_3_forward[OF hCR_C] by blast
+    text \<open>Step 2: iota(C) is compact in [0,1]^J2, hence closed.\<close>
+    have h\<iota>C_sub: "\<iota> ` C \<subseteq> top1_PiE J2 (\<lambda>_. ?I)"
+      using h\<iota>emb unfolding top1_embedding_on_def by blast
+    have h\<iota>_sub_cont: "top1_continuous_map_on C TC (\<iota> ` C)
+        (subspace_topology (top1_PiE J2 (\<lambda>_. ?I)) (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C)) \<iota>"
+      using h\<iota>emb unfolding top1_embedding_on_def top1_homeomorphism_on_def by blast
+    have hTopI: "is_topology_on ?I ?TI"
+      unfolding top1_closed_interval_topology_def
+      by (rule subspace_topology_is_topology_on[OF order_topology_on_UNIV_is_topology_on]) simp
+    have hTopProd: "is_topology_on (top1_PiE J2 (\<lambda>_. ?I)) (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI))"
+      by (rule top1_product_topology_on_is_topology_on) (simp add: hTopI)
+    have hTopSub\<iota>: "is_topology_on (\<iota> ` C) (subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+        (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C))"
+      by (rule subspace_topology_is_topology_on[OF hTopProd h\<iota>C_sub])
+    have h\<iota>_cont: "top1_continuous_map_on C TC (top1_PiE J2 (\<lambda>_. ?I))
+        (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) \<iota>"
+    proof -
+      have "\<forall>W f. top1_continuous_map_on C TC (\<iota> ` C) (subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C)) f
+          \<and> (\<iota> ` C) \<subseteq> W \<and> subspace_topology (top1_PiE J2 (\<lambda>_. ?I))
+          (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C) =
+          subspace_topology W (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) (\<iota> ` C)
+          \<longrightarrow> top1_continuous_map_on C TC W (top1_product_topology_on J2 (\<lambda>_. ?I) (\<lambda>_. ?TI)) f"
+        using Theorem_18_2(6)[OF hTopC hTopSub\<iota> hTopProd] by blast
+      then show ?thesis using h\<iota>_sub_cont h\<iota>C_sub by presburger
+    qed
+    text \<open>Step 3: For each alpha, the composition pi_alpha o iota o f is bounded continuous.\<close>
+    text \<open>Step 4: Extend each via hExtR. Assemble into G: Y to [0,1]^J2.\<close>
+    text \<open>Step 5: G(Y) subset iota(C) via closure argument. Compose with iota-inverse.\<close>
+    show ?thesis sorry
+  qed
   then obtain g where hgcont: "top1_continuous_map_on Y TY C TC g"
     and hgext: "\<forall>x\<in>X. g (e x) = f x" by blast
   show "\<exists>g. top1_continuous_map_on Y TY C TC g
