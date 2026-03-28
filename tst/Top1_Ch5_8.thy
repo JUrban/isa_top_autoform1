@@ -12713,6 +12713,11 @@ proof -
       by (simp add: hTc_is_metric hdu_metric_C top1_metric_topology_on_is_topology_on)
     have hclF_sub_C: "?clF \<subseteq> ?C"
       by (rule closure_on_subset_carrier[OF hTopTc hFsub_C])
+    have hdu_metric_clF: "top1_metric_on ?clF ?du"
+      using hclF_sub_C hdu_metric_C metric_on_subset by blast
+    have hSub_clF_metric: "subspace_topology ?C ?Tc ?clF = top1_metric_topology_on ?clF ?du"
+      using subspace_metric_topology_eq_metric_topology[OF hdu_metric_C hclF_sub_C] hTc_is_metric by auto
+    have hclF_PiE: "?clF \<subseteq> ?PiE" using hclF_sub_C hC_sub_PiE by order
     show ?thesis sorry
   qed
 qed
