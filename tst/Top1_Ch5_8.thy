@@ -12856,7 +12856,16 @@ proof -
   text \<open>For each a, closure_a bounded: given g,g' in closure, approximate by f,f' in F
     with du < 1. Then d(g a, g' a) <= d(g a, f a) + d(f a, f' a) + d(f' a, g' a) <= 1+M+1.\<close>
   show ?thesis unfolding top1_pointwise_bounded_family_on_def
-    sorry
+  proof (intro ballI)
+    fix a assume ha: "a \<in> X"
+    have hFa_bdd: "top1_metric_bounded_subset_on Y d ((\<lambda>f. f a) ` \<F>)"
+      using assms(5) ha unfolding top1_pointwise_bounded_family_on_def by blast
+    then obtain y0 M where hy0: "y0 \<in> Y" and hM: "\<forall>y\<in>(\<lambda>f. f a) ` \<F>. d y0 y \<le> M"
+      unfolding top1_metric_bounded_subset_on_def by fast
+    show "top1_metric_bounded_subset_on Y d ((\<lambda>f. f a) ` closure_on C Tc \<F>)"
+      unfolding top1_metric_bounded_subset_on_def
+      sorry
+  qed
 qed
 
 (** from \S45 Theorem 45.4 (Ascoli's theorem, classical version) [top1.tex:6655] **)
