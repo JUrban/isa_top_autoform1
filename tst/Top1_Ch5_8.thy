@@ -12838,7 +12838,26 @@ lemma closure_pointwise_bounded:
   defines "du \<equiv> top1_uniform_metric_on X d"
   defines "Tc \<equiv> subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) du) C"
   shows "top1_pointwise_bounded_family_on X Y d (closure_on C Tc \<F>)"
-  sorry
+proof -
+  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
+  have hdu_metric_PiE: "top1_metric_on ?PiE du"
+    by (simp add: assms(2,3) du_def top1_uniform_metric_is_metric)
+  have hC_sub_PiE: "C \<subseteq> ?PiE"
+    unfolding C_def top1_continuous_funcs_on_def by fast
+  have hdu_metric_C: "top1_metric_on C du" using metric_on_subset[OF hdu_metric_PiE hC_sub_PiE] by blast
+  have hTc_is_metric: "Tc = top1_metric_topology_on C du"
+    unfolding Tc_def by (rule subspace_metric_topology_eq_metric_topology[OF hdu_metric_PiE hC_sub_PiE])
+  have hTopTc: "is_topology_on C Tc" using hTc_is_metric hdu_metric_C top1_metric_topology_on_is_topology_on by blast
+  have hFsub_C2: "\<F> \<subseteq> C" using assms(4) C_def by fast
+  have hclF_sub_C: "closure_on C Tc \<F> \<subseteq> C"
+    by (metis hFsub_C2 closure_on_subset_carrier hTopTc)
+  have hclF_sub_PiE: "closure_on C Tc \<F> \<subseteq> ?PiE"
+    using hC_sub_PiE hclF_sub_C by blast
+  text \<open>For each a, closure_a bounded: given g,g' in closure, approximate by f,f' in F
+    with du < 1. Then d(g a, g' a) <= d(g a, f a) + d(f a, f' a) + d(f' a, g' a) <= 1+M+1.\<close>
+  show ?thesis unfolding top1_pointwise_bounded_family_on_def
+    sorry
+qed
 
 (** from \S45 Theorem 45.4 (Ascoli's theorem, classical version) [top1.tex:6655] **)
 theorem Theorem_45_4:
