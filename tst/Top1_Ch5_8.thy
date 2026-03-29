@@ -19241,7 +19241,14 @@ proof -
           unfolding ccball_def top1_compact_convergence_basis_on_def
           using hAcomp hA_sub_X h\<delta> by blast
         have hccball_open: "\<forall>f\<in>?PiE. ccball f \<in> ?Tcc"
-          sorry
+        proof (intro ballI)
+          fix f assume "f \<in> ?PiE"
+          then have "ccball f \<in> top1_compact_convergence_basis_on X TX Y d"
+            using hccball_basis by blast
+          then show "ccball f \<in> ?Tcc"
+            unfolding top1_compact_convergence_topology_on_def
+            using basis_elem_open_in_generated_topology cc_basis_is_basis[OF hTopX hd] by blast
+        qed
         text \<open>Each f ∈ K is in ccball f (since d_bar(f x, f x) = 0 < δ).\<close>
         have hself_mem: "\<forall>f\<in>K. f \<in> ccball f"
         proof (intro ballI)
