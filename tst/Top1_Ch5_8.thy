@@ -24864,7 +24864,7 @@ qed
 
 (** A convenient sup metric on the concrete model \<open>\<real>^N\<close> (as extensional functions). **)
 definition top1_Rpow_sup_dist :: "nat \<Rightarrow> (nat \<Rightarrow> real) \<Rightarrow> (nat \<Rightarrow> real) \<Rightarrow> real" where
-  "top1_Rpow_sup_dist N x y = Sup ((\<lambda>i. \<bar>x i - y i\<bar>) ` {0..<N})"
+  "top1_Rpow_sup_dist N x y = (if N = 0 then 0 else Sup ((\<lambda>i. \<bar>x i - y i\<bar>) ` {0..<N}))"
 
 (** Placeholder predicate for “general position” in \<open>\<real>^N\<close>.
     The intended meaning is that every subfamily of size \<open>N+1\<close> is affinely independent. **)
@@ -24891,15 +24891,11 @@ proof (rule exI[of _ id], intro conjI)
     show "top1_Rpow_sup_dist N x (id x) < \<delta>"
     proof (cases "N = 0")
       case True
-      then have "{0..<N} = {}" by simp
-      then have "(SUP i\<in>{0..<N}. \<bar>x i - id x i\<bar>) = (0::real)" sorry
-      then show ?thesis unfolding top1_Rpow_sup_dist_def using hdelta by presburger
+      then show ?thesis unfolding top1_Rpow_sup_dist_def using hdelta by simp
     next
       case False
-      then have hne: "{0..<N} \<noteq> {}" by simp
       then have "(\<lambda>i. \<bar>x i - x i\<bar>) ` {0..<N} = {0}" using himg0 by force
-      then have "(SUP i\<in>{0..<N}. \<bar>x i - x i\<bar>) = (0::real)" by fastforce
-      then show ?thesis unfolding top1_Rpow_sup_dist_def using hdelta by auto
+      then show ?thesis unfolding top1_Rpow_sup_dist_def using hdelta False by auto
     qed
   qed
   show "top1_general_position_in_Rpow N (id ` A)"
