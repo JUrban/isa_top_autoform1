@@ -13059,8 +13059,18 @@ proof -
       unfolding top1_pointwise_bounded_family_on_def using True by blast
     have hRHS: "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
       using hEqui hPtBdd by argo
-    text \<open>Also need compact clF. X = {} case degenerate — left as sorry.\<close>
-    show ?thesis using hRHS sorry
+    text \<open>The iff: → trivial (compact → True), ← needs compact clF.\<close>
+    show ?thesis
+    proof (rule iffI)
+      assume "top1_compact_on ?clF (subspace_topology ?C ?Tc ?clF)"
+      then show "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
+        using hRHS by blast
+    next
+      assume "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
+      text \<open>Need: compact clF. With X = {}, PiE is singleton, C is singleton, clF is singleton.\<close>
+      show "top1_compact_on ?clF (subspace_topology ?C ?Tc ?clF)"
+        sorry
+    qed
   next
     case False
     have hdu_metric_PiE: "top1_metric_on ?PiE ?du"
