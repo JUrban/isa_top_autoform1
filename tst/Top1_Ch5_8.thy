@@ -13084,10 +13084,16 @@ proof -
       have hC_fin: "finite ?C" using hPiE_fin hC_sub_PiE using rev_finite_subset by blast
       have hF_eq: "\<F> = {(\<lambda>_. undefined)}"
         using hPiE_eq hFpiE hFne by auto
-      have hclF_eq: "?clF = {(\<lambda>_. undefined)}"
-        using hF_eq hFsub_C hC_sub_PiE hPiE_eq sorry
-      show "top1_compact_on ?clF (subspace_topology ?C ?Tc ?clF)"
+      have hC_eq2: "?C = {(\<lambda>_. undefined)}"
+        using hC_sub_PiE hPiE_eq hF_eq hFsub_C by order
+      have hF_eq_C: "\<F> = ?C" using hF_eq hC_eq2 by argo
+      text \<open>Subspace topology on singleton = discrete topology = valid topology.\<close>
+      have hTopTc: "is_topology_on ?C ?Tc"
         sorry
+      have hclF_eq: "?clF = ?C"
+        using hF_eq_C closure_on_carrier[OF hTopTc] by argo
+      show "top1_compact_on ?clF (subspace_topology ?C ?Tc ?clF)"
+        using hclF_eq sorry
     qed
   next
     case False
