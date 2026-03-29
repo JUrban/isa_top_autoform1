@@ -15668,6 +15668,53 @@ proof -
 qed
 *)
 
+text \<open>When X is compact, cc = uniform on PiE (Theorem 46.7 Corollary).\<close>
+lemma cc_eq_uniform_compact:
+  assumes hCompX: "top1_compact_on X TX"
+  assumes hd: "top1_metric_on Y d"
+  shows "top1_compact_convergence_topology_on X TX Y d = top1_uniform_topology_on X Y d"
+proof -
+  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
+  let ?Tcc = "top1_compact_convergence_topology_on X TX Y d"
+  let ?Tuni = "top1_uniform_topology_on X Y d"
+  let ?du = "top1_uniform_metric_on X d"
+  have hTopX: "is_topology_on X TX" using hCompX unfolding top1_compact_on_def by presburger
+  have huni_ge_cc: "?Tuni \<supseteq> ?Tcc"
+    using top1_uniform_topology_on_superset_compact_convergence[OF hTopX hd] by order
+  text \<open>Show cc ⊇ uniform: every uniform ball is a cc basis element with C = X.\<close>
+  have hcc_ge_uni: "?Tcc \<supseteq> ?Tuni"
+  proof -
+    text \<open>A uniform metric ball = cc basis element with C = X (compact).\<close>
+    have hXcompact: "top1_compact_on X (subspace_topology X TX X)"
+      using Lemma_26_1[OF hTopX subset_refl] hCompX unfolding top1_compact_on_def by fast
+    have hXsub: "X \<subseteq> X" by simp
+    have "\<forall>B \<in> top1_metric_basis_on ?PiE ?du. B \<in> ?Tcc"
+    proof (intro ballI)
+      fix B assume hB: "B \<in> top1_metric_basis_on ?PiE ?du"
+      text \<open>B is a ball {g in PiE. du f g < eps} for some f, eps.\<close>
+      then obtain f eps where hf: "f \<in> ?PiE" and heps: "0 < eps"
+        and hBeq: "B = top1_ball_on ?PiE ?du f eps"
+        unfolding top1_metric_basis_on_def by blast
+      text \<open>This ball = cc basis element with C = X.\<close>
+      have hball_eq_cc: "top1_ball_on ?PiE ?du f eps =
+        {g \<in> ?PiE. (if X = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` X)) < eps}"
+        unfolding top1_ball_on_def top1_uniform_metric_on_def by argo
+      have hcc_basis_elem: "{g \<in> ?PiE. (if X = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` X)) < eps}
+        \<in> top1_compact_convergence_basis_on X TX Y d"
+        unfolding top1_compact_convergence_basis_on_def
+        using hf hXcompact hXsub heps by blast
+      have hB_in_cc_basis: "B \<in> top1_compact_convergence_basis_on X TX Y d"
+        using hBeq hball_eq_cc hcc_basis_elem by argo
+      show "B \<in> ?Tcc"
+        unfolding top1_compact_convergence_topology_on_def
+        using basis_elem_open_in_generated_topology[OF cc_basis_is_basis[OF hTopX hd] hB_in_cc_basis] by presburger
+    qed
+    then show ?thesis
+      by (simp add: cc_topology_is_topology hTopX hd subsetI top1_metric_topology_on_def top1_uniform_topology_on_def topology_generated_by_basis_subset)
+  qed
+  show ?thesis using huni_ge_cc hcc_ge_uni by order
+qed
+
 (** from \S46 Theorem 46.8 [top1.tex:6839] **)
 text \<open>Theorem 46.8: On C(X,Y), the compact-convergence and compact-open topologies coincide.
   Proof splits into two inclusions, each proved as a separate helper.\<close>
