@@ -12845,6 +12845,7 @@ theorem Theorem_45_4:
   assumes hCompX: "top1_compact_on X TX"
   assumes hd: "top1_metric_on Y d"
   assumes hYcomp: "top1_complete_metric_on Y d"
+  assumes hTX_sub: "\<forall>U\<in>TX. U \<subseteq> X"
   assumes hYproper: "\<forall>A\<subseteq>Y. closedin_on Y (top1_metric_topology_on Y d) A
       \<and> top1_metric_bounded_subset_on Y d A \<longrightarrow>
       top1_compact_on A (subspace_topology Y (top1_metric_topology_on Y d) A)"
@@ -12953,7 +12954,7 @@ proof -
         using closed_subset_complete[OF hdu_metric_C hC_complete hclF_closed_metric] by blast
       text \<open>Step 2: clF equicontinuous + pointwise bounded.\<close>
       have hclF_equi2: "top1_equicontinuous_family_on X TX Y d ?clF"
-        using closure_equicontinuous[OF hTopX hd False hFsub_C] hEqPB hC_eq sorry
+        using closure_equicontinuous[OF hTopX hd False hFsub_C _ hTX_sub] hEqPB hC_eq by blast
       have hclF_ptbdd2: "top1_pointwise_bounded_family_on X Y d ?clF"
         using closure_pointwise_bounded[OF hTopX hd False hFsub_C] hEqPB hC_eq by blast
       text \<open>Step 3: Find compact Y' containing all values of functions in clF.\<close>
