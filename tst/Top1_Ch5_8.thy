@@ -12728,7 +12728,23 @@ lemma closure_equicontinuous:
   defines "du \<equiv> top1_uniform_metric_on X d"
   defines "Tc \<equiv> subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) du) C"
   shows "top1_equicontinuous_family_on X TX Y d (closure_on C Tc \<F>)"
-  sorry
+proof -
+  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
+  have hclF_sub_C: "closure_on C Tc \<F> \<subseteq> C"
+    by (metis C_def Tc_def Theorem_43_6a assms(1,2,3,4) closedin_sub
+      closure_on_subset_carrier continuous_funcs_eq_maps_metric du_def
+      subspace_topology_is_topology_on top1_metric_topology_on_is_topology_on
+      top1_uniform_metric_is_metric)
+  have hclF_sub_PiE: "closure_on C Tc \<F> \<subseteq> ?PiE"
+    using C_def Theorem_43_6a assms(1,2,3) closedin_sub
+      continuous_funcs_eq_maps_metric hclF_sub_C by blast
+  have hclF_vals: "\<forall>g\<in>closure_on C Tc \<F>. \<forall>x\<in>X. g x \<in> Y"
+    by (metis hclF_sub_PiE subset_iff top1_PiE_iff)
+  text \<open>Core: eps/3 argument. Needs: closure in metric topology means every ball
+    intersects F. Triangle inequality gives equicontinuity.\<close>
+  show ?thesis unfolding top1_equicontinuous_family_on_def
+    using hclF_vals sorry
+qed
 
 lemma closure_pointwise_bounded:
   assumes "is_topology_on X TX" "top1_metric_on Y d" "X \<noteq> {}"
