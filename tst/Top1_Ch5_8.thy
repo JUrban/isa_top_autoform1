@@ -24888,7 +24888,6 @@ proof (rule exI[of _ id], intro conjI)
     then show "id x \<in> top1_Rpow_set N" using hA by auto
     have "\<forall>i\<in>{0..<N}. \<bar>x i - x i\<bar> = 0" by force
     then have "(\<lambda>i. \<bar>x i - x i\<bar>) ` {0..<N} \<subseteq> {0}" by fast
-    then have "(\<lambda>i. \<bar>x i - x i\<bar>) ` {0..<N} \<subseteq> {0}" by fast
     then show "top1_Rpow_sup_dist N x (id x) < \<delta>"
       unfolding top1_Rpow_sup_dist_def using hdelta sorry
   qed
