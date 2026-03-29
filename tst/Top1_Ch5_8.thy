@@ -12766,7 +12766,30 @@ proof -
         using assms(5) hx0 heps3 unfolding top1_equicontinuous_family_on_def by blast
       have hU_sub_X: "U \<subseteq> X" sorry
       have "\<forall>g\<in>closure_on C Tc \<F>. \<forall>x\<in>U. d (g x) (g x0) < \<epsilon>"
-        sorry
+      proof (intro ballI)
+        fix g x assume hg: "g \<in> closure_on C Tc \<F>" and hx: "x \<in> U"
+        have hgC: "g \<in> C" using hclF_sub_C hg by blast
+        have hxX: "x \<in> X" using hU_sub_X hx by blast
+        have hgPiE: "g \<in> top1_PiE X (\<lambda>_. Y)" using hgC hC_sub_PiE by blast
+        have hgx_Y: "g x \<in> Y" using hclF_vals hg hxX by blast
+        have hgx0_Y: "g x0 \<in> Y" using hclF_vals hg hx0 by blast
+        text \<open>Approximate g by f in F.\<close>
+        have "\<exists>f\<in>\<F>. du g f < \<epsilon>/3" sorry
+        then obtain f where hfF: "f \<in> \<F>" and hclose: "du g f < \<epsilon>/3" by blast
+        have hfPiE: "f \<in> top1_PiE X (\<lambda>_. Y)" using hfF hFsub_C2 hC_sub_PiE by blast
+        have hfx_Y: "f x \<in> Y" sorry
+        have hfx0_Y: "f x0 \<in> Y" sorry
+        text \<open>Pointwise bounds from uniform metric.\<close>
+        have hgx_fx: "d (g x) (f x) < \<epsilon>/3" sorry
+        have hgx0_fx0: "d (g x0) (f x0) < \<epsilon>/3" sorry
+        have hfx_fx0: "d (f x) (f x0) < \<epsilon>/3" using hU_eq hfF hx by blast
+        text \<open>Triangle + symmetry.\<close>
+        have htri: "d (g x) (g x0) \<le> d (g x) (f x) + (d (f x) (f x0) + d (f x0) (g x0))"
+          sorry
+        have hsym: "d (f x0) (g x0) = d (g x0) (f x0)" sorry
+        show "d (g x) (g x0) < \<epsilon>"
+          using htri hgx_fx hgx0_fx0 hfx_fx0 hsym sorry
+      qed
       then show "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>g\<in>closure_on C Tc \<F>. \<forall>x\<in>U. d (g x) (g x0) < \<epsilon>)"
         using hU_TX hx0U by blast
       qed
