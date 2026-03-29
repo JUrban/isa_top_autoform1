@@ -19278,7 +19278,31 @@ proof -
         have hKcov_cont: "\<forall>fi\<in>Kcov. fi \<in> ?C" using hKcov_sub hK_sub_C by fast
         have heps3: "0 < \<epsilon>/3" using heps by simp
         have "\<forall>fi\<in>Kcov. \<exists>Ui\<in>TX. x0 \<in> Ui \<and> (\<forall>x\<in>Ui. d (fi x) (fi x0) < \<epsilon>/3)"
-          sorry
+        proof (intro ballI)
+          fix fi assume hfi_cov: "fi \<in> Kcov"
+          then have hfi_C: "fi \<in> ?C" using hKcov_cont by blast
+          then have hfi_cont: "top1_continuous_map_on X TX Y ?TY fi"
+            unfolding top1_continuous_funcs_on_def by fast
+          have hfi_x0_Y: "fi x0 \<in> Y" using hfi_cont hx0 unfolding top1_continuous_map_on_def by simp
+          have hball_open: "top1_ball_on Y d (fi x0) (\<epsilon>/3) \<in> ?TY"
+            using top1_ball_open_in_metric_topology[OF hd hfi_x0_Y heps3] by presburger
+          have hpreimg: "{x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) (\<epsilon>/3)} \<in> TX"
+            using hfi_cont hball_open unfolding top1_continuous_map_on_def by simp
+          have hx0_preimg: "x0 \<in> {x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) (\<epsilon>/3)}"
+            using hx0 hfi_x0_Y hd unfolding top1_ball_on_def top1_metric_on_def using heps3 by fastforce
+          have hpreimg_eq: "\<forall>x \<in> {x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) (\<epsilon>/3)}. d (fi x) (fi x0) < \<epsilon>/3"
+          proof (intro ballI)
+            fix x assume "x \<in> {x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) (\<epsilon>/3)}"
+            then have "d (fi x0) (fi x) < \<epsilon>/3" unfolding top1_ball_on_def by blast
+            have "fi x \<in> Y"
+              using \<open>x \<in> {x \<in> X. fi x \<in> top1_ball_on Y d (fi x0) (\<epsilon>/3)}\<close>
+              unfolding top1_ball_on_def by blast
+            then show "d (fi x) (fi x0) < \<epsilon>/3"
+              using \<open>d (fi x0) (fi x) < \<epsilon>/3\<close> metric_sym[OF hd] hfi_x0_Y by simp
+          qed
+          show "\<exists>Ui\<in>TX. x0 \<in> Ui \<and> (\<forall>x\<in>Ui. d (fi x) (fi x0) < \<epsilon>/3)"
+            using hpreimg hx0_preimg hpreimg_eq by meson
+        qed
         then obtain Ufi where hUfi: "\<forall>fi\<in>Kcov. Ufi fi \<in> TX \<and> x0 \<in> Ufi fi
           \<and> (\<forall>x\<in>Ufi fi. d (fi x) (fi x0) < \<epsilon>/3)"
           by metis
