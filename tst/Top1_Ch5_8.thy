@@ -12755,7 +12755,20 @@ proof -
     show "\<forall>f\<in>closure_on C Tc \<F>. \<forall>x\<in>X. f x \<in> Y" using hclF_vals by blast
   next
     show "\<forall>x0\<in>X. \<forall>\<epsilon>>0. \<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>closure_on C Tc \<F>. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
-      sorry
+    proof (intro ballI)
+      fix x0 assume hx0: "x0 \<in> X"
+      show "\<forall>\<epsilon>>0. \<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>g\<in>closure_on C Tc \<F>. \<forall>x\<in>U. d (g x) (g x0) < \<epsilon>)"
+      proof (intro allI impI)
+      fix \<epsilon> :: real assume heps: "0 < \<epsilon>"
+      have heps3: "0 < \<epsilon>/3" by (simp add: heps)
+      obtain U where hU_TX: "U \<in> TX" and hx0U: "x0 \<in> U"
+        and hU_eq: "\<forall>f\<in>\<F>. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>/3"
+        using assms(5) hx0 heps3 unfolding top1_equicontinuous_family_on_def by blast
+      have hU_sub_X: "U \<subseteq> X" sorry
+      show "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>g\<in>closure_on C Tc \<F>. \<forall>x\<in>U. d (g x) (g x0) < \<epsilon>)"
+        sorry
+      qed
+    qed
   qed
 qed
 
