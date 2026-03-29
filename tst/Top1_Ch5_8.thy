@@ -19308,21 +19308,21 @@ proof -
           by metis
         text \<open>Step 4: U = ∩{Ufi fi | fi ∈ Kcov} ∩ Unbhd.\<close>
         define U where "U = (\<Inter>fi\<in>Kcov. Ufi fi) \<inter> Unbhd"
-        have hUfi_open: "\<forall>fi\<in>Kcov. Ufi fi \<in> TX" using hUfi sorry
+        have hUfi_open: "\<forall>fi\<in>Kcov. Ufi fi \<in> TX" using hUfi by blast
         have hU_TX: "U \<in> TX"
         proof (cases "Kcov = {}")
-          case True then show ?thesis unfolding U_def using hUnbhd_TX sorry
+          case True then show ?thesis unfolding U_def using hUnbhd_TX by force
         next
           case False
           have "(\<Inter>fi\<in>Kcov. Ufi fi) \<in> TX"
             using hKcov_fin False hUfi_open
           proof (induct rule: finite_induct)
-            case empty then show ?case sorry
+            case empty then show ?case by order
           next
             case (insert x F)
             show ?case sorry
           qed
-          then show ?thesis unfolding U_def using hUnbhd_TX topology_inter2[OF hTopX] sorry
+          then show ?thesis unfolding U_def using hUnbhd_TX topology_inter2[OF hTopX] by presburger
         qed
         have hx0_U: "x0 \<in> U"
           unfolding U_def using hUfi hx0_Unbhd hKcov_fin by blast
