@@ -12778,7 +12778,20 @@ proof -
         have hdelta_pos: "0 < \<delta>" unfolding \<delta>_def using heps3 by linarith
         have hdelta_lt1: "\<delta> < 1" unfolding \<delta>_def by linarith
         have hdelta_le_eps3: "\<delta> \<le> \<epsilon>/3" unfolding \<delta>_def by linarith
-        have "\<exists>f\<in>\<F>. du g f < \<delta>" sorry
+        have hball_open: "top1_ball_on C du g \<delta> \<in> Tc"
+          using hTc_is_metric top1_ball_open_in_metric_topology[OF hdu_metric_C hgC hdelta_pos] by fast
+        have hg_self_zero: "du g g = 0"
+          using hdu_metric_C hgC unfolding top1_metric_on_def by blast
+        have hg_in_ball: "g \<in> top1_ball_on C du g \<delta>"
+          unfolding top1_ball_on_def using hgC hg_self_zero hdelta_pos by simp
+        have hint: "intersects (closure_on C Tc \<F>) (top1_ball_on C du g \<delta>)"
+          unfolding intersects_def using hg hg_in_ball by fast
+        have hint2: "intersects \<F> (top1_ball_on C du g \<delta>)"
+          using top1_intersects_closure_on_open_imp_intersects[OF hTopTc hFsub_C2 hball_open hint] by argo
+        then obtain f' where "f' \<in> \<F>" "f' \<in> top1_ball_on C du g \<delta>"
+          unfolding intersects_def by blast
+        then have "\<exists>f\<in>\<F>. du g f < \<delta>"
+          unfolding top1_ball_on_def by blast
         then obtain f where hfF: "f \<in> \<F>" and hclose: "du g f < \<delta>" by blast
         have hfPiE: "f \<in> top1_PiE X (\<lambda>_. Y)" using hfF hFsub_C2 hC_sub_PiE by blast
         have hfx_Y: "f x \<in> Y" using hfPiE hxX unfolding top1_PiE_iff by blast
