@@ -12784,7 +12784,9 @@ proof -
         have hfx_Y: "f x \<in> Y" using hfPiE hxX unfolding top1_PiE_iff by blast
         have hfx0_Y: "f x0 \<in> Y" using hfPiE hx0 unfolding top1_PiE_iff by blast
         text \<open>du symmetric, then pointwise bound: d(f x)(g x) < delta <= eps/3.\<close>
-        have hdu_sym: "du g f = du f g" sorry
+        have hdu_sym: "du g f = du f g"
+          unfolding du_def top1_uniform_metric_on_def top1_bounded_metric_def
+          using metric_sym[OF assms(2)] hgPiE hfPiE unfolding top1_PiE_iff by fastforce
         have hclose_fg: "du f g < \<delta>" using hclose hdu_sym by simp
         have hclose_fg_unf: "top1_uniform_metric_on X d f g < \<delta>"
           using hclose_fg unfolding du_def by argo
