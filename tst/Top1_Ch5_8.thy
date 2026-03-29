@@ -19216,10 +19216,94 @@ proof -
       qed
     next
       show "\<forall>x0\<in>X. \<forall>\<epsilon>>0. \<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>K. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
-        text \<open>ε/3 argument using cc-ball finite cover from compactness.
-          Needs: locally compact → compact neighborhood, cc-ball open in Tcc,
-          K compact → finite subcover, fi continuous → neighborhood, triangle inequality.\<close>
-        sorry
+      proof (intro ballI allI impI)
+        fix x0 and \<epsilon> :: real assume hx0: "x0 \<in> X" and heps: "0 < \<epsilon>"
+        text \<open>Step 1: compact neighborhood A of x0.\<close>
+        have hLocComp: "top1_locally_compact_on X TX" using hLC by presburger
+        have hHausX: "is_hausdorff_on X TX" using hLC by satx
+        obtain Unbhd where hUnbhd_TX: "Unbhd \<in> TX" and hx0_Unbhd: "x0 \<in> Unbhd"
+          and hUnbhd_sub_X: "Unbhd \<subseteq> X"
+          and hclU_comp: "top1_compact_on (closure_on X TX Unbhd) (subspace_topology X TX (closure_on X TX Unbhd))"
+          using hLocComp hx0 unfolding top1_locally_compact_on_def by (meson neighborhood_of_def)
+        define A where "A = closure_on X TX Unbhd"
+        have hAcomp: "top1_compact_on A (subspace_topology X TX A)" using hclU_comp unfolding A_def by satx
+        have hA_sub_X: "A \<subseteq> X" unfolding A_def using closure_on_subset_carrier[OF hTopX] using hUnbhd_sub_X by presburger
+        have hx0A: "x0 \<in> A" unfolding A_def using subset_closure_on hx0_Unbhd by fastforce
+        text \<open>Step 2: define δ = min(ε/3, 1/2) and cover K by cc-balls B_A(fi, δ).\<close>
+        define \<delta> where "\<delta> = min (\<epsilon>/3) (1/2)"
+        have h\<delta>: "0 < \<delta>" unfolding \<delta>_def using heps by linarith
+        have h\<delta>_le_eps3: "\<delta> \<le> \<epsilon>/3" unfolding \<delta>_def by argo
+        have h\<delta>_lt1: "\<delta> < 1" unfolding \<delta>_def by linarith
+        text \<open>Step 2: cc-ball B_A(f, δ) is open in Tcc for each f.\<close>
+        define ccball where "ccball f = {g \<in> ?PiE.
+          (if A = {} then 0 else Sup ((\<lambda>x. top1_bounded_metric d (f x) (g x)) ` A)) < \<delta>}" for f
+        have hccball_basis: "\<forall>f\<in>?PiE. ccball f \<in> top1_compact_convergence_basis_on X TX Y d"
+          unfolding ccball_def top1_compact_convergence_basis_on_def
+          using hAcomp hA_sub_X h\<delta> by blast
+        have hccball_open: "\<forall>f\<in>?PiE. ccball f \<in> ?Tcc"
+          sorry
+        text \<open>Each f ∈ K is in ccball f (since d_bar(f x, f x) = 0 < δ).\<close>
+        have hself_mem: "\<forall>f\<in>K. f \<in> ccball f"
+          sorry
+        text \<open>K compact in Tcc subspace → extract finite subcover.\<close>
+        have hKcover: "K \<subseteq> (\<Union>f\<in>K. ccball f \<inter> K)"
+          using hself_mem by blast
+        obtain Kcov where hKcov_fin: "finite Kcov" and hKcov_sub: "Kcov \<subseteq> K"
+          and hKcov_cov: "K \<subseteq> (\<Union>f\<in>Kcov. ccball f)"
+          sorry
+        text \<open>Step 3: each fi in Kcov continuous at x0 → nbhd Ui with d(fi x, fi x0) < ε/3.\<close>
+        have hKcov_cont: "\<forall>fi\<in>Kcov. fi \<in> ?C" using hKcov_sub hK_sub_C by fast
+        have heps3: "0 < \<epsilon>/3" using heps by simp
+        have "\<forall>fi\<in>Kcov. \<exists>Ui\<in>TX. x0 \<in> Ui \<and> (\<forall>x\<in>Ui. d (fi x) (fi x0) < \<epsilon>/3)"
+          sorry
+        then obtain Ufi where hUfi: "\<forall>fi\<in>Kcov. Ufi fi \<in> TX \<and> x0 \<in> Ufi fi
+          \<and> (\<forall>x\<in>Ufi fi. d (fi x) (fi x0) < \<epsilon>/3)"
+          by metis
+        text \<open>Step 4: U = ∩{Ufi fi | fi ∈ Kcov} ∩ Unbhd.\<close>
+        define U where "U = (\<Inter>fi\<in>Kcov. Ufi fi) \<inter> Unbhd"
+        have hU_TX: "U \<in> TX"
+          sorry
+        have hx0_U: "x0 \<in> U"
+          unfolding U_def using hUfi hx0_Unbhd hKcov_fin by blast
+        have hU_sub_A: "U \<subseteq> A"
+          unfolding U_def A_def using hUnbhd_sub_X sorry
+        text \<open>Triangle inequality: for g ∈ K, x ∈ U, get fi with g ∈ ccball fi.
+          d(g x, g x0) ≤ d(g x, fi x) + d(fi x, fi x0) + d(fi x0, g x0) < δ + ε/3 + δ ≤ ε.\<close>
+        have hEqui_at_x0: "\<forall>g\<in>K. \<forall>x\<in>U. d (g x) (g x0) < \<epsilon>"
+        proof (intro ballI)
+          fix g x assume hg: "g \<in> K" and hx: "x \<in> U"
+          obtain fi where hfi: "fi \<in> Kcov" and hg_ball: "g \<in> ccball fi"
+            using hKcov_cov hg by blast
+          have hxA: "x \<in> A" using hx hU_sub_A by fast
+          have hx0A2: "x0 \<in> A" using hx0A by presburger
+          text \<open>From g ∈ ccball fi: sup over A of d_bar(fi a, g a) < δ.
+            Since x ∈ A: d_bar(fi x, g x) < δ. Since δ < 1: d(fi x, g x) < δ.
+            Similarly d(fi x0, g x0) < δ.\<close>
+          have hd_fix_gx: "d (fi x) (g x) < \<delta>" sorry
+          have hd_fix0_gx0: "d (fi x0) (g x0) < \<delta>" sorry
+          text \<open>From fi continuous: d(fi x, fi x0) < ε/3.\<close>
+          have hxUfi: "x \<in> Ufi fi" using hx hfi unfolding U_def by fast
+          have hd_fix_fix0: "d (fi x) (fi x0) < \<epsilon>/3" using hUfi hfi hxUfi by blast
+          text \<open>Symmetry + triangle.\<close>
+          have hxX: "x \<in> X" using hx hU_sub_A hA_sub_X by fast
+          have "g \<in> ?PiE" using hg hK_sub_PiE by blast
+          then have hgx_Y: "g x \<in> Y" using hxX unfolding top1_PiE_iff by blast
+          have hgx0_Y: "g x0 \<in> Y" using \<open>g \<in> ?PiE\<close> hx0 unfolding top1_PiE_iff by blast
+          have "fi \<in> ?PiE" using hfi hKcov_sub hK_sub_PiE by fast
+          then have hfix_Y: "fi x \<in> Y" using hxX unfolding top1_PiE_iff by fastforce
+          have hfix0_Y: "fi x0 \<in> Y" using \<open>fi \<in> ?PiE\<close> hx0 unfolding top1_PiE_iff by blast
+          have htri1: "d (g x) (g x0) \<le> d (g x) (fi x) + d (fi x) (g x0)"
+            using hd hgx_Y hfix_Y hgx0_Y unfolding top1_metric_on_def by blast
+          have htri2: "d (fi x) (g x0) \<le> d (fi x) (fi x0) + d (fi x0) (g x0)"
+            using hd hfix_Y hfix0_Y hgx0_Y unfolding top1_metric_on_def by blast
+          have hdsym1: "d (g x) (fi x) = d (fi x) (g x)"
+            using hd hgx_Y hfix_Y unfolding top1_metric_on_def by blast
+          show "d (g x) (g x0) < \<epsilon>"
+            using htri1 htri2 hdsym1 hd_fix_gx hd_fix0_gx0 hd_fix_fix0 h\<delta>_le_eps3 by linarith
+        qed
+        show "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>f\<in>K. \<forall>x\<in>U. d (f x) (f x0) < \<epsilon>)"
+          using hU_TX hx0_U hEqui_at_x0 by blast
+      qed
     qed
     show "top1_equicontinuous_family_on X TX Y d K
         \<and> (\<forall>a\<in>X. top1_compact_on
