@@ -12864,7 +12864,36 @@ proof -
       unfolding top1_metric_bounded_subset_on_def by fast
     show "top1_metric_bounded_subset_on Y d ((\<lambda>f. f a) ` closure_on C Tc \<F>)"
       unfolding top1_metric_bounded_subset_on_def
-      sorry
+    proof (rule bexI[of _ y0], rule exI[of _ "M + 1"], intro ballI)
+      fix y assume "y \<in> (\<lambda>f. f a) ` closure_on C Tc \<F>"
+      then obtain g where hg: "g \<in> closure_on C Tc \<F>" "y = g a" by blast
+      have hgC: "g \<in> C" using hclF_sub_C hg(1) by blast
+      have hball_open: "top1_ball_on C du g (1/2) \<in> Tc"
+        using hTc_is_metric top1_ball_open_in_metric_topology[OF hdu_metric_C hgC] by simp
+      have hg_self: "du g g = 0" using hdu_metric_C hgC unfolding top1_metric_on_def by blast
+      have hg_in_ball: "g \<in> top1_ball_on C du g (1/2)"
+        unfolding top1_ball_on_def using hgC hg_self by simp
+      have hint: "intersects (closure_on C Tc \<F>) (top1_ball_on C du g (1/2))"
+        unfolding intersects_def using hg(1) hg_in_ball by fast
+      have "intersects \<F> (top1_ball_on C du g (1/2))"
+        using top1_intersects_closure_on_open_imp_intersects[OF hTopTc hFsub_C2 hball_open hint] by argo
+      then obtain f where hfF: "f \<in> \<F>" and hf_ball: "f \<in> top1_ball_on C du g (1/2)"
+        unfolding intersects_def by blast
+      have hdu_gf: "du g f < 1/2" using hf_ball unfolding top1_ball_on_def sorry
+      have hdu_fg: "du f g < 1/2" sorry
+      have hd_fa_ga: "d (f a) (g a) < 1" sorry
+      have hfa_bdd: "d y0 (f a) \<le> M" using hM hfF by blast
+      have hfPiE: "f \<in> ?PiE" using hfF hFsub_C2 hC_sub_PiE by blast
+      have hgPiE: "g \<in> ?PiE" using hgC hC_sub_PiE by blast
+      have hfa_Y: "f a \<in> Y" using hfPiE ha unfolding top1_PiE_iff by blast
+      have hga_Y: "g a \<in> Y" using hgPiE ha unfolding top1_PiE_iff by blast
+      have htri_gen: "\<forall>a\<in>Y. \<forall>b\<in>Y. \<forall>c\<in>Y. d a c \<le> d a b + d b c"
+        using assms(2) unfolding top1_metric_on_def by argo
+      have "d y0 (g a) \<le> d y0 (f a) + d (f a) (g a)" using htri_gen hy0 hfa_Y hga_Y by blast
+      then show "d y0 y \<le> M + 1" using hfa_bdd hd_fa_ga hg(2) sorry
+    next
+      show "y0 \<in> Y" using hy0 by blast
+    qed
   qed
 qed
 
