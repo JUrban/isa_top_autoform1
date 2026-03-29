@@ -12781,15 +12781,17 @@ proof -
         have "\<exists>f\<in>\<F>. du g f < \<delta>" sorry
         then obtain f where hfF: "f \<in> \<F>" and hclose: "du g f < \<delta>" by blast
         have hfPiE: "f \<in> top1_PiE X (\<lambda>_. Y)" using hfF hFsub_C2 hC_sub_PiE by blast
-        have hfx_Y: "f x \<in> Y" sorry
-        have hfx0_Y: "f x0 \<in> Y" sorry
+        have hfx_Y: "f x \<in> Y" using hfPiE hxX unfolding top1_PiE_iff sorry
+        have hfx0_Y: "f x0 \<in> Y" using hfPiE hx0 unfolding top1_PiE_iff sorry
         text \<open>du symmetric, then pointwise bound: d(f x)(g x) < delta <= eps/3.\<close>
         have hdu_sym: "du g f = du f g" sorry
         have hclose_fg: "du f g < \<delta>" using hclose hdu_sym sorry
-        have hfx_gx: "d (f x) (g x) < \<epsilon>/3"
+        have hfx_gx_d: "d (f x) (g x) < \<delta>"
           sorry
-        have hfx0_gx0: "d (f x0) (g x0) < \<epsilon>/3"
+        have hfx_gx: "d (f x) (g x) < \<epsilon>/3" using hfx_gx_d hdelta_le_eps3 by linarith
+        have hfx0_gx0_d: "d (f x0) (g x0) < \<delta>"
           sorry
+        have hfx0_gx0: "d (f x0) (g x0) < \<epsilon>/3" using hfx0_gx0_d hdelta_le_eps3 by linarith
         have hfx_fx0: "d (f x) (f x0) < \<epsilon>/3" using hU_eq hfF hx by blast
         text \<open>Symmetry + triangle.\<close>
         have hgx_fx: "d (g x) (f x) < \<epsilon>/3"
@@ -12799,7 +12801,7 @@ proof -
         have htri2: "d (f x) (g x0) \<le> d (f x) (f x0) + d (f x0) (g x0)"
           sorry
         show "d (g x) (g x0) < \<epsilon>"
-          using htri1 htri2 hgx_fx hfx0_gx0 hfx_fx0 sorry
+          using htri1 htri2 hgx_fx hfx0_gx0 hfx_fx0 by linarith
       qed
       then show "\<exists>U\<in>TX. x0 \<in> U \<and> (\<forall>g\<in>closure_on C Tc \<F>. \<forall>x\<in>U. d (g x) (g x0) < \<epsilon>)"
         using hU_TX hx0U by blast
