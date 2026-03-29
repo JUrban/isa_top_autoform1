@@ -19271,9 +19271,31 @@ proof -
         text \<open>K compact in Tcc subspace → extract finite subcover.\<close>
         have hKcover: "K \<subseteq> (\<Union>f\<in>K. ccball f \<inter> K)"
           using hself_mem by blast
-        obtain Kcov where hKcov_fin: "finite Kcov" and hKcov_sub: "Kcov \<subseteq> K"
-          and hKcov_cov: "K \<subseteq> (\<Union>f\<in>Kcov. ccball f)"
-          sorry
+        text \<open>ccball f ∩ K is open in subspace_topology PiE Tcc K for f ∈ K.\<close>
+        have hccK_open: "\<forall>f\<in>K. ccball f \<inter> K \<in> subspace_topology ?PiE ?Tcc K"
+          unfolding subspace_topology_def using hccball_open hK_sub_PiE by blast
+        text \<open>This forms a cover of K. By compactness, extract finite subcover.\<close>
+        define Uc where "Uc = (\<lambda>f. ccball f \<inter> K) ` K"
+        have hUc_sub: "Uc \<subseteq> subspace_topology ?PiE ?Tcc K" unfolding Uc_def using hccK_open by fastforce
+        have hUc_cov: "K \<subseteq> \<Union>Uc" unfolding Uc_def using hself_mem by blast
+        obtain Fsets where hFfin: "finite Fsets" and hFsub: "Fsets \<subseteq> Uc" and hFcov: "K \<subseteq> \<Union>Fsets"
+          using hKcomp_cc hUc_sub hUc_cov unfolding top1_compact_on_def by meson
+        text \<open>Each F ∈ Fsets is ccball fi ∩ K for some fi. Pick one per element.\<close>
+        have hFsets_form: "\<forall>F \<in> Fsets. \<exists>fi \<in> K. F = ccball fi \<inter> K"
+          using hFsub unfolding Uc_def by fast
+        then obtain idx where hidx: "\<forall>F \<in> Fsets. idx F \<in> K \<and> F = ccball (idx F) \<inter> K" by (metis hFsets_form)
+        define Kcov where "Kcov = idx ` Fsets"
+        have hKcov_fin: "finite Kcov" unfolding Kcov_def using hFfin by fast
+        have hKcov_sub: "Kcov \<subseteq> K" unfolding Kcov_def using hidx by blast
+        have hKcov_cov: "K \<subseteq> (\<Union>f\<in>Kcov. ccball f)"
+        proof (rule subsetI)
+          fix g assume "g \<in> K"
+          then obtain F where hF: "F \<in> Fsets" and hgF: "g \<in> F" using hFcov by blast
+          then have "F = ccball (idx F) \<inter> K" using hidx by simp
+          then have "g \<in> ccball (idx F)" using hgF by blast
+          moreover have "idx F \<in> Kcov" unfolding Kcov_def using hF by blast
+          ultimately show "g \<in> (\<Union>f\<in>Kcov. ccball f)" by fast
+        qed
         text \<open>Step 3: each fi in Kcov continuous at x0 → nbhd Ui with d(fi x, fi x0) < ε/3.\<close>
         have hKcov_cont: "\<forall>fi\<in>Kcov. fi \<in> ?C" using hKcov_sub hK_sub_C by fast
         have heps3: "0 < \<epsilon>/3" using heps by simp
