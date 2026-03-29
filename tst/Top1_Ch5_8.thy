@@ -12795,11 +12795,13 @@ proof -
         have hfx_fx0: "d (f x) (f x0) < \<epsilon>/3" using hU_eq hfF hx by blast
         text \<open>Symmetry + triangle.\<close>
         have hgx_fx: "d (g x) (f x) < \<epsilon>/3"
-          using hfx_gx metric_sym[OF assms(2) hfx_Y hgx_Y] sorry
+          using hfx_gx metric_sym[OF assms(2) hfx_Y hgx_Y] by simp
+        have htri_gen: "\<forall>a\<in>Y. \<forall>b\<in>Y. \<forall>c\<in>Y. d a c \<le> d a b + d b c"
+          using assms(2) unfolding top1_metric_on_def by argo
         have htri1: "d (g x) (g x0) \<le> d (g x) (f x) + d (f x) (g x0)"
-          sorry
+          using htri_gen hgx_Y hfx_Y hgx0_Y by blast
         have htri2: "d (f x) (g x0) \<le> d (f x) (f x0) + d (f x0) (g x0)"
-          sorry
+          using htri_gen hfx_Y hfx0_Y hgx0_Y by blast
         show "d (g x) (g x0) < \<epsilon>"
           using htri1 htri2 hgx_fx hfx0_gx0 hfx_fx0 by linarith
       qed
