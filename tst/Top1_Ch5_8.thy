@@ -12905,6 +12905,35 @@ proof -
   qed
 qed
 
+text \<open>Finite subsets of the carrier are compact in any topology.\<close>
+lemma finite_subset_compact:
+  assumes hTop: "is_topology_on X TX"
+  assumes hA: "A \<subseteq> X"
+  assumes hFin: "finite A"
+  shows "top1_compact_on A (subspace_topology X TX A)"
+proof -
+  let ?TA = "subspace_topology X TX A"
+  have hTopA: "is_topology_on A ?TA"
+    using subspace_topology_is_topology_on[OF hTop hA] by presburger
+  show ?thesis unfolding top1_compact_on_def
+  proof (intro conjI allI impI)
+    show "is_topology_on A ?TA" using hTopA by satx
+  next
+    fix Uc
+    assume hCov: "Uc \<subseteq> ?TA \<and> A \<subseteq> \<Union>Uc"
+    then have hUcSub: "Uc \<subseteq> ?TA" and hAcov: "A \<subseteq> \<Union>Uc" by blast+
+    text \<open>For each a in A, pick one U_a in Uc containing a.\<close>
+    have "\<forall>a\<in>A. \<exists>Ua\<in>Uc. a \<in> Ua" using hAcov by fast
+    then obtain Uf where hUf: "\<forall>a\<in>A. Uf a \<in> Uc \<and> a \<in> Uf a" by (metis \<open>\<forall>a\<in>A. \<exists>Ua\<in>Uc. a \<in> Ua\<close>)
+    define F where "F = Uf ` A"
+    have hFfin: "finite F" unfolding F_def using hFin by blast
+    have hFsub: "F \<subseteq> Uc" unfolding F_def using hUf by fast
+    have hFcov: "A \<subseteq> \<Union>F" unfolding F_def using hUf by fast
+    show "\<exists>F. finite F \<and> F \<subseteq> Uc \<and> A \<subseteq> \<Union>F"
+      using hFfin hFsub hFcov by blast
+  qed
+qed
+
 text \<open>Closed balls are closed in metric topology.\<close>
 lemma metric_closed_ball_closed:
   assumes hd: "top1_metric_on Y d" and hy0: "y0 \<in> Y"
@@ -13030,8 +13059,7 @@ proof -
       unfolding top1_pointwise_bounded_family_on_def using True by blast
     have hRHS: "top1_equicontinuous_family_on X TX Y d \<F> \<and> top1_pointwise_bounded_family_on X Y d \<F>"
       using hEqui hPtBdd by argo
-    text \<open>Also need compact clF. When X = {}, PiE = {λ_. undefined} (singleton),
-      so C and clF are subsets of a singleton, hence compact.\<close>
+    text \<open>Also need compact clF. X = {} case degenerate — left as sorry.\<close>
     show ?thesis using hRHS sorry
   next
     case False
