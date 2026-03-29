@@ -12720,6 +12720,26 @@ lemma continuous_funcs_eq_maps_metric:
   "top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d) = top1_continuous_maps_metric_on X TX Y d"
   by (simp add: top1_continuous_funcs_on_def top1_continuous_maps_metric_on_def)
 
+lemma closure_equicontinuous:
+  assumes "is_topology_on X TX" "top1_metric_on Y d" "X \<noteq> {}"
+  assumes "\<F> \<subseteq> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
+  assumes "top1_equicontinuous_family_on X TX Y d \<F>"
+  defines "C \<equiv> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
+  defines "du \<equiv> top1_uniform_metric_on X d"
+  defines "Tc \<equiv> subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) du) C"
+  shows "top1_equicontinuous_family_on X TX Y d (closure_on C Tc \<F>)"
+  sorry
+
+lemma closure_pointwise_bounded:
+  assumes "is_topology_on X TX" "top1_metric_on Y d" "X \<noteq> {}"
+  assumes "\<F> \<subseteq> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
+  assumes "top1_pointwise_bounded_family_on X Y d \<F>"
+  defines "C \<equiv> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
+  defines "du \<equiv> top1_uniform_metric_on X d"
+  defines "Tc \<equiv> subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_metric_topology_on (top1_PiE X (\<lambda>_. Y)) du) C"
+  shows "top1_pointwise_bounded_family_on X Y d (closure_on C Tc \<F>)"
+  sorry
+
 (** from \S45 Theorem 45.4 (Ascoli's theorem, classical version) [top1.tex:6655] **)
 theorem Theorem_45_4:
   assumes hCompX: "top1_compact_on X TX"
@@ -12833,9 +12853,9 @@ proof -
         using closed_subset_complete[OF hdu_metric_C hC_complete hclF_closed_metric] by blast
       text \<open>Step 2: clF equicontinuous + pointwise bounded.\<close>
       have hclF_equi2: "top1_equicontinuous_family_on X TX Y d ?clF"
-        sorry
+        using closure_equicontinuous[OF hTopX hd False hFsub_C] hEqPB hC_eq by blast
       have hclF_ptbdd2: "top1_pointwise_bounded_family_on X Y d ?clF"
-        sorry
+        using closure_pointwise_bounded[OF hTopX hd False hFsub_C] hEqPB hC_eq by blast
       text \<open>Step 3: Find compact Y' containing all values of functions in clF.\<close>
       obtain Y' where hY'sub: "Y' \<subseteq> Y"
         and hY'comp: "top1_compact_on Y' (subspace_topology Y ?TY Y')"
