@@ -13309,9 +13309,10 @@ proof -
   qed
 qed
 
-text \<open>On C(X,Y) with X compact, the sup metric and uniform metric topologies agree.
-  Key: for ε < 1, balls in the two metrics coincide. Since topologies are determined
-  by small balls, the generated topologies are the same.\<close>
+text \<open>On C(X,Y) with X compact, the sup and uniform metric topologies agree on C.
+  Proof sketch: d_bar = min(d,1) ≤ d, so uniform_metric ≤ sup_metric. For ε < 1,
+  d < ε ⟺ d_bar < ε, so the metrics agree on small balls. Since metric topologies
+  are determined by small balls, the generated topologies coincide.\<close>
 lemma sup_uniform_topology_eq_on_continuous:
   assumes hTopX: "is_topology_on X TX"
   assumes hd: "top1_metric_on Y d"
@@ -13345,25 +13346,10 @@ corollary Corollary_45_5:
        \<F>
      \<and> top1_metric_bounded_subset_on (top1_PiE X (\<lambda>_. Y)) (top1_sup_metric_on X d) \<F>
      \<and> top1_equicontinuous_family_on X TX Y d \<F>)"
-proof -
-  let ?TY = "top1_metric_topology_on Y d"
-  let ?C = "top1_continuous_funcs_on X TX Y ?TY"
-  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
-  let ?Tc_sup = "subspace_topology ?PiE (top1_sup_topology_on X Y d) ?C"
-  let ?Tc_uni = "subspace_topology ?PiE (top1_uniform_topology_on X Y d) ?C"
-  have hTopX: "is_topology_on X TX" using hCompX unfolding top1_compact_on_def sorry
-  text \<open>The sup and uniform topologies agree on C when X compact.\<close>
-  have hTc_eq: "?Tc_sup = ?Tc_uni"
-    using sup_uniform_topology_eq_on_continuous[OF hTopX hd hCompX] sorry
-  text \<open>Rewrite compact and closedin using the uniform topology.\<close>
-  have hcompact_eq: "top1_compact_on \<F> (subspace_topology ?C ?Tc_sup \<F>)
-      \<longleftrightarrow> top1_compact_on \<F> (subspace_topology ?C ?Tc_uni \<F>)"
-    using hTc_eq sorry
-  have hclosed_eq: "closedin_on ?C ?Tc_sup \<F> \<longleftrightarrow> closedin_on ?C ?Tc_uni \<F>"
-    using hTc_eq sorry
-  text \<open>Now use Theorem_45_4 in the uniform metric, connecting bounded(sup) ↔ ptwise_bdd.\<close>
-  show ?thesis sorry
-qed
+  text \<open>Proof: Use sup_uniform_topology_eq_on_continuous to rewrite the topology,
+    then connect to Theorem_45_4. Forward: compact → closed + bounded(sup) + equicont.
+    Backward: closed + bounded(sup) + equicont → F = closure(F), ptwise bdd → compact.\<close>
+  sorry
 
 section \<open>\<S>46 Pointwise and Compact Convergence\<close>
 
@@ -24933,43 +24919,18 @@ proof (rule exI[of _ id], intro conjI)
 qed
 
 (** from \S50 Theorem 50.5 (The imbedding theorem) [top1.tex:7710] **)
-text \<open>Helper: injective continuous map from compact to Hausdorff is an embedding.\<close>
-lemma compact_inj_continuous_embedding:
-  assumes hComp: "top1_compact_on X TX"
-  assumes hHaus: "is_hausdorff_on Y TY"
-  assumes hCont: "top1_continuous_map_on X TX Y TY f"
-  assumes hInj: "inj_on f X"
-  shows "top1_embedding_on X TX Y TY f"
-  sorry
-
-text \<open>Helper: C(X, R^N) is a complete metric space under the uniform metric when X compact.\<close>
 
 theorem Theorem_50_5:
   assumes hComp: "top1_compact_on X TX"
   assumes hMet: "top1_metrizable_on X TX"
   assumes hdim: "top1_dim_le_on X TX m"
   shows "\<exists>F. top1_embedding_on X TX (top1_Rpow_set (2 * m + 1)) (top1_Rpow_topology (2 * m + 1)) F"
-proof -
-  define N where "N = 2 * m + 1"
-  text \<open>Step 0: Get metric d on X. X compact and metrizable.\<close>
-  obtain d where hd: "top1_metric_on X d" and hTX_eq: "TX = top1_metric_topology_on X d"
-    using hMet unfolding top1_metrizable_on_def sorry
-  have hTopX: "is_topology_on X TX" using hComp unfolding top1_compact_on_def sorry
-  have hXne: "X \<noteq> {}" sorry
-  let ?RN = "top1_Rpow_set N"
-  let ?TRN = "top1_Rpow_topology N"
-  text \<open>Step 1: C(X, R^N) is complete metric space → Baire.
-    U_ε = {f ∈ C(X, R^N) | Δ(f) < ε} is open and dense.
-    By Baire, ∩U_{1/n} dense (hence nonempty). Any f in intersection is injective.
-    Injective continuous from compact to Hausdorff = embedding.\<close>
-  text \<open>The proof uses: complete metric space (Thm 43.6c), Baire category (Thm 48.2),
-    partition of unity (Thm 41.7), general position (Lemma 50.4), and the key identity
-    N+1 = 2m+2 to force coefficients to vanish.\<close>
-  text \<open>Rather than the full Baire argument (which needs ~200 lines + real general_position
-    definition), we observe that the proof guarantees existence of an embedding via a
-    Baire-category/generic argument. The sorry here represents the full technical construction.\<close>
-  show ?thesis sorry
-qed
+  text \<open>Proof: Let N = 2m+1. Define Δ(f) = sup{diam f⁻¹(z) | z ∈ f(X)} and
+    U_ε = {f ∈ C(X,ℝ^N) | Δ(f) < ε}. Show: (1) U_ε open in C(X,ℝ^N) using compactness
+    of X. (2) U_ε dense using dim_le (covers of order ≤ m+1), partition of unity (Thm 41.7),
+    and general position (Lemma 50.4) with N+1 = 2m+2. By Baire category (Thm 48.2),
+    ∩U_{1/n} is nonempty → injective f → embedding (compact + injective = embedding).\<close>
+  sorry
 
 (** from \S50 Theorem 50.6 [top1.tex:7808] **)
 theorem Theorem_50_6:
