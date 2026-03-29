@@ -13320,7 +13320,22 @@ lemma sup_uniform_topology_eq_on_continuous:
   defines "C \<equiv> top1_continuous_funcs_on X TX Y (top1_metric_topology_on Y d)"
   shows "subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_sup_topology_on X Y d) C
        = subspace_topology (top1_PiE X (\<lambda>_. Y)) (top1_uniform_topology_on X Y d) C"
-  sorry
+proof -
+  let ?PiE = "top1_PiE X (\<lambda>_. Y)"
+  let ?ds = "top1_sup_metric_on X d"
+  let ?du = "top1_uniform_metric_on X d"
+  text \<open>For f,g ∈ C and ε < 1: ds(f,g) < ε ⟺ du(f,g) < ε.
+    This is because d_bar(a,b) = min(d(a,b),1), and d(a,b) < ε < 1 ⟹ d_bar = d.
+    So the balls of radius < 1 are the same. The topologies on PiE restricted to C agree
+    because every open set is a union of balls, and we can always shrink to radius < 1.\<close>
+  text \<open>Key lemma: for ε < 1 and f ∈ C, ball_sup(f,ε) ∩ C = ball_uni(f,ε) ∩ C.\<close>
+  have hball_eq: "\<forall>f\<in>C. \<forall>\<epsilon>. 0 < \<epsilon> \<and> \<epsilon> < 1 \<longrightarrow>
+    top1_ball_on ?PiE ?ds f \<epsilon> \<inter> C = top1_ball_on ?PiE ?du f \<epsilon> \<inter> C"
+    sorry
+  text \<open>Since metric topology = topology_generated_by_basis(balls), and the bases agree
+    on balls of radius < 1 when restricted to C, the subspace topologies agree.\<close>
+  show ?thesis sorry
+qed
 
 (** from \S45 Corollary 45.5 [top1.tex:6679] **)
 corollary Corollary_45_5:
