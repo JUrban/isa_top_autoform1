@@ -19342,7 +19342,19 @@ proof -
             case empty then show ?case by order
           next
             case (insert x F)
-            show ?case sorry
+            show ?case
+            proof (cases "F = {}")
+              case True
+              then have "(\<Inter>fi\<in>insert x F. Ufi fi) = Ufi x" by blast
+              moreover have "Ufi x \<in> TX" using insert.prems by simp
+              ultimately show ?thesis by presburger
+            next
+              case False
+              have "(\<Inter>fi\<in>insert x F. Ufi fi) = Ufi x \<inter> (\<Inter>fi\<in>F. Ufi fi)" by simp
+              moreover have "Ufi x \<in> TX" using insert.prems by force
+              moreover have "(\<Inter>fi\<in>F. Ufi fi) \<in> TX" using insert using False by blast
+              ultimately show ?thesis using topology_inter2[OF hTopX] by presburger
+            qed
           qed
           then show ?thesis unfolding U_def using hUnbhd_TX topology_inter2[OF hTopX] by presburger
         qed
@@ -19366,8 +19378,25 @@ proof -
           text \<open>From g ∈ ccball fi: sup over A of d_bar(fi a, g a) < δ.
             Since x ∈ A: d_bar(fi x, g x) < δ. Since δ < 1: d(fi x, g x) < δ.
             Similarly d(fi x0, g x0) < δ.\<close>
-          have hd_fix_gx: "d (fi x) (g x) < \<delta>" sorry
-          have hd_fix0_gx0: "d (fi x0) (g x0) < \<delta>" sorry
+          text \<open>g ∈ ccball fi gives Sup over A < δ. Since x ∈ A, d_bar(fi x, g x) ≤ Sup < δ < 1,
+            so d(fi x, g x) < δ. Same for x0.\<close>
+          have hg_ccball_unf: "(if A = {} then 0 else Sup ((\<lambda>a. top1_bounded_metric d (fi a) (g a)) ` A)) < \<delta>"
+            using hg_ball unfolding ccball_def by blast
+          have hA_ne: "A \<noteq> {}" using hx0A by blast
+          have hSup_bound: "Sup ((\<lambda>a. top1_bounded_metric d (fi a) (g a)) ` A) < \<delta>"
+            using hg_ccball_unf hA_ne by simp
+          have hdb_le1: "\<forall>a. top1_bounded_metric d (fi a) (g a) \<le> 1"
+            unfolding top1_bounded_metric_def by simp
+          have hbdd_above: "bdd_above ((\<lambda>a. top1_bounded_metric d (fi a) (g a)) ` A)"
+            using hdb_le1 by fast
+          have hdb_x_lt: "top1_bounded_metric d (fi x) (g x) < \<delta>"
+            using cSup_upper[OF _ hbdd_above] hSup_bound hxA by (meson image_iff order_le_less_trans)
+          have hd_fix_gx: "d (fi x) (g x) < \<delta>"
+            using bounded_metric_lt_imp_d_lt[OF hdb_x_lt h\<delta>_lt1] by presburger
+          have hdb_x0_lt: "top1_bounded_metric d (fi x0) (g x0) < \<delta>"
+            using cSup_upper[OF _ hbdd_above] hSup_bound hx0A2 by fastforce
+          have hd_fix0_gx0: "d (fi x0) (g x0) < \<delta>"
+            using bounded_metric_lt_imp_d_lt[OF hdb_x0_lt h\<delta>_lt1] by presburger
           text \<open>From fi continuous: d(fi x, fi x0) < ε/3.\<close>
           have hxUfi: "x \<in> Ufi fi" using hx hfi unfolding U_def by fast
           have hd_fix_fix0: "d (fi x) (fi x0) < \<epsilon>/3" using hUfi hfi hxUfi by blast
