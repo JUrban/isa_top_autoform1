@@ -19046,8 +19046,8 @@ proof -
     have hK_sub_C: "K \<subseteq> ?C"
     proof -
       have "is_topology_on K (subspace_topology ?C (subspace_topology ?PiE ?Tcc ?C) K)"
-        using hKcomp unfolding top1_compact_on_def sorry
-      then show ?thesis unfolding is_topology_on_def subspace_topology_def sorry
+        using hKcomp unfolding top1_compact_on_def by blast
+      then show ?thesis unfolding is_topology_on_def subspace_topology_def by auto
     qed
     have hK_sub_PiE: "K \<subseteq> ?PiE" using hK_sub_C hC_sub_PiE by order
     have hKcomp_cc: "top1_compact_on K (subspace_topology ?PiE ?Tcc K)"
@@ -19072,7 +19072,13 @@ proof -
       have hKa_closed: "closedin_on Y ?TY ((\<lambda>f. f a) ` K)"
         using Theorem_26_3[OF hYhaus hKa_sub_Y hKa_compact] by presburger
       have hcl_eq: "closure_on Y ?TY ((\<lambda>f. f a) ` K) = (\<lambda>f. f a) ` K"
-        sorry
+      proof -
+        have "closure_on Y ?TY ((\<lambda>f. f a) ` K) \<subseteq> (\<lambda>f. f a) ` K"
+          by (rule closure_on_subset_of_closed[OF hKa_closed subset_refl])
+        moreover have "(\<lambda>f. f a) ` K \<subseteq> closure_on Y ?TY ((\<lambda>f. f a) ` K)"
+          by (rule subset_closure_on)
+        ultimately show ?thesis by blast
+      qed
       show "top1_compact_on (closure_on Y ?TY ((\<lambda>f. f a) ` K)) (subspace_topology Y ?TY (closure_on Y ?TY ((\<lambda>f. f a) ` K)))"
         using hcl_eq hKa_compact by argo
     qed
